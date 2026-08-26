@@ -52,7 +52,8 @@ make test
 uv run python scripts/evaluate.py
 ```
 
-PyTorch support is intentionally optional in Phase 0:
+PyTorch support is optional and required only for local model runners and the
+Stage 2 frozen event probe:
 
 ```bash
 uv sync --extra dev --extra torch
@@ -73,7 +74,7 @@ No model checkpoints are downloaded by installation.
 - `data/fixtures/semantic_conflict/` — synthetic APS/harness wiring fixtures
 - `data/provenance/` — dataset licence and provenance ledgers
 - `research/` — experiment registry, baseline gate, error analysis, and paper work
-- `scripts/` — explicit stage-gated entry-point stubs
+- `scripts/` — explicit stage-gated entry points, including the frozen event probe
 
 Notebooks may be used for exploration only. They are not the training pipeline.
 Training and evaluation work belongs in importable `src/attune/` modules with

@@ -157,6 +157,10 @@ Baseline B replaces the SenseVoice stub event path with SenseVoice-Small's
 off-the-shelf rich-transcription/AED tags. It performs no training or
 fine-tuning. Known tags are conservatively mapped to the existing event
 ontology, and SenseVoice events/styles are retained by the SenseVoice cascade.
+The official off-the-shelf AED inventory covers laughter, crying, coughing,
+sneezing, and breath, plus non-Attune BGM and applause. It does **not** cover
+`sigh` or `throat_clear`. The parser accepts those names as forward-compatible
+ontology aliases, but that does not make them outputs of the released model.
 Because these tags do not provide frame boundaries, predictions are provisional
 whole-clip spans with confidence `0.0` when no score is exposed. Events remain
 **utterance-level, not localized**; the temporal IoU and position-aware results
@@ -216,7 +220,9 @@ runtime, and privacy-safe examples are in
 - `1001_IEO_SAD_HI.wav`: emotion2vec+ predicted `joy` against the weak acted
   `distress` source label.
 - SenseVoice detected 37 of 80 weak event references. It detected no `sigh` or
-  `throat_clear` references, while `cough` precision of 0.4815 indicates
+  `throat_clear` references because neither class exists in the released
+  SenseVoice AED inventory. Their F1 of 0 is an expected model-coverage gap,
+  not evidence of a parser defect. `cough` precision of 0.4815 indicates
   additional utterance-level cough predictions outside the weak cough class.
 
 No raw audio is included in these notes or in the Git diff.
