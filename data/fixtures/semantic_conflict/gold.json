@@ -1,0 +1,548 @@
+{
+  "neutral_words_joy_delivery": {
+    "schema_version": "1.0",
+    "model": {
+      "name": "synthetic-fixture-gold",
+      "version": "phase-1",
+      "quantization": null
+    },
+    "audio": {
+      "duration_ms": 500,
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "quality": {
+        "clipping": 0.0,
+        "low_snr": 0.0,
+        "far_field": 0.0
+      }
+    },
+    "language": {
+      "label": "en",
+      "confidence": 0.5
+    },
+    "transcript": {
+      "text": "The package arrived today",
+      "confidence": 0.5,
+      "words": [
+        {
+          "start_ms": 0,
+          "end_ms": 125,
+          "id": "w1",
+          "text": "The",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 125,
+          "end_ms": 250,
+          "id": "w2",
+          "text": "package",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 250,
+          "end_ms": 375,
+          "id": "w3",
+          "text": "arrived",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 375,
+          "end_ms": 500,
+          "id": "w4",
+          "text": "today",
+          "confidence": 0.5
+        }
+      ]
+    },
+    "styles": [],
+    "events": [],
+    "affect": {
+      "start_ms": 0,
+      "end_ms": 500,
+      "valence": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "arousal": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "dominance": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "categories": {
+        "neutral": 0.02,
+        "joy": 0.86,
+        "distress": 0.02,
+        "anger": 0.02,
+        "fear": 0.02,
+        "surprise": 0.02,
+        "other": 0.02,
+        "ambiguous": 0.02
+      },
+      "top_label": "joy",
+      "top_label_confidence": 0.86,
+      "abstain": false
+    },
+    "uncertainty": {
+      "out_of_distribution_probability": 0.5,
+      "interpretation_warning": "Vocal affect is a probabilistic perception, not a verified internal state."
+    }
+  },
+  "neutral_words_anger_delivery": {
+    "schema_version": "1.0",
+    "model": {
+      "name": "synthetic-fixture-gold",
+      "version": "phase-1",
+      "quantization": null
+    },
+    "audio": {
+      "duration_ms": 500,
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "quality": {
+        "clipping": 0.0,
+        "low_snr": 0.0,
+        "far_field": 0.0
+      }
+    },
+    "language": {
+      "label": "en",
+      "confidence": 0.5
+    },
+    "transcript": {
+      "text": "The package arrived today",
+      "confidence": 0.5,
+      "words": [
+        {
+          "start_ms": 0,
+          "end_ms": 125,
+          "id": "w1",
+          "text": "The",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 125,
+          "end_ms": 250,
+          "id": "w2",
+          "text": "package",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 250,
+          "end_ms": 375,
+          "id": "w3",
+          "text": "arrived",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 375,
+          "end_ms": 500,
+          "id": "w4",
+          "text": "today",
+          "confidence": 0.5
+        }
+      ]
+    },
+    "styles": [],
+    "events": [],
+    "affect": {
+      "start_ms": 0,
+      "end_ms": 500,
+      "valence": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "arousal": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "dominance": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "categories": {
+        "neutral": 0.02,
+        "joy": 0.02,
+        "distress": 0.02,
+        "anger": 0.86,
+        "fear": 0.02,
+        "surprise": 0.02,
+        "other": 0.02,
+        "ambiguous": 0.02
+      },
+      "top_label": "anger",
+      "top_label_confidence": 0.86,
+      "abstain": false
+    },
+    "uncertainty": {
+      "out_of_distribution_probability": 0.5,
+      "interpretation_warning": "Vocal affect is a probabilistic perception, not a verified internal state."
+    }
+  },
+  "explicit_match_joy": {
+    "schema_version": "1.0",
+    "model": {
+      "name": "synthetic-fixture-gold",
+      "version": "phase-1",
+      "quantization": null
+    },
+    "audio": {
+      "duration_ms": 500,
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "quality": {
+        "clipping": 0.0,
+        "low_snr": 0.0,
+        "far_field": 0.0
+      }
+    },
+    "language": {
+      "label": "en",
+      "confidence": 0.5
+    },
+    "transcript": {
+      "text": "I am happy about this",
+      "confidence": 0.5,
+      "words": [
+        {
+          "start_ms": 0,
+          "end_ms": 100,
+          "id": "w1",
+          "text": "I",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 100,
+          "end_ms": 200,
+          "id": "w2",
+          "text": "am",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 200,
+          "end_ms": 300,
+          "id": "w3",
+          "text": "happy",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 300,
+          "end_ms": 400,
+          "id": "w4",
+          "text": "about",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 400,
+          "end_ms": 500,
+          "id": "w5",
+          "text": "this",
+          "confidence": 0.5
+        }
+      ]
+    },
+    "styles": [],
+    "events": [],
+    "affect": {
+      "start_ms": 0,
+      "end_ms": 500,
+      "valence": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "arousal": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "dominance": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "categories": {
+        "neutral": 0.02,
+        "joy": 0.86,
+        "distress": 0.02,
+        "anger": 0.02,
+        "fear": 0.02,
+        "surprise": 0.02,
+        "other": 0.02,
+        "ambiguous": 0.02
+      },
+      "top_label": "joy",
+      "top_label_confidence": 0.86,
+      "abstain": false
+    },
+    "uncertainty": {
+      "out_of_distribution_probability": 0.5,
+      "interpretation_warning": "Vocal affect is a probabilistic perception, not a verified internal state."
+    }
+  },
+  "explicit_conflict_anger": {
+    "schema_version": "1.0",
+    "model": {
+      "name": "synthetic-fixture-gold",
+      "version": "phase-1",
+      "quantization": null
+    },
+    "audio": {
+      "duration_ms": 500,
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "quality": {
+        "clipping": 0.0,
+        "low_snr": 0.0,
+        "far_field": 0.0
+      }
+    },
+    "language": {
+      "label": "en",
+      "confidence": 0.5
+    },
+    "transcript": {
+      "text": "I am happy about this",
+      "confidence": 0.5,
+      "words": [
+        {
+          "start_ms": 0,
+          "end_ms": 100,
+          "id": "w1",
+          "text": "I",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 100,
+          "end_ms": 200,
+          "id": "w2",
+          "text": "am",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 200,
+          "end_ms": 300,
+          "id": "w3",
+          "text": "happy",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 300,
+          "end_ms": 400,
+          "id": "w4",
+          "text": "about",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 400,
+          "end_ms": 500,
+          "id": "w5",
+          "text": "this",
+          "confidence": 0.5
+        }
+      ]
+    },
+    "styles": [],
+    "events": [],
+    "affect": {
+      "start_ms": 0,
+      "end_ms": 500,
+      "valence": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "arousal": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "dominance": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "categories": {
+        "neutral": 0.02,
+        "joy": 0.02,
+        "distress": 0.02,
+        "anger": 0.86,
+        "fear": 0.02,
+        "surprise": 0.02,
+        "other": 0.02,
+        "ambiguous": 0.02
+      },
+      "top_label": "anger",
+      "top_label_confidence": 0.86,
+      "abstain": false
+    },
+    "uncertainty": {
+      "out_of_distribution_probability": 0.5,
+      "interpretation_warning": "Vocal affect is a probabilistic perception, not a verified internal state."
+    }
+  },
+  "same_text_joy": {
+    "schema_version": "1.0",
+    "model": {
+      "name": "synthetic-fixture-gold",
+      "version": "phase-1",
+      "quantization": null
+    },
+    "audio": {
+      "duration_ms": 500,
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "quality": {
+        "clipping": 0.0,
+        "low_snr": 0.0,
+        "far_field": 0.0
+      }
+    },
+    "language": {
+      "label": "en",
+      "confidence": 0.5
+    },
+    "transcript": {
+      "text": "This is fine",
+      "confidence": 0.5,
+      "words": [
+        {
+          "start_ms": 0,
+          "end_ms": 167,
+          "id": "w1",
+          "text": "This",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 167,
+          "end_ms": 333,
+          "id": "w2",
+          "text": "is",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 333,
+          "end_ms": 500,
+          "id": "w3",
+          "text": "fine",
+          "confidence": 0.5
+        }
+      ]
+    },
+    "styles": [],
+    "events": [],
+    "affect": {
+      "start_ms": 0,
+      "end_ms": 500,
+      "valence": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "arousal": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "dominance": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "categories": {
+        "neutral": 0.02,
+        "joy": 0.86,
+        "distress": 0.02,
+        "anger": 0.02,
+        "fear": 0.02,
+        "surprise": 0.02,
+        "other": 0.02,
+        "ambiguous": 0.02
+      },
+      "top_label": "joy",
+      "top_label_confidence": 0.86,
+      "abstain": false
+    },
+    "uncertainty": {
+      "out_of_distribution_probability": 0.5,
+      "interpretation_warning": "Vocal affect is a probabilistic perception, not a verified internal state."
+    }
+  },
+  "same_text_distress": {
+    "schema_version": "1.0",
+    "model": {
+      "name": "synthetic-fixture-gold",
+      "version": "phase-1",
+      "quantization": null
+    },
+    "audio": {
+      "duration_ms": 500,
+      "sample_rate_hz": 16000,
+      "channels": 1,
+      "quality": {
+        "clipping": 0.0,
+        "low_snr": 0.0,
+        "far_field": 0.0
+      }
+    },
+    "language": {
+      "label": "en",
+      "confidence": 0.5
+    },
+    "transcript": {
+      "text": "This is fine",
+      "confidence": 0.5,
+      "words": [
+        {
+          "start_ms": 0,
+          "end_ms": 167,
+          "id": "w1",
+          "text": "This",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 167,
+          "end_ms": 333,
+          "id": "w2",
+          "text": "is",
+          "confidence": 0.5
+        },
+        {
+          "start_ms": 333,
+          "end_ms": 500,
+          "id": "w3",
+          "text": "fine",
+          "confidence": 0.5
+        }
+      ]
+    },
+    "styles": [],
+    "events": [],
+    "affect": {
+      "start_ms": 0,
+      "end_ms": 500,
+      "valence": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "arousal": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "dominance": {
+        "value": 0.0,
+        "confidence": 0.0
+      },
+      "categories": {
+        "neutral": 0.02,
+        "joy": 0.02,
+        "distress": 0.86,
+        "anger": 0.02,
+        "fear": 0.02,
+        "surprise": 0.02,
+        "other": 0.02,
+        "ambiguous": 0.02
+      },
+      "top_label": "distress",
+      "top_label_confidence": 0.86,
+      "abstain": false
+    },
+    "uncertainty": {
+      "out_of_distribution_probability": 0.5,
+      "interpretation_warning": "Vocal affect is a probabilistic perception, not a verified internal state."
+    }
+  }
+}

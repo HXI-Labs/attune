@@ -1,0 +1,17 @@
+model_id: whisper_small
+model_name: Whisper-Small
+provider: OpenAI
+source_url: https://huggingface.co/openai/whisper-small
+revision: null
+checkpoint_hash: null
+licence:
+  name: null
+  source_text_url: null
+  licence_review_status: pending
+  reviewed_by: null
+  reviewed_at: null
+redistribution_status: pending
+downloaded_at: null
+notes:
+  - Do not download weights in CI.
+  - Record the exact revision, licence text, and checkpoint hash before reporting results.
