@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from attune.audio.contracts import placeholder_quality_probabilities
+from attune.baselines.sensevoice import build_utterance_spans, parse_sensevoice_output
 from attune.evaluation.report import RuntimeMetrics
 from attune.schema.output import AffectCategory, AttuneOutput
 
@@ -222,15 +223,24 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
             result = self._model.generate(
                 input=str(item.audio_path), cache={}, language="auto"
             )
-        transcript = _extract_funasr_text(result)
-        category, distribution = TranscriptSentimentAdapter().classify(transcript)
+        parsed = parse_sensevoice_output(result)
+        category, distribution = TranscriptSentimentAdapter().classify(parsed.transcript)
         output = build_partial_output(
             item,
             model_name=self.name,
-            transcript=transcript,
+            transcript=parsed.transcript,
             category=category,
             distribution=distribution,
         )
+        events, styles = build_utterance_spans(
+            parsed,
+            duration_ms=output.audio.duration_ms,
+            word_ids=[word.id for word in output.transcript.words],
+        )
+        payload = output.model_dump(mode="json")
+        payload["events"] = [event.model_dump(mode="json") for event in events]
+        payload["styles"] = [style.model_dump(mode="json") for style in styles]
+        output = AttuneOutput.model_validate(payload)
         elapsed = time.perf_counter() - started
         return BaselinePrediction(
             output,
@@ -395,13 +405,6 @@ def _offline_model_environment() -> Iterator[None]:
                 os.environ.pop(key, None)
             else:
                 os.environ[key] = value
-
-
-def _extract_funasr_text(result: Any) -> str:
-    if isinstance(result, list) and result and isinstance(result[0], dict):
-        text = str(result[0].get("text", ""))
-        return re.sub(r"<\|.*?\|>", "", text).strip()
-    raise RuntimeError("SenseVoice returned an unsupported result shape")
 
 
 def _map_emotion2vec_result(

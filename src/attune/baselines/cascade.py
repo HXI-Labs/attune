@@ -1,4 +1,4 @@
-"""Phase 1 modular cascade: ASR + affect + explicit stub event head."""
+"""Phase 1 modular cascade: ASR + affect + optional event-head override."""
 
 from __future__ import annotations
 
@@ -35,8 +35,9 @@ class ModularCascade(BaselineAdapter):
     ) -> None:
         self.asr = asr
         self.affect = affect
-        self.event_head = event_head or StubEventHead()
-        self.name = f"cascade:{asr.name}+{affect.name}+{self.event_head.name}"
+        self.event_head = event_head
+        event_source_name = event_head.name if event_head else "asr-event-output"
+        self.name = f"cascade:{asr.name}+{affect.name}+{event_source_name}"
 
     def availability(self) -> tuple[bool, str | None]:
         for component in (self.asr, self.affect):
@@ -56,7 +57,8 @@ class ModularCascade(BaselineAdapter):
         payload = asr_prediction.output.model_dump(mode="json")
         payload["model"] = {"name": self.name, "version": "phase-1", "quantization": None}
         payload["affect"] = affect_prediction.output.affect.model_dump(mode="json")
-        payload["events"] = self.event_head.predict()
+        if self.event_head is not None:
+            payload["events"] = self.event_head.predict()
         output = AttuneOutput.model_validate(payload)
         elapsed = asr_prediction.runtime.elapsed_seconds + affect_prediction.runtime.elapsed_seconds
         return BaselinePrediction(
