@@ -378,11 +378,18 @@ def _map_emotion2vec_result(
         "sad": AffectCategory.DISTRESS,
         "angry": AffectCategory.ANGER,
         "fearful": AffectCategory.FEAR,
+        "disgusted": AffectCategory.OTHER,
+        "other": AffectCategory.OTHER,
         "surprised": AffectCategory.SURPRISE,
+        "unknown": AffectCategory.AMBIGUOUS,
     }
     distribution = {category: 1e-6 for category in AffectCategory}
     for label, score in zip(labels, scores, strict=True):
-        category = aliases.get(str(label).lower(), AffectCategory.OTHER)
+        normalized_labels = re.split(r"[/|]", str(label).lower())
+        category = next(
+            (aliases[normalized] for normalized in normalized_labels if normalized in aliases),
+            AffectCategory.OTHER,
+        )
         distribution[category] += max(0.0, float(score))
     total = sum(distribution.values())
     distribution = {category: score / total for category, score in distribution.items()}

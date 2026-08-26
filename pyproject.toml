@@ -19,6 +19,10 @@ dev = [
 torch = [
   "torch>=2.5",
 ]
+model-runners = [
+  "funasr>=1.4.4",
+  "transformers>=5.16.1",
+]
 
 [build-system]
 requires = ["hatchling"]

@@ -7,14 +7,14 @@ from typing import Any
 
 from attune.evaluation.metrics import (
     acoustic_preference_score,
-    character_error_rate,
+    corpus_character_error_rate,
+    corpus_word_error_rate,
     expected_calibration_error,
     macro_f1,
     multiclass_brier_score,
     position_aware_event_score,
     soft_cross_entropy,
     span_classification_metrics,
-    word_error_rate,
 )
 from attune.schema.output import AffectCategory, AttuneOutput, EventLabel, StyleLabel
 
@@ -135,17 +135,13 @@ def evaluate_items(
     )
     metrics: dict[str, Any] = {
         "asr": {
-            "wer": _mean(
-                [
-                    word_error_rate(reference.transcript.text, prediction.transcript.text)
-                    for reference, prediction in zip(references, predictions, strict=True)
-                ]
+            "wer": corpus_word_error_rate(
+                [reference.transcript.text for reference in references],
+                [prediction.transcript.text for prediction in predictions],
             ),
-            "cer": _mean(
-                [
-                    character_error_rate(reference.transcript.text, prediction.transcript.text)
-                    for reference, prediction in zip(references, predictions, strict=True)
-                ]
+            "cer": corpus_character_error_rate(
+                [reference.transcript.text for reference in references],
+                [prediction.transcript.text for prediction in predictions],
             ),
         },
         "events": {

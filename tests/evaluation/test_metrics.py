@@ -5,6 +5,7 @@ import pytest
 from attune.evaluation.metrics import (
     acoustic_preference_score,
     character_error_rate,
+    corpus_word_error_rate,
     expected_calibration_error,
     macro_f1,
     multiclass_brier_score,
@@ -25,6 +26,8 @@ def test_asr_error_rates() -> None:
     assert character_error_rate("cat", "cut") == pytest.approx(1 / 3)
     assert word_error_rate("", "") == 0
     assert word_error_rate("", "unexpected") == 1
+    assert word_error_rate("", "two insertions") == 2
+    assert corpus_word_error_rate(["one", "one two three"], ["wrong", "one two three"]) == 0.25
 
 
 def test_span_metrics_and_temporal_iou() -> None:

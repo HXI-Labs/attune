@@ -20,6 +20,10 @@ Whisper-Small, SenseVoice-Small, and emotion2vec+ are lazy optional adapters.
 They never initiate downloads. Each requires a local path environment variable
 or an existing recognized Hugging Face cache snapshot plus its Python runtime:
 
+```bash
+uv sync --extra model-runners
+```
+
 | Runner | Local path variable | Runtime |
 |---|---|---|
 | Whisper-Small | `ATTUNE_WHISPER_SMALL_PATH` | `torch`, `transformers` |

@@ -36,15 +36,39 @@ def word_error_rate(reference: str, hypothesis: str) -> float:
     reference_words = reference.split()
     hypothesis_words = hypothesis.split()
     if not reference_words:
-        return 0.0 if not hypothesis_words else 1.0
+        return float(len(hypothesis_words))
     return _edit_distance(reference_words, hypothesis_words) / len(reference_words)
 
 
 def character_error_rate(reference: str, hypothesis: str) -> float:
     """Return character edit distance divided by reference character count."""
     if not reference:
-        return 0.0 if not hypothesis else 1.0
+        return float(len(hypothesis))
     return _edit_distance(reference, hypothesis) / len(reference)
+
+
+def corpus_word_error_rate(references: Sequence[str], hypotheses: Sequence[str]) -> float:
+    """Return total word errors divided by total reference words."""
+    if len(references) != len(hypotheses):
+        raise ValueError("references and hypotheses must have equal length")
+    errors = 0
+    reference_units = 0
+    for reference, hypothesis in zip(references, hypotheses, strict=True):
+        reference_words = reference.split()
+        errors += _edit_distance(reference_words, hypothesis.split())
+        reference_units += len(reference_words)
+    return errors / max(reference_units, 1)
+
+
+def corpus_character_error_rate(references: Sequence[str], hypotheses: Sequence[str]) -> float:
+    """Return total character errors divided by total reference characters."""
+    if len(references) != len(hypotheses):
+        raise ValueError("references and hypotheses must have equal length")
+    errors = sum(
+        _edit_distance(reference, hypothesis)
+        for reference, hypothesis in zip(references, hypotheses, strict=True)
+    )
+    return errors / max(sum(len(reference) for reference in references), 1)
 
 
 def temporal_iou(first: LabeledSpan, second: LabeledSpan) -> float:
