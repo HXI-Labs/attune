@@ -388,3 +388,50 @@ epochs. SenseVoiceSmall by FunASR/FunAudioLLM is used under the
 [FunASR Model Open Source License Agreement v1.1](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE).
 VocalSound by Gong, Yu, and Glass is used under
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+
+## British-English WER slice — Mozilla Common Voice CC0
+
+This run used code at `84c511d24c105d3b9ffd51d5c20ac68a40913335`
+and 100 checksum-verified Mozilla Common Voice Corpus 17.0 English clips from
+the pinned `fixie-ai/common_voice_17_0` transport revision
+`34f78a43893414e7b6e271ba94c1d5e05f18b239`. The exact self-declared `accent`
+values represented are **`England English`** (96 clips) and
+**`Scottish English`** (4 clips). The configured filter also accepts
+`Welsh English`, but no Welsh row was selected before reaching 100 speakers.
+These labels are self-reported metadata, not independent verification of
+nationality or residence.
+
+The deterministic selector streamed only metadata through source row 1,798,
+then fetched only the 100 selected audio assets. It did not download the full
+Common Voice corpus or a full Parquet shard. Each selected row has a distinct
+hashed `client_id`, so the slice contains 100 clips from 100 speakers. The
+550.030 seconds of audio were converted to mono 16 kHz PCM16 WAV and kept under
+gitignored `data/raw/`; no audio is committed.
+
+| Runner | British-English WER | CER | CREMA-D acted US WER | Difference vs CREMA-D | Ghanaian English NC WER | Difference vs Ghana |
+|---|---:|---:|---:|---:|---:|---:|
+| SenseVoiceSmall | 0.1149 | 0.0478 | 0.0806 | +0.0343 | 0.2365 | -0.1216 |
+| Whisper-Small | 0.0997 | 0.0378 | 0.1226 | -0.0229 | 0.2562 | -0.1565 |
+
+Both runners completed 100/100 clips without failure after a one-time official
+checkpoint fetch. Evaluation then ran with Hugging Face, Transformers,
+ModelScope, and FunASR offline flags enabled. On four CPU cores,
+Whisper-Small had RTF 0.1625 and SenseVoiceSmall RTF 0.0305. The four Scottish
+clips are too few for a meaningful standalone estimate; their full-precision
+descriptive metrics remain in
+`research/common-voice-british-wer-results.json`.
+
+WER and CER use the same lowercase alphanumeric normalization as the CREMA-D
+and Ghanaian-English slices. The comparisons are descriptive, not controlled:
+CREMA-D is acted US speech and the NC Ghanaian slice is broadcast-domain
+speech, so accent, speaker, recording, prompt, and transcript differences are
+confounded.
+
+Mozilla Common Voice is used under CC0 1.0 with voluntary attribution. OpenAI
+Whisper-Small is attributed under the upstream Whisper MIT licence.
+SenseVoiceSmall by FunASR/FunAudioLLM is used under the
+[FunASR Model Open Source License Agreement v1.1](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE).
+Exact checkpoint revisions and hashes are in the machine-readable result. No
+fine-tuning occurred. This accent slice does not evaluate affect, events,
+localization, calibration, abstention, or OOD robustness; it does not pass the
+gate, and the gate remains closed.
