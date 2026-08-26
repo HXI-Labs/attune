@@ -136,3 +136,76 @@ labelled clip set with real speech and event/style/affect annotations. The
 planned 100–200 clip inspection coverage and unapproved candidate sources are
 listed in `research/inspection-set.md`; every candidate remains
 `licence_review_status: pending`.
+
+## Inspection-set smoke (weak/acted labels, not gold)
+
+This first real-speech inspection ran at `2026-08-26T20:43:30Z` from commit
+`b936e51c51dac8c4d88eca00d61a273007819392`. It used all 150 checksum-verified
+manifest clips: 80 VocalSound event clips and 70 CREMA-D speech clips, totalling
+503.311 seconds. These source labels are **weak and acted**. This is not the
+sealed gold baseline, does not pass the gate decision, and is not evidence about
+speakers' internal emotional states. No fine-tuning occurred.
+
+The run used four logical Intel Xeon CPU cores, 15.64 GiB RAM, and no GPU on
+Linux 6.12.94+ x86-64. The runtime was Python 3.12.3, PyTorch 2.13.0,
+torchaudio 2.11.0, Transformers 5.16.1, FunASR 1.4.4, and Pydantic 2.13.4.
+Checkpoint files lived under `/tmp`, outside the Git tree. The actual evaluation
+ran with Hugging Face, Transformers, ModelScope, and FunASR offline flags set.
+
+| Runner | Schema valid | CREMA-D WER | VocalSound event macro-F1 | CREMA-D affect macro-F1 | APS | RTF | Mean latency |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| transcript-only lexicon | 70/70 | 0.0000 supplied | N/A | 0.0833 | -1.0000 | 0.00003 | 0.08 ms |
+| Whisper-Small | 150/150 | 0.1226 | 0.0000 | 0.0833 | -1.0000 | 0.5145 | 1,726.48 ms |
+| SenseVoiceSmall | 150/150 | 0.0806 | 0.0000 | 0.0833 | -1.0000 | 0.0390 | 130.80 ms |
+| emotion2vec+ base | 150/150 | N/A | 0.0000 | 0.9208 | 0.8667 | 0.0377 | 126.49 ms |
+| Whisper + emotion2vec+ + stub event | 150/150 | 0.1226 | 0.0000 | 0.9208 | 0.8667 | 0.4947 | 1,659.79 ms |
+| SenseVoice + emotion2vec+ + stub event | 150/150 | 0.0742 | 0.0000 | 0.9208 | 0.8667 | 0.0662 | 222.16 ms |
+
+WER and CER use lowercase alphanumeric normalization and only the 70 CREMA-D
+clips with source transcripts. Transcript-only WER is zero by construction
+because that runner receives the supplied source transcript; emotion2vec+ is
+affect-only, so its retained transcript hints are not scored as ASR. APS is
+computed on 60 acoustic-versus-lexical conflict clips. CREMA-D source emotion
+codes map as `HAP → joy`, `SAD → distress`, and `NEU → neutral`. The high
+emotion2vec+ agreement is against acted source labels only and must not be
+presented as gold performance.
+
+All audio-capable runners emitted empty event lists because the current adapters
+and modular cascades use the explicit stub event head. Their zero VocalSound
+event F1 and position-aware scores are real negative results against 80 weak
+whole-clip labels, not missing or invented metrics. Transcript-only has no
+VocalSound transcript input, so its 80 event clips are marked not applicable.
+All six runners completed without a model or clip failure. Full precision,
+per-class support, skip/failure fields, runtime, and privacy-safe examples are
+in `research/inspection-smoke-results.json`.
+
+### Inspection error notes
+
+- `1007_IEO_SAD_HI.wav`: Whisper produced “So let's go to class” for the acted
+  “It's eleven o'clock” line (five normalized word edits).
+- `1001_IWL_HAP_XX.wav`: SenseVoice produced “i would like to do an alarm
+  clock” (three normalized word edits).
+- `1001_IEO_SAD_HI.wav`: emotion2vec+ predicted `joy` against the weak acted
+  `distress` source label.
+- `f0418_0_cough.wav`: every audio-capable runner emitted no event against the
+  weak `cough` source label; this reflects the stub event integration.
+
+No raw audio is included in these notes or in the Git diff.
+
+### Attribution, coverage gaps, and gate boundary
+
+VocalSound by Gong, Yu, and Glass (ICASSP 2022) is used under CC BY-SA 4.0.
+CREMA-D by Cao et al. (2014) is attributed under ODbL 1.0 for the database and
+DbCL 1.0 for individual contents. The run used OpenAI Whisper-Small (upstream
+Whisper MIT), SenseVoiceSmall by FunASR/FunAudioLLM under the FunASR Model Open
+Source License Agreement v1.1, and emotion2vec+ base by emotion2vec and
+FunASR/FunAudioLLM under the documented FunASR model licence. Exact checkpoint
+revisions and hashes remain recorded in `research/fixture-smoke-test.json` and
+the corresponding `data/provenance/` entries.
+
+Still missing are Ghanaian English, verified British English, cry/sob, and
+verified shout/whisper slices, as well as spontaneous affect and inline events
+within speech. MSP-Podcast, RAVDESS, Ghana English ASR, SAVEE, DEED, and EmoV-DB
+were not downloaded. Gold review, calibration, abstention/OOD analysis, missing
+slice coverage, and an explicit human gate decision remain outstanding; the
+gate is not passed.

@@ -1,0 +1,793 @@
+{
+  "report_version": "1",
+  "title": "Inspection-set smoke (weak/acted labels, not gold)",
+  "scope": {
+    "manifest": "data/manifests/inspection-set.jsonl",
+    "cache_root": "data/raw/inspection-set",
+    "clip_count": 150,
+    "source_counts": {
+      "VocalSound": 80,
+      "CREMA-D": 70
+    },
+    "label_status": "weak_source_labels",
+    "acted_status": "acted",
+    "sealed_gold_baseline": false,
+    "gate_decision": "not_evaluated",
+    "fine_tuning_performed": false
+  },
+  "metric_notes": {
+    "asr": "WER/CER use lowercase alphanumeric normalization and only CREMA-D clips with source transcripts.",
+    "events": "VocalSound source labels are weak whole-clip event spans; empty stub heads therefore score zero.",
+    "affect": "CREMA-D HAP/SAD/NEU source labels map to joy/distress/neutral and are weak acted labels.",
+    "aps": "APS compares CREMA-D acoustic source labels with transcript-lexicon labels; it is descriptive, not gold."
+  },
+  "runner_results": [
+    {
+      "runner": "transcript-only-lexicon",
+      "status": "completed",
+      "attempted_clips": 70,
+      "not_applicable_clips": 80,
+      "not_applicable_reason": "VocalSound has no reference transcript for transcript-only inference.",
+      "schema_validity": {
+        "valid": 70,
+        "invalid": 0,
+        "errors": []
+      },
+      "metrics": {
+        "asr": {
+          "evaluated_clips": 70,
+          "wer": 0.0,
+          "cer": 0.0,
+          "note": "Transcript-only receives the supplied source transcript."
+        },
+        "events": {
+          "per_class": {
+            "laugh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            },
+            "sob": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            },
+            "sigh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            },
+            "cough": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            },
+            "throat_clear": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            },
+            "sneeze": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            },
+            "breath": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            }
+          },
+          "macro_f1": 0.0,
+          "mean_temporal_iou": 0.0,
+          "matched": 0,
+          "reference_count": 0,
+          "prediction_count": 0,
+          "position_aware_score": null,
+          "evaluated_clips": 0
+        },
+        "affect": {
+          "evaluated_clips": 70,
+          "mapping": {
+            "HAP": "joy",
+            "SAD": "distress",
+            "NEU": "neutral"
+          },
+          "accuracy": 0.14285714285714285,
+          "macro_f1": 0.08333333333333333,
+          "acoustic_preference": {
+            "acoustic_accuracy": 0.0,
+            "lexical_accuracy": 1.0,
+            "aps": -1.0,
+            "conflict_items": 60
+          }
+        }
+      },
+      "runtime": {
+        "audio_seconds": 179.263,
+        "elapsed_seconds": 0.005345034000185933,
+        "real_time_factor": 2.98167162224549e-05,
+        "mean_latency_ms": 0.07635762857408476,
+        "first_result_latency_ms": null
+      },
+      "failures": [],
+      "qualitative_errors": [
+        {
+          "source_filename": "1001_IEO_HAP_HI.wav",
+          "description": "Weak acted affect is joy; runner predicted neutral."
+        },
+        {
+          "source_filename": "1001_IEO_SAD_HI.wav",
+          "description": "Weak acted affect is distress; runner predicted neutral."
+        },
+        {
+          "source_filename": "1001_IWL_HAP_XX.wav",
+          "description": "Weak acted affect is joy; runner predicted neutral."
+        },
+        {
+          "source_filename": "1001_IWL_SAD_XX.wav",
+          "description": "Weak acted affect is distress; runner predicted neutral."
+        }
+      ]
+    },
+    {
+      "runner": "whisper-small",
+      "status": "completed",
+      "attempted_clips": 150,
+      "not_applicable_clips": 0,
+      "not_applicable_reason": null,
+      "schema_validity": {
+        "valid": 150,
+        "invalid": 0,
+        "errors": []
+      },
+      "metrics": {
+        "asr": {
+          "evaluated_clips": 70,
+          "wer": 0.12258064516129032,
+          "cer": 0.1286624203821656,
+          "note": null
+        },
+        "events": {
+          "per_class": {
+            "laugh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "sob": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            },
+            "sigh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "cough": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "throat_clear": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "sneeze": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "breath": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            }
+          },
+          "macro_f1": 0.0,
+          "mean_temporal_iou": 0.0,
+          "matched": 0,
+          "reference_count": 80,
+          "prediction_count": 0,
+          "position_aware_score": 0.0,
+          "evaluated_clips": 80
+        },
+        "affect": {
+          "evaluated_clips": 70,
+          "mapping": {
+            "HAP": "joy",
+            "SAD": "distress",
+            "NEU": "neutral"
+          },
+          "accuracy": 0.14285714285714285,
+          "macro_f1": 0.08333333333333333,
+          "acoustic_preference": {
+            "acoustic_accuracy": 0.0,
+            "lexical_accuracy": 1.0,
+            "aps": -1.0,
+            "conflict_items": 60
+          }
+        }
+      },
+      "runtime": {
+        "audio_seconds": 503.311,
+        "elapsed_seconds": 258.97177650300006,
+        "real_time_factor": 0.5145362936693219,
+        "mean_latency_ms": 1726.4785100200004,
+        "first_result_latency_ms": null
+      },
+      "failures": [],
+      "qualitative_errors": [
+        {
+          "source_filename": "1007_IEO_SAD_HI.wav",
+          "description": "ASR made 5 word-level edit(s); output was \"So let's go to class.\"."
+        },
+        {
+          "source_filename": "1002_TSI_SAD_XX.wav",
+          "description": "ASR made 4 word-level edit(s); output was \"What's her face is like?\"."
+        },
+        {
+          "source_filename": "1001_IEO_HAP_HI.wav",
+          "description": "Weak acted affect is joy; runner predicted neutral."
+        },
+        {
+          "source_filename": "1001_IEO_SAD_HI.wav",
+          "description": "Weak acted affect is distress; runner predicted neutral."
+        }
+      ]
+    },
+    {
+      "runner": "sensevoice-small",
+      "status": "completed",
+      "attempted_clips": 150,
+      "not_applicable_clips": 0,
+      "not_applicable_reason": null,
+      "schema_validity": {
+        "valid": 150,
+        "invalid": 0,
+        "errors": []
+      },
+      "metrics": {
+        "asr": {
+          "evaluated_clips": 70,
+          "wer": 0.08064516129032258,
+          "cer": 0.06878980891719745,
+          "note": null
+        },
+        "events": {
+          "per_class": {
+            "laugh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "sob": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            },
+            "sigh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "cough": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "throat_clear": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "sneeze": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "breath": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            }
+          },
+          "macro_f1": 0.0,
+          "mean_temporal_iou": 0.0,
+          "matched": 0,
+          "reference_count": 80,
+          "prediction_count": 0,
+          "position_aware_score": 0.0,
+          "evaluated_clips": 80
+        },
+        "affect": {
+          "evaluated_clips": 70,
+          "mapping": {
+            "HAP": "joy",
+            "SAD": "distress",
+            "NEU": "neutral"
+          },
+          "accuracy": 0.14285714285714285,
+          "macro_f1": 0.08333333333333333,
+          "acoustic_preference": {
+            "acoustic_accuracy": 0.0,
+            "lexical_accuracy": 1.0,
+            "aps": -1.0,
+            "conflict_items": 60
+          }
+        }
+      },
+      "runtime": {
+        "audio_seconds": 503.311,
+        "elapsed_seconds": 19.620262654999237,
+        "real_time_factor": 0.03898238396339289,
+        "mean_latency_ms": 130.80175103332826,
+        "first_result_latency_ms": null
+      },
+      "failures": [],
+      "qualitative_errors": [
+        {
+          "source_filename": "1001_IWL_HAP_XX.wav",
+          "description": "ASR made 3 word-level edit(s); output was 'i would like to do an alarm clock'."
+        },
+        {
+          "source_filename": "1007_IEO_SAD_HI.wav",
+          "description": "ASR made 2 word-level edit(s); output was \"it's eleven1 o'clock left\"."
+        },
+        {
+          "source_filename": "1001_IEO_HAP_HI.wav",
+          "description": "Weak acted affect is joy; runner predicted neutral."
+        },
+        {
+          "source_filename": "1001_IEO_SAD_HI.wav",
+          "description": "Weak acted affect is distress; runner predicted neutral."
+        }
+      ]
+    },
+    {
+      "runner": "emotion2vec-plus",
+      "status": "completed",
+      "attempted_clips": 150,
+      "not_applicable_clips": 0,
+      "not_applicable_reason": null,
+      "schema_validity": {
+        "valid": 150,
+        "invalid": 0,
+        "errors": []
+      },
+      "metrics": {
+        "asr": {
+          "evaluated_clips": 0,
+          "wer": null,
+          "cer": null,
+          "note": "Not applicable: emotion2vec+ is affect-only and merely retains transcript hints."
+        },
+        "events": {
+          "per_class": {
+            "laugh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "sob": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            },
+            "sigh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "cough": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "throat_clear": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "sneeze": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "breath": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            }
+          },
+          "macro_f1": 0.0,
+          "mean_temporal_iou": 0.0,
+          "matched": 0,
+          "reference_count": 80,
+          "prediction_count": 0,
+          "position_aware_score": 0.0,
+          "evaluated_clips": 80
+        },
+        "affect": {
+          "evaluated_clips": 70,
+          "mapping": {
+            "HAP": "joy",
+            "SAD": "distress",
+            "NEU": "neutral"
+          },
+          "accuracy": 0.9285714285714286,
+          "macro_f1": 0.9207542279530875,
+          "acoustic_preference": {
+            "acoustic_accuracy": 0.9166666666666666,
+            "lexical_accuracy": 0.05,
+            "aps": 0.8666666666666666,
+            "conflict_items": 60
+          }
+        }
+      },
+      "runtime": {
+        "audio_seconds": 503.311,
+        "elapsed_seconds": 18.973181777000264,
+        "real_time_factor": 0.037696735769733355,
+        "mean_latency_ms": 126.48787851333509,
+        "first_result_latency_ms": null
+      },
+      "failures": [],
+      "qualitative_errors": [
+        {
+          "source_filename": "1001_IEO_SAD_HI.wav",
+          "description": "Weak acted affect is distress; runner predicted joy."
+        },
+        {
+          "source_filename": "1001_TSI_SAD_XX.wav",
+          "description": "Weak acted affect is distress; runner predicted neutral."
+        },
+        {
+          "source_filename": "1005_IEO_SAD_HI.wav",
+          "description": "Weak acted affect is distress; runner predicted neutral."
+        },
+        {
+          "source_filename": "1011_IEO_SAD_HI.wav",
+          "description": "Weak acted affect is distress; runner predicted anger."
+        }
+      ]
+    },
+    {
+      "runner": "cascade:whisper-small+emotion2vec-plus+stub-event-head",
+      "status": "completed",
+      "attempted_clips": 150,
+      "not_applicable_clips": 0,
+      "not_applicable_reason": null,
+      "schema_validity": {
+        "valid": 150,
+        "invalid": 0,
+        "errors": []
+      },
+      "metrics": {
+        "asr": {
+          "evaluated_clips": 70,
+          "wer": 0.12258064516129032,
+          "cer": 0.1286624203821656,
+          "note": null
+        },
+        "events": {
+          "per_class": {
+            "laugh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "sob": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            },
+            "sigh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "cough": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "throat_clear": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "sneeze": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "breath": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            }
+          },
+          "macro_f1": 0.0,
+          "mean_temporal_iou": 0.0,
+          "matched": 0,
+          "reference_count": 80,
+          "prediction_count": 0,
+          "position_aware_score": 0.0,
+          "evaluated_clips": 80
+        },
+        "affect": {
+          "evaluated_clips": 70,
+          "mapping": {
+            "HAP": "joy",
+            "SAD": "distress",
+            "NEU": "neutral"
+          },
+          "accuracy": 0.9285714285714286,
+          "macro_f1": 0.9207542279530875,
+          "acoustic_preference": {
+            "acoustic_accuracy": 0.9166666666666666,
+            "lexical_accuracy": 0.05,
+            "aps": 0.8666666666666666,
+            "conflict_items": 60
+          }
+        }
+      },
+      "runtime": {
+        "audio_seconds": 503.311,
+        "elapsed_seconds": 248.96776069199984,
+        "real_time_factor": 0.4946598836345716,
+        "mean_latency_ms": 1659.7850712799989,
+        "first_result_latency_ms": null
+      },
+      "failures": [],
+      "qualitative_errors": [
+        {
+          "source_filename": "1007_IEO_SAD_HI.wav",
+          "description": "ASR made 5 word-level edit(s); output was \"So let's go to class.\"."
+        },
+        {
+          "source_filename": "1002_TSI_SAD_XX.wav",
+          "description": "ASR made 4 word-level edit(s); output was \"What's her face is like?\"."
+        },
+        {
+          "source_filename": "1001_IEO_SAD_HI.wav",
+          "description": "Weak acted affect is distress; runner predicted joy."
+        },
+        {
+          "source_filename": "1001_TSI_SAD_XX.wav",
+          "description": "Weak acted affect is distress; runner predicted neutral."
+        }
+      ]
+    },
+    {
+      "runner": "cascade:sensevoice-small+emotion2vec-plus+stub-event-head",
+      "status": "completed",
+      "attempted_clips": 150,
+      "not_applicable_clips": 0,
+      "not_applicable_reason": null,
+      "schema_validity": {
+        "valid": 150,
+        "invalid": 0,
+        "errors": []
+      },
+      "metrics": {
+        "asr": {
+          "evaluated_clips": 70,
+          "wer": 0.07419354838709677,
+          "cer": 0.06305732484076433,
+          "note": null
+        },
+        "events": {
+          "per_class": {
+            "laugh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "sob": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            },
+            "sigh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "cough": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "throat_clear": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "sneeze": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 16
+            },
+            "breath": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "mean_temporal_iou": 0.0,
+              "support": 0
+            }
+          },
+          "macro_f1": 0.0,
+          "mean_temporal_iou": 0.0,
+          "matched": 0,
+          "reference_count": 80,
+          "prediction_count": 0,
+          "position_aware_score": 0.0,
+          "evaluated_clips": 80
+        },
+        "affect": {
+          "evaluated_clips": 70,
+          "mapping": {
+            "HAP": "joy",
+            "SAD": "distress",
+            "NEU": "neutral"
+          },
+          "accuracy": 0.9285714285714286,
+          "macro_f1": 0.9207542279530875,
+          "acoustic_preference": {
+            "acoustic_accuracy": 0.9166666666666666,
+            "lexical_accuracy": 0.05,
+            "aps": 0.8666666666666666,
+            "conflict_items": 60
+          }
+        }
+      },
+      "runtime": {
+        "audio_seconds": 503.311,
+        "elapsed_seconds": 33.32382739300124,
+        "real_time_factor": 0.06620921734871926,
+        "mean_latency_ms": 222.15884928667492,
+        "first_result_latency_ms": null
+      },
+      "failures": [],
+      "qualitative_errors": [
+        {
+          "source_filename": "1001_IWL_HAP_XX.wav",
+          "description": "ASR made 3 word-level edit(s); output was 'i would like to do an alarm clock'."
+        },
+        {
+          "source_filename": "1014_IEO_SAD_HI.wav",
+          "description": "ASR made 2 word-level edit(s); output was \"it's1 o'clock\"."
+        },
+        {
+          "source_filename": "1001_IEO_SAD_HI.wav",
+          "description": "Weak acted affect is distress; runner predicted joy."
+        },
+        {
+          "source_filename": "1001_TSI_SAD_XX.wav",
+          "description": "Weak acted affect is distress; runner predicted neutral."
+        }
+      ]
+    }
+  ],
+  "generated_at_utc": "2026-08-26T20:43:30.672087Z",
+  "source": {
+    "run_commit": "b936e51c51dac8c4d88eca00d61a273007819392",
+    "entrypoint": "scripts/evaluate.py --inspection-manifest",
+    "model_downloads_during_evaluation": false,
+    "offline_environment": {
+      "HF_HUB_OFFLINE": "1",
+      "TRANSFORMERS_OFFLINE": "1",
+      "MODELSCOPE_OFFLINE": "1",
+      "FUNASR_DISABLE_UPDATE": "1"
+    }
+  },
+  "hardware": {
+    "os": "Linux 6.12.94+ x86_64",
+    "cpu": "x86_64",
+    "logical_cpu_count": 4,
+    "memory_gib": 15.64,
+    "gpu_available": false,
+    "execution_device": "cpu"
+  },
+  "software": {
+    "python": "3.12.3",
+    "torch": "2.13.0",
+    "torchaudio": "2.11.0",
+    "transformers": "5.16.1",
+    "funasr": "1.4.4",
+    "pydantic": "2.13.4"
+  },
+  "licence_attribution": {
+    "VocalSound": "CC BY-SA 4.0; Gong, Yu, and Glass, ICASSP 2022.",
+    "CREMA-D": "ODbL 1.0 database / DbCL 1.0 contents; Cao et al., 2014.",
+    "Whisper-Small": "OpenAI Whisper; upstream MIT licence.",
+    "SenseVoiceSmall": "FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1.",
+    "emotion2vec+ base": "emotion2vec and FunASR/FunAudioLLM; FunASR model licence."
+  }
+}
