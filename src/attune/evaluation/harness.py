@@ -162,10 +162,22 @@ def run_inspection_harness(manifest: Path, cache_root: Path) -> dict[str, Any]:
             "fine_tuning_performed": False,
         },
         "metric_notes": {
-            "asr": "WER/CER use lowercase alphanumeric normalization and only CREMA-D clips with source transcripts.",
-            "events": "VocalSound source labels are weak whole-clip event spans; empty stub heads therefore score zero.",
-            "affect": "CREMA-D HAP/SAD/NEU source labels map to joy/distress/neutral and are weak acted labels.",
-            "aps": "APS compares CREMA-D acoustic source labels with transcript-lexicon labels; it is descriptive, not gold.",
+            "asr": (
+                "WER/CER use lowercase alphanumeric normalization and only "
+                "CREMA-D clips with source transcripts."
+            ),
+            "events": (
+                "VocalSound source labels are weak whole-clip event spans; "
+                "empty stub heads therefore score zero."
+            ),
+            "affect": (
+                "CREMA-D HAP/SAD/NEU source labels map to "
+                "joy/distress/neutral and are weak acted labels."
+            ),
+            "aps": (
+                "APS compares CREMA-D acoustic source labels with "
+                "transcript-lexicon labels; it is descriptive, not gold."
+            ),
         },
         "runner_results": runner_results,
     }

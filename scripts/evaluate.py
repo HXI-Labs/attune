@@ -61,7 +61,10 @@ def _inspection_run_metadata() -> dict[str, object]:
             "VocalSound": "CC BY-SA 4.0; Gong, Yu, and Glass, ICASSP 2022.",
             "CREMA-D": "ODbL 1.0 database / DbCL 1.0 contents; Cao et al., 2014.",
             "Whisper-Small": "OpenAI Whisper; upstream MIT licence.",
-            "SenseVoiceSmall": "FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1.",
+            "SenseVoiceSmall": (
+                "FunASR/FunAudioLLM; FunASR Model Open Source License "
+                "Agreement v1.1."
+            ),
             "emotion2vec+ base": "emotion2vec and FunASR/FunAudioLLM; FunASR model licence.",
         },
     }
