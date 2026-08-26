@@ -139,8 +139,9 @@ listed in `research/inspection-set.md`; every candidate remains
 
 ## Inspection-set smoke (weak/acted labels, not gold)
 
-This first real-speech inspection ran at `2026-08-26T20:43:30Z` from commit
-`b936e51c51dac8c4d88eca00d61a273007819392`. It used all 150 checksum-verified
+This real-speech inspection rerun completed at `2026-08-26T21:12:19Z` from
+merged `main` commit `a2ad5f0fc3ef0cf7055fa854fddf0f550ebe243f`. It used all
+150 checksum-verified
 manifest clips: 80 VocalSound event clips and 70 CREMA-D speech clips, totalling
 503.311 seconds. These source labels are **weak and acted**. This is not the
 sealed gold baseline, does not pass the gate decision, and is not evidence about
@@ -157,24 +158,37 @@ off-the-shelf rich-transcription/AED tags. It performs no training or
 fine-tuning. Known tags are conservatively mapped to the existing event
 ontology, and SenseVoice events/styles are retained by the SenseVoice cascade.
 Because these tags do not provide frame boundaries, predictions are provisional
-whole-clip spans with confidence `0.0` when no score is exposed. This is not
-frame-level event localization.
-
-The 150-clip cache and local checkpoints from the prior inspection were not
-available on the Baseline B implementation VM, so the inspection metrics were
-**not re-measured**. The table and machine-readable report below remain the
-historical pre-Baseline-B stub results and must not be presented as Baseline B
-performance. A licensed offline rerun is still required to report its new weak-
-label event F1.
+whole-clip spans with confidence `0.0` when no score is exposed. Events remain
+**utterance-level, not localized**; the temporal IoU and position-aware results
+only compare whole-clip spans and are not evidence of frame-level localization.
 
 | Runner | Schema valid | CREMA-D WER | VocalSound event macro-F1 | CREMA-D affect macro-F1 | APS | RTF | Mean latency |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | transcript-only lexicon | 70/70 | 0.0000 supplied | N/A | 0.0833 | -1.0000 | 0.00003 | 0.08 ms |
-| Whisper-Small | 150/150 | 0.1226 | 0.0000 | 0.0833 | -1.0000 | 0.5145 | 1,726.48 ms |
-| SenseVoiceSmall | 150/150 | 0.0806 | 0.0000 | 0.0833 | -1.0000 | 0.0390 | 130.80 ms |
-| emotion2vec+ base | 150/150 | N/A | 0.0000 | 0.9208 | 0.8667 | 0.0377 | 126.49 ms |
-| Whisper + emotion2vec+ + stub event | 150/150 | 0.1226 | 0.0000 | 0.9208 | 0.8667 | 0.4947 | 1,659.79 ms |
-| SenseVoice + emotion2vec+ + stub event | 150/150 | 0.0742 | 0.0000 | 0.9208 | 0.8667 | 0.0662 | 222.16 ms |
+| Whisper-Small | 150/150 | 0.1226 | 0.0000 | 0.0833 | -1.0000 | 0.4984 | 1,672.40 ms |
+| SenseVoiceSmall | 150/150 | 0.0806 | 0.3213 | 0.0833 | -1.0000 | 0.0397 | 133.07 ms |
+| emotion2vec+ base | 150/150 | N/A | 0.0000 | 0.9208 | 0.8667 | 0.0325 | 109.20 ms |
+| Whisper + emotion2vec+ + ASR event output | 150/150 | 0.1226 | 0.0000 | 0.9208 | 0.8667 | 0.4904 | 1,645.50 ms |
+| SenseVoice + emotion2vec+ + ASR event output | 150/150 | 0.0742 | 0.3213 | 0.9208 | 0.8667 | 0.0664 | 222.69 ms |
+
+SenseVoiceSmall and the SenseVoice cascade both improved from the previous stub
+event macro-F1 of **0.0000** to **0.3213**. The cascade retains SenseVoice AED
+events, so its event scores are identical:
+
+| Event class | Support | Precision | Recall | F1 |
+|---|---:|---:|---:|---:|
+| laugh | 16 | 0.8750 | 0.8750 | 0.8750 |
+| sob | 0 | 0.0000 | 0.0000 | 0.0000 |
+| sigh | 16 | 0.0000 | 0.0000 | 0.0000 |
+| cough | 16 | 0.4815 | 0.8125 | 0.6047 |
+| throat_clear | 16 | 0.0000 | 0.0000 | 0.0000 |
+| sneeze | 16 | 1.0000 | 0.6250 | 0.7692 |
+| breath | 0 | 0.0000 | 0.0000 | 0.0000 |
+
+There were 37 matches, 80 weak references, and 65 predictions. Whole-clip
+temporal IoU was 1.0000 for matched predictions and the position-aware score was
+0.4625; both are artifacts of utterance-level spans rather than localization
+quality.
 
 WER and CER use lowercase alphanumeric normalization and only the 70 CREMA-D
 clips with source transcripts. Transcript-only WER is zero by construction
@@ -185,14 +199,13 @@ codes map as `HAP → joy`, `SAD → distress`, and `NEU → neutral`. The high
 emotion2vec+ agreement is against acted source labels only and must not be
 presented as gold performance.
 
-All audio-capable runners emitted empty event lists because the current adapters
-and modular cascades use the explicit stub event head. Their zero VocalSound
-event F1 and position-aware scores are real negative results against 80 weak
-whole-clip labels, not missing or invented metrics. Transcript-only has no
-VocalSound transcript input, so its 80 event clips are marked not applicable.
-All six runners completed without a model or clip failure. Full precision,
-per-class support, skip/failure fields, runtime, and privacy-safe examples are
-in `research/inspection-smoke-results.json`.
+Whisper-Small, emotion2vec+, and the Whisper cascade still emit no events, so
+their zero VocalSound event F1 values remain real negative results against 80
+weak whole-clip labels. Transcript-only has no VocalSound transcript input, so
+its 80 event clips are marked not applicable. All six runners completed without
+a model or clip failure. Full precision, per-class support, skip/failure fields,
+runtime, and privacy-safe examples are in
+`research/inspection-smoke-results.json`.
 
 ### Inspection error notes
 
@@ -202,8 +215,9 @@ in `research/inspection-smoke-results.json`.
   clock” (three normalized word edits).
 - `1001_IEO_SAD_HI.wav`: emotion2vec+ predicted `joy` against the weak acted
   `distress` source label.
-- `f0418_0_cough.wav`: every audio-capable runner emitted no event against the
-  weak `cough` source label; this reflects the stub event integration.
+- SenseVoice detected 37 of 80 weak event references. It detected no `sigh` or
+  `throat_clear` references, while `cough` precision of 0.4815 indicates
+  additional utterance-level cough predictions outside the weak cough class.
 
 No raw audio is included in these notes or in the Git diff.
 
