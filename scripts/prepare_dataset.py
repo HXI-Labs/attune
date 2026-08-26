@@ -112,9 +112,11 @@ def download(url: str, target: Path, timeout_s: float) -> None:
     temporary = target.with_name(f".{target.name}.part")
     request = urllib.request.Request(url, headers={"User-Agent": "attune-phase1/1.0"})
     try:
-        with urllib.request.urlopen(request, timeout=timeout_s) as response:
-            with temporary.open("wb") as handle:
-                shutil.copyfileobj(response, handle, length=1024 * 1024)
+        with (
+            urllib.request.urlopen(request, timeout=timeout_s) as response,
+            temporary.open("wb") as handle,
+        ):
+            shutil.copyfileobj(response, handle, length=1024 * 1024)
         temporary.replace(target)
     except (OSError, urllib.error.URLError) as error:
         temporary.unlink(missing_ok=True)
@@ -125,11 +127,14 @@ def ensure_archive(fetch: dict[str, Any], archive_dir: Path, timeout_s: float) -
     """Download and validate one transport archive."""
     archive = safe_cache_path(archive_dir, fetch["archive_filename"])
     checksum = fetch.get("archive_checksum")
-    if archive.exists() and checksum:
-        if file_digest(archive, checksum["algorithm"]) != checksum["value"]:
-            raise PreparationError(
-                f"transport archive checksum mismatch: {archive}; delete it and retry"
-            )
+    if (
+        archive.exists()
+        and checksum
+        and file_digest(archive, checksum["algorithm"]) != checksum["value"]
+    ):
+        raise PreparationError(
+            f"transport archive checksum mismatch: {archive}; delete it and retry"
+        )
     if not archive.exists():
         download(fetch["url"], archive, timeout_s)
         if checksum and file_digest(archive, checksum["algorithm"]) != checksum["value"]:

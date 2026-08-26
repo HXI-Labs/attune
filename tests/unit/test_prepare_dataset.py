@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
-from scripts.prepare_dataset import PreparationError, load_manifest, prepare
+SCRIPT_PATH = Path(__file__).parents[2] / "scripts/prepare_dataset.py"
+SPEC = importlib.util.spec_from_file_location("prepare_dataset", SCRIPT_PATH)
+assert SPEC is not None and SPEC.loader is not None
+PREPARE_DATASET = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(PREPARE_DATASET)
+
+PreparationError = PREPARE_DATASET.PreparationError
+load_manifest = PREPARE_DATASET.load_manifest
+prepare = PREPARE_DATASET.prepare
 
 
 def manifest_row(
