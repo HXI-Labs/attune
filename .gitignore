@@ -14,6 +14,14 @@ data/raw/
 data/processed/
 checkpoints/
 artifacts/
+models/
+.cache/
+model-cache/
 *.onnx
 *.pt
 *.pth
+*.bin
+*.ckpt
+*.safetensors
+*.msgpack
+*.h5

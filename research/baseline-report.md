@@ -1,7 +1,8 @@
 # Phase 1 baseline report
 
-**Status: harness ready; licensed-data and local-weight evaluation not started.
-This document is a gate, not a claim of scientific results.**
+**Status: fixture smoke-test complete; licensed, speaker-disjoint gold
+evaluation not started. This document is a gate, not a claim of scientific
+results.**
 
 No large fine-tuning may begin until this report is completed and reviewed.
 
@@ -71,30 +72,67 @@ atypical voices, and confident failures.
 - Human licence review and exact checkpoint provenance for Whisper-Small,
   SenseVoice-Small, emotion2vec+, and every evaluation corpus.
 - Approved, speaker/session-disjoint evaluation manifests and dataset cards.
-- Local-weight runs for each adapter and the modular ASR + affect + stub-event
-  cascade; the stub event head is not an evaluated event detector.
 - Real event/style gold labels, alignment metrics, calibration and abstention
   analysis, OOD and permitted subgroup slices, runtime/memory measurements,
   and privacy-safe qualitative errors.
 - A documented gate decision. Until these are complete, the 14-day no-large-
   fine-tuning restriction remains in force.
 
-## Appendix A — synthetic fixture wiring result
+## Fixture smoke-test (not a scientific baseline)
 
-These six generated-tone fixtures test only code paths and APS. They are not
-recordings of affect, not annotator-supported labels, and not scientific model
-results. Full machine-readable output is in `research/baseline-results.json`.
+Run at `2026-08-26T19:43:15Z` for Jerry Buaba / HXI Labs from run commit
+`1f201b94ed4084bf9081d0786922ceaedd06db20` (starting `main` commit
+`04638af61b915fb5d5d87b1409c7ef78fb2c3cb4`). Seed `0` was set for Python,
+PyTorch, and Python hash randomisation. The one-time official checkpoint fetch
+used a cache under `/tmp`, outside the Git tree. Evaluation then ran with
+Hugging Face, Transformers, ModelScope, and FunASR offline flags enabled.
 
-Transcript-only lexicon baseline:
+The six fixtures contain generated tones/noise, not human speech or natural
+affect. The numbers below prove only that each adapter and cascade loaded local
+weights, ran end-to-end on CPU, emitted schema-valid output, and reported
+runtime. They are neither model-quality evidence nor the sealed gold baseline.
 
-- Schema validity: 6/6 valid.
-- ASR: WER `0.0`, CER `0.0` because fixture transcripts are supplied directly.
-- Affect: macro-F1 `0.05`, Brier score `0.92027`, soft-target cross-entropy
-  `2.65209`, ECE `0.53`.
-- APS on five conflict items: acoustic accuracy `0.0` minus lexical accuracy
-  `1.0` = **`-1.0`**, correctly exposing this baseline's lexical dependence.
-- Event/style fixture support: zero; corresponding F1/IoU values are not
-  evidence of event/style performance.
-- Whisper-Small, SenseVoice-Small, emotion2vec+, and both cascades skipped
-  because no reviewed local weights/runtimes were present. No download was
-  attempted.
+Hardware was a four-vCPU Intel Xeon VM with 15 GiB RAM and no available GPU.
+Software was Python 3.12.3, PyTorch 2.13.0+cu130, torchaudio 2.11.0+cu130,
+Transformers 5.16.1, FunASR 1.4.4, and Pydantic 2.13.4.
+
+| Runner | Schema valid | RTF | Mean latency per 0.5 s clip |
+|---|---:|---:|---:|
+| transcript-only-lexicon | 6/6 | 0.00024 | 0.12 ms |
+| Whisper-Small | 6/6 | 3.96186 | 1,980.93 ms |
+| SenseVoiceSmall | 6/6 | 3.46482 | 1,732.41 ms |
+| emotion2vec+ base | 6/6 | 1.54092 | 770.46 ms |
+| Whisper-Small + emotion2vec+ + stub event head | 6/6 | 5.38111 | 2,690.55 ms |
+| SenseVoiceSmall + emotion2vec+ + stub event head | 6/6 | 4.67179 | 2,335.89 ms |
+
+These timings include model construction and loading inside every `predict()`
+call; they are wiring measurements, not optimised serving benchmarks.
+First-result latency was not measured. No runners were skipped in the completed
+run. The first attempt stopped before SenseVoiceSmall inference with
+`ModuleNotFoundError: No module named 'torchaudio'`; after torchaudio 2.11.0 was
+installed in the local environment and import compatibility was verified, the
+full offline rerun completed. The machine-readable report records this resolved
+failure rather than hiding it.
+
+Official weights used:
+
+- OpenAI **Whisper-Small** (`openai/whisper-small`), revision
+  `973afd24965f72e36ca33b3055d56a652f456b4d`; upstream Whisper is MIT licensed.
+- **SenseVoiceSmall by FunASR/FunAudioLLM**, revision
+  `3847d57b6bdf2dd8875cb1508d2af43d80a16bf7`, under the
+  [FunASR Model Open Source License Agreement v1.1](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE).
+- **emotion2vec+ base by emotion2vec and FunASR/FunAudioLLM**, revision
+  `b318240bfe67db81a8c572ecb37ce9c3759b81c9`; the base model name and variant
+  are retained, with the [FunASR model licence](https://github.com/alibaba-damo-academy/FunASR)
+  attribution.
+
+Exact weight-file SHA-256 values, full runtime precision, software metadata,
+skip reasons, and the resolved failure are in
+`research/fixture-smoke-test.json`. No fine-tuning occurred, no speech corpus
+was downloaded, and no weights or caches are part of this change.
+
+Gold evaluation remains blocked on a licence-approved, speaker-disjoint
+labelled clip set with real speech and event/style/affect annotations. The
+planned 100–200 clip inspection coverage and unapproved candidate sources are
+listed in `research/inspection-set.md`; every candidate remains
+`licence_review_status: pending`.
