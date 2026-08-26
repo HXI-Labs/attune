@@ -10,8 +10,8 @@ All runners implement `BaselineAdapter` and return a schema-valid
   they are not alignment results.
 - Unsupported affect dimensions use value `0.0` and confidence `0.0`.
 - Unknown quality probabilities are Phase 0 placeholders.
-- `StubEventHead` emits no events. Its zero event scores are expected, not a
-  claim that fixtures contain no events.
+- An explicitly configured `StubEventHead` emits no events. Its zero event
+  scores are expected, not a claim that fixtures contain no events.
 
 The transcript-only lexicon runner is deterministic, CPU-only, and always
 available. It receives a supplied transcript and is intentionally sensitive to

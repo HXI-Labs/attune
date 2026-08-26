@@ -88,6 +88,43 @@ def test_modular_cascade_composes_schema_valid_channels() -> None:
     AttuneOutput.model_validate(prediction.output.model_dump(mode="json"))
 
 
+def test_modular_cascade_retains_asr_events() -> None:
+    class EventASR(TranscriptSentimentAdapter):
+        name = "event-asr"
+
+        def predict(self, item):
+            prediction = super().predict(item)
+            payload = prediction.output.model_dump(mode="json")
+            payload["events"] = [
+                {
+                    "id": "e1",
+                    "label": "cough",
+                    "start_ms": 0,
+                    "end_ms": prediction.output.audio.duration_ms,
+                    "after_word_id": None,
+                    "confidence": 0.0,
+                    "status": "provisional",
+                }
+            ]
+            return prediction.__class__(
+                output=AttuneOutput.model_validate(payload),
+                runtime=prediction.runtime,
+            )
+
+    prediction = ModularCascade(
+        asr=EventASR(),
+        affect=TranscriptSentimentAdapter(),
+    ).predict(
+        BaselineInput(
+            FIXTURES / "explicit_match_joy.wav",
+            transcript_hint="I am happy about this",
+        )
+    )
+
+    assert [event.label for event in prediction.output.events] == ["cough"]
+    assert prediction.output.model.name.endswith("+asr-event-output")
+
+
 def test_emotion2vec_bilingual_labels_are_mapped() -> None:
     category, distribution = _map_emotion2vec_result(
         [{"labels": ["生气/angry", "开心/happy", "未知/unknown"], "scores": [0.7, 0.2, 0.1]}]
