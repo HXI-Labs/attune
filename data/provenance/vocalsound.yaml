@@ -1,0 +1,35 @@
+dataset_id: vocalsound
+dataset_name: VocalSound
+source_urls:
+  - https://sls.csail.mit.edu/downloads/vocalsound/
+  - https://github.com/YuanGongND/vocalsound
+intended_use: Small local inspection subset for internal research
+coverage:
+  - laugh
+  - sigh
+  - cough
+  - throat_clear
+  - sneeze
+licence:
+  name: Creative Commons Attribution-ShareAlike 4.0 International
+  identifier: CC-BY-SA-4.0
+  source_text_url: https://creativecommons.org/licenses/by-sa/4.0/legalcode
+  licence_review_status: reviewed_internal_research_ok
+  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
+conditions:
+  attribution_required: true
+  share_alike_for_derivative_dataset_distribution: true
+redistribution:
+  original_audio: not_authorised_by_this_review
+  derivative_dataset: share_alike_required_if_distributed
+consent_review_status: not_reviewed
+contains_personal_data: true
+speaker_disjoint_split_required: true
+downloaded_at: null
+checksums_manifest: null
+notes:
+  - The events are acted, crowdsourced vocal events rather than inline speech.
+  - Keep audio local and off git; do not download in CI.
+  - Record the exact release, attribution, file hashes, and speaker-disjoint selection in a later manifest.
+  - This is an operational internal-research review, not legal advice or lawyer sign-off.

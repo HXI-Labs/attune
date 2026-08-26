@@ -1,0 +1,24 @@
+dataset_id: emov_db
+dataset_name: EmoV-DB
+source_url: https://github.com/numediart/EmoV-DB
+intended_use: Blocked pending exact data and weights licence review
+licence:
+  name: null
+  source_text_url: null
+  licence_review_status: pending
+  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
+redistribution:
+  original_audio: unknown
+  annotations: unknown
+  weights: unknown
+consent_review_status: pending
+contains_personal_data: true
+speaker_disjoint_split_required: true
+downloaded_at: null
+checksums_manifest: null
+notes:
+  - Do not download or use until the exact weights/data licence file is located, quoted, and reviewed.
+  - A repository landing page is not sufficient evidence of data or weights permission.
+  - Keep audio off git.
+  - This pending review is not legal advice or lawyer sign-off.

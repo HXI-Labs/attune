@@ -1,0 +1,28 @@
+dataset_id: ghana_english_asr_2700hrs
+dataset_name: Ghana English ASR 2700hrs
+source_url: https://huggingface.co/datasets/ghananlpcommunity/ghana-english-asr-2700hrs
+intended_use: Non-commercial Phase 1 Ghanaian English inspection slice only
+licence:
+  name: Creative Commons Attribution-NonCommercial 4.0 International
+  identifier: CC-BY-NC-4.0
+  source_text_url: https://creativecommons.org/licenses/by-nc/4.0/legalcode
+  licence_review_status: reviewed_nc_only
+  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
+conditions:
+  attribution_required: true
+  noncommercial_only: true
+redistribution:
+  original_audio: not_authorised_by_this_review
+  commercial_training_set: prohibited_without_commercial_licence
+consent_review_status: not_reviewed
+contains_personal_data: true
+speaker_disjoint_split_required: true
+downloaded_at: null
+checksums_manifest: null
+notes:
+  - This candidate supplies the needed Ghanaian English slice.
+  - Replace or re-license this corpus before any commercial Attune release or commercially redistributed training set.
+  - Keep audio local and off git; do not download in CI.
+  - Record the exact dataset revision, file hashes, attribution, and split procedure before use.
+  - This is an operational non-commercial research review, not legal advice or lawyer sign-off.

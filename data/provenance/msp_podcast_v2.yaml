@@ -7,8 +7,8 @@ licence:
   name: null
   source_text_url: null
   licence_review_status: pending
-  reviewed_by: null
-  reviewed_at: null
+  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
 redistribution:
   audio: unknown
   annotations: unknown
@@ -19,3 +19,5 @@ checksums_manifest: null
 notes:
   - Do not download, train on, or redistribute this dataset until review is complete.
   - Record the exact release, access terms, manifest hash, and split procedure.
+  - The 2026-08-26 review left this corpus pending; it did not grant approval.
+  - This is an operational research review, not legal advice or lawyer sign-off.

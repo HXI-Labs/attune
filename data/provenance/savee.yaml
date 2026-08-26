@@ -1,0 +1,31 @@
+dataset_id: savee
+dataset_name: Surrey Audio-Visual Expressed Emotion Database
+source_url: https://cvssp.org/savee/Register.html
+intended_use: Internal research inspection only after Jerry completes registration
+licence:
+  name: Research access terms after registration
+  source_text_url: https://cvssp.org/savee/Register.html
+  licence_review_status: pending_registration
+  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
+conditions:
+  research_use_only: true
+  registration_required: true
+  redistribution_prohibited: true
+  sublicensing_prohibited: true
+redistribution:
+  original_audio: prohibited
+  sublicense: prohibited
+consent_review_status: not_reviewed
+contains_personal_data: true
+speaker_disjoint_split_required: true
+registered_by: null
+registered_at: null
+downloaded_at: null
+checksums_manifest: null
+notes:
+  - Jerry must register before access; registration is not delegated to CI or other automation.
+  - Do not download in CI and do not distribute or sublicense the corpus.
+  - Keep any subsequently authorised audio local and off git.
+  - Record the accepted access terms, release, hashes, and split procedure after registration.
+  - This records the access conditions reviewed for research and is not legal advice or lawyer sign-off.
