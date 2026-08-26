@@ -24,6 +24,9 @@ model-runners = [
   "torchaudio>=2.11.0",
   "transformers>=5.16.1",
 ]
+dataset-tools = [
+    "datasets>=5.0.1",
+]
 
 [build-system]
 requires = ["hatchling"]

@@ -1,6 +1,7 @@
 dataset_id: ghana_english_asr_2700hrs
 dataset_name: Ghana English ASR 2700hrs
 source_url: https://huggingface.co/datasets/ghananlpcommunity/ghana-english-asr-2700hrs
+revision: 893a08082ec0f34b5d2fbec56f1ab2230ebea1e7
 intended_use: Non-commercial Phase 1 Ghanaian English inspection slice only
 licence:
   name: Creative Commons Attribution-NonCommercial 4.0 International
@@ -18,11 +19,15 @@ redistribution:
 consent_review_status: not_reviewed
 contains_personal_data: true
 speaker_disjoint_split_required: true
-downloaded_at: null
-checksums_manifest: null
+speaker_metadata_available: false
+downloaded_at: "2026-08-26"
+checksums_manifest: data/manifests/ghana-english-wer.jsonl
+fetch_script: scripts/prepare_ghana_english.py
 notes:
   - This candidate supplies the needed Ghanaian English slice.
   - Replace or re-license this corpus before any commercial Attune release or commercially redistributed training set.
   - Keep audio local and off git; do not download in CI.
-  - Record the exact dataset revision, file hashes, attribution, and split procedure before use.
+  - The published schema contains audio, corrected_text, and duration_ss only. It has no speaker identifier, so speaker-disjoint sampling and speaker leakage checks are impossible for this slice.
+  - The committed manifest records the exact dataset revision, selected-file hashes, attribution, and deterministic stream positions.
+  - The manifest and every result derived from it are NC research-only and are not covered by the repository's MIT code licence.
   - This is an operational non-commercial research review, not legal advice or lawyer sign-off.

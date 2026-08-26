@@ -73,3 +73,30 @@ ODbL's database ShareAlike obligations.
 
 These notices are operational research guidance, not legal advice. Original
 audio is not committed or redistributed by this repository.
+
+## Ghanaian-English WER slice — NC research-only
+
+`ghana-english-wer.jsonl` selects 100 clips (1,328.911 seconds) from the pinned
+`ghananlpcommunity/ghana-english-asr-2700hrs` revision. The fetcher streams only
+the selected rows and converts them to mono 16 kHz PCM16 WAV under the ignored
+`data/raw/ghana-english-wer/` cache:
+
+```bash
+uv sync --extra dataset-tools
+uv run python scripts/prepare_ghana_english.py --download
+uv run python scripts/prepare_ghana_english.py
+```
+
+Every row includes the source and converted-audio SHA-256, transcript, duration,
+audio contract, pinned revision, cache path, fetch script, attribution, and
+explicit `research_only` and `commercial_redistribution_prohibited` flags. The
+published corpus schema has no speaker identifier, so speaker-disjoint sampling
+and speaker leakage checks are impossible; the manifest records this limitation
+and does not claim speaker disjointness.
+
+The Ghana NLP Community dataset is licensed under
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). This manifest,
+the local subset, and all reported results are **NC research-only**. They must
+never be used in a commercially redistributed training set and are not covered
+by this repository's MIT code licence. The preparation script must not run in
+CI, and raw audio must remain outside Git.
