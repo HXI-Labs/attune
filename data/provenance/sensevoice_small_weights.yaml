@@ -1,0 +1,18 @@
+model_id: sensevoice_small
+model_name: SenseVoice-Small
+provider: FunAudioLLM
+source_url: https://huggingface.co/FunAudioLLM/SenseVoiceSmall
+revision: null
+checkpoint_hash: null
+licence:
+  name: null
+  source_text_url: null
+  licence_review_status: pending
+  reviewed_by: null
+  reviewed_at: null
+redistribution_status: pending
+downloaded_at: null
+notes:
+  - SenseVoice weights have a separate licence that must be reviewed before download.
+  - Do not download weights in CI.
+  - Set ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 only after review is recorded here.

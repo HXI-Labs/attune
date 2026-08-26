@@ -19,6 +19,10 @@ dev = [
 torch = [
   "torch>=2.5",
 ]
+model-runners = [
+  "funasr>=1.4.4",
+  "transformers>=5.16.1",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -30,6 +34,9 @@ packages = ["src/attune"]
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+markers = [
+  "integration: optional local-model integration tests; skipped when weights or runtimes are absent",
+]
 
 [tool.ruff]
 target-version = "py312"

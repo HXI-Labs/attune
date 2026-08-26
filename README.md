@@ -46,6 +46,7 @@ Useful commands:
 make fmt
 make lint
 make test
+uv run python scripts/evaluate.py
 ```
 
 PyTorch support is intentionally optional in Phase 0:
@@ -62,8 +63,11 @@ No model checkpoints are downloaded by installation.
 - `src/attune/schema/xml.py` — deterministic, injection-safe XML renderer
 - `src/attune/inference/packaging.py` — separated trusted-channel packaging
 - `src/attune/audio/contracts.py` — 16 kHz mono and duration contracts
+- `src/attune/evaluation/` — offline metrics and report harness
+- `src/attune/baselines/` — lazy baseline adapters and modular cascade
 - `docs/` — research, annotation, ontology, ethics, model, and dataset guidance
 - `configs/` — staged data/model/training/evaluation/deployment defaults
+- `data/fixtures/semantic_conflict/` — synthetic APS/harness wiring fixtures
 - `data/provenance/` — dataset licence and provenance ledgers
 - `research/` — experiment registry, baseline gate, error analysis, and paper work
 - `scripts/` — explicit stage-gated entry-point stubs

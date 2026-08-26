@@ -1,0 +1,54 @@
+{
+  "fixture_version": "1",
+  "description": "Synthetic wiring fixtures; not a scientific affect benchmark.",
+  "items": [
+    {
+      "id": "neutral_words_joy_delivery",
+      "audio": "neutral_words_joy_delivery.wav",
+      "transcript": "The package arrived today",
+      "acoustic_target": "joy",
+      "lexical_target": "neutral",
+      "group": "neutral_text_varying_delivery"
+    },
+    {
+      "id": "neutral_words_anger_delivery",
+      "audio": "neutral_words_anger_delivery.wav",
+      "transcript": "The package arrived today",
+      "acoustic_target": "anger",
+      "lexical_target": "neutral",
+      "group": "neutral_text_varying_delivery"
+    },
+    {
+      "id": "explicit_match_joy",
+      "audio": "explicit_match_joy.wav",
+      "transcript": "I am happy about this",
+      "acoustic_target": "joy",
+      "lexical_target": "joy",
+      "group": "explicit_text_matching_delivery"
+    },
+    {
+      "id": "explicit_conflict_anger",
+      "audio": "explicit_conflict_anger.wav",
+      "transcript": "I am happy about this",
+      "acoustic_target": "anger",
+      "lexical_target": "joy",
+      "group": "explicit_text_conflicting_delivery"
+    },
+    {
+      "id": "same_text_joy",
+      "audio": "same_text_joy.wav",
+      "transcript": "This is fine",
+      "acoustic_target": "joy",
+      "lexical_target": "neutral",
+      "group": "same_text_different_delivery"
+    },
+    {
+      "id": "same_text_distress",
+      "audio": "same_text_distress.wav",
+      "transcript": "This is fine",
+      "acoustic_target": "distress",
+      "lexical_target": "neutral",
+      "group": "same_text_different_delivery"
+    }
+  ]
+}
