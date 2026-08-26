@@ -1,0 +1,285 @@
+{
+  "report_version": "1",
+  "fixture_version": "1",
+  "fixture_notice": "Synthetic wiring fixtures only; these metrics are not scientific model results.",
+  "reports": [
+    {
+      "runner": "transcript-only-lexicon",
+      "items": [
+        {
+          "item_id": "neutral_words_joy_delivery",
+          "schema_valid": true,
+          "reference_text": "The package arrived today",
+          "predicted_text": "The package arrived today",
+          "reference_affect": "joy",
+          "predicted_affect": "neutral",
+          "acoustic_target": "joy",
+          "lexical_target": "neutral",
+          "runtime": {
+            "audio_seconds": 0.5,
+            "elapsed_seconds": 0.00016615399999864167,
+            "real_time_factor": 0.00033230799999728333,
+            "latency_ms": 0.16615399999864167,
+            "first_result_latency_ms": null
+          }
+        },
+        {
+          "item_id": "neutral_words_anger_delivery",
+          "schema_valid": true,
+          "reference_text": "The package arrived today",
+          "predicted_text": "The package arrived today",
+          "reference_affect": "anger",
+          "predicted_affect": "neutral",
+          "acoustic_target": "anger",
+          "lexical_target": "neutral",
+          "runtime": {
+            "audio_seconds": 0.5,
+            "elapsed_seconds": 7.004500002949499e-05,
+            "real_time_factor": 0.00014009000005898997,
+            "latency_ms": 0.07004500002949499,
+            "first_result_latency_ms": null
+          }
+        },
+        {
+          "item_id": "explicit_match_joy",
+          "schema_valid": true,
+          "reference_text": "I am happy about this",
+          "predicted_text": "I am happy about this",
+          "reference_affect": "joy",
+          "predicted_affect": "joy",
+          "acoustic_target": "joy",
+          "lexical_target": "joy",
+          "runtime": {
+            "audio_seconds": 0.5,
+            "elapsed_seconds": 7.90560000041296e-05,
+            "real_time_factor": 0.0001581120000082592,
+            "latency_ms": 0.0790560000041296,
+            "first_result_latency_ms": null
+          }
+        },
+        {
+          "item_id": "explicit_conflict_anger",
+          "schema_valid": true,
+          "reference_text": "I am happy about this",
+          "predicted_text": "I am happy about this",
+          "reference_affect": "anger",
+          "predicted_affect": "joy",
+          "acoustic_target": "anger",
+          "lexical_target": "joy",
+          "runtime": {
+            "audio_seconds": 0.5,
+            "elapsed_seconds": 0.000157692999948722,
+            "real_time_factor": 0.000315385999897444,
+            "latency_ms": 0.157692999948722,
+            "first_result_latency_ms": null
+          }
+        },
+        {
+          "item_id": "same_text_joy",
+          "schema_valid": true,
+          "reference_text": "This is fine",
+          "predicted_text": "This is fine",
+          "reference_affect": "joy",
+          "predicted_affect": "neutral",
+          "acoustic_target": "joy",
+          "lexical_target": "neutral",
+          "runtime": {
+            "audio_seconds": 0.5,
+            "elapsed_seconds": 5.402499999718202e-05,
+            "real_time_factor": 0.00010804999999436404,
+            "latency_ms": 0.05402499999718202,
+            "first_result_latency_ms": null
+          }
+        },
+        {
+          "item_id": "same_text_distress",
+          "schema_valid": true,
+          "reference_text": "This is fine",
+          "predicted_text": "This is fine",
+          "reference_affect": "distress",
+          "predicted_affect": "neutral",
+          "acoustic_target": "distress",
+          "lexical_target": "neutral",
+          "runtime": {
+            "audio_seconds": 0.5,
+            "elapsed_seconds": 4.870300000447969e-05,
+            "real_time_factor": 9.740600000895938e-05,
+            "latency_ms": 0.04870300000447969,
+            "first_result_latency_ms": null
+          }
+        }
+      ],
+      "metrics": {
+        "asr": {
+          "wer": 0.0,
+          "cer": 0.0
+        },
+        "events": {
+          "per_class": {
+            "laugh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            },
+            "sob": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            },
+            "sigh": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            },
+            "cough": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            },
+            "throat_clear": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            },
+            "sneeze": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            },
+            "breath": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            }
+          },
+          "macro_f1": 0.0,
+          "mean_temporal_iou": 0.0,
+          "matched": 0,
+          "reference_count": 0,
+          "prediction_count": 0,
+          "position_aware_score": 1.0
+        },
+        "styles": {
+          "per_class": {
+            "shouting": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            },
+            "whispering": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            },
+            "crying_speech": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            },
+            "laughing_speech": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            },
+            "singing": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            },
+            "strained_speech": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 0
+            }
+          },
+          "macro_f1": 0.0,
+          "mean_temporal_iou": 0.0,
+          "matched": 0,
+          "reference_count": 0,
+          "prediction_count": 0
+        },
+        "affect": {
+          "macro_f1": 0.05,
+          "brier_score": 0.9202666666666667,
+          "soft_cross_entropy": 2.65208560735266,
+          "ece": 0.53
+        },
+        "acoustic_preference": {
+          "acoustic_accuracy": 0.0,
+          "lexical_accuracy": 1.0,
+          "aps": -1.0,
+          "conflict_items": 5
+        }
+      },
+      "schema_validity": {
+        "valid": 6,
+        "invalid": 0,
+        "errors": []
+      },
+      "runtime": {
+        "audio_seconds": 3.0,
+        "elapsed_seconds": 0.00057567599998265,
+        "real_time_factor": 0.00019189199999421666,
+        "mean_latency_ms": 0.09594599999710833,
+        "first_result_latency_ms": null
+      },
+      "skipped_runners": [
+        {
+          "runner": "whisper-small",
+          "reason": "Whisper-Small weights are not local; set ATTUNE_WHISPER_SMALL_PATH or populate the Hugging Face cache. Downloads are disabled."
+        },
+        {
+          "runner": "sensevoice-small",
+          "reason": "SenseVoice weights have a separate licence. Complete review, then set ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1; never download them in CI."
+        },
+        {
+          "runner": "emotion2vec-plus",
+          "reason": "emotion2vec+ weights are not local; set ATTUNE_EMOTION2VEC_PLUS_PATH. Downloads are disabled."
+        },
+        {
+          "runner": "cascade:whisper-small+emotion2vec-plus+stub-event-head",
+          "reason": "whisper-small: Whisper-Small weights are not local; set ATTUNE_WHISPER_SMALL_PATH or populate the Hugging Face cache. Downloads are disabled."
+        },
+        {
+          "runner": "cascade:sensevoice-small+emotion2vec-plus+stub-event-head",
+          "reason": "sensevoice-small: SenseVoice weights have a separate licence. Complete review, then set ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1; never download them in CI."
+        }
+      ]
+    }
+  ],
+  "skipped_runners": [
+    {
+      "runner": "whisper-small",
+      "reason": "Whisper-Small weights are not local; set ATTUNE_WHISPER_SMALL_PATH or populate the Hugging Face cache. Downloads are disabled."
+    },
+    {
+      "runner": "sensevoice-small",
+      "reason": "SenseVoice weights have a separate licence. Complete review, then set ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1; never download them in CI."
+    },
+    {
+      "runner": "emotion2vec-plus",
+      "reason": "emotion2vec+ weights are not local; set ATTUNE_EMOTION2VEC_PLUS_PATH. Downloads are disabled."
+    },
+    {
+      "runner": "cascade:whisper-small+emotion2vec-plus+stub-event-head",
+      "reason": "whisper-small: Whisper-Small weights are not local; set ATTUNE_WHISPER_SMALL_PATH or populate the Hugging Face cache. Downloads are disabled."
+    },
+    {
+      "runner": "cascade:sensevoice-small+emotion2vec-plus+stub-event-head",
+      "reason": "sensevoice-small: SenseVoice weights have a separate licence. Complete review, then set ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1; never download them in CI."
+    }
+  ]
+}

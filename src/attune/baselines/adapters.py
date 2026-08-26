@@ -96,21 +96,14 @@ class TranscriptSentimentAdapter(BaselineAdapter):
             ),
         )
 
-    def classify(
-        self, text: str
-    ) -> tuple[AffectCategory, dict[AffectCategory, float]]:
+    def classify(self, text: str) -> tuple[AffectCategory, dict[AffectCategory, float]]:
         tokens = set(re.findall(r"[a-z']+", text.lower()))
-        counts = {
-            category: len(tokens & words) for category, words in self._lexicons.items()
-        }
+        counts = {category: len(tokens & words) for category, words in self._lexicons.items()}
         highest = max(counts.values(), default=0)
         if highest == 0:
             return AffectCategory.NEUTRAL, dict(NEUTRAL_DISTRIBUTION)
         winners = [category for category, count in counts.items() if count == highest]
-        if len(winners) > 1:
-            category = AffectCategory.AMBIGUOUS
-        else:
-            category = winners[0]
+        category = AffectCategory.AMBIGUOUS if len(winners) > 1 else winners[0]
         distribution = {label: 0.03 for label in AffectCategory}
         distribution[category] = 0.79
         return category, distribution
@@ -152,9 +145,7 @@ class WhisperSmallAdapter(BaselineAdapter):
         from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
 
         processor = AutoProcessor.from_pretrained(self.checkpoint, local_files_only=True)
-        model = AutoModelForSpeechSeq2Seq.from_pretrained(
-            self.checkpoint, local_files_only=True
-        )
+        model = AutoModelForSpeechSeq2Seq.from_pretrained(self.checkpoint, local_files_only=True)
         inputs = processor(samples, sampling_rate=sample_rate, return_tensors="pt")
         generated_ids = model.generate(inputs.input_features)
         transcript = processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()

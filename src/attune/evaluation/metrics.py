@@ -117,9 +117,7 @@ def span_classification_metrics(
     return {
         "per_class": per_class,
         "macro_f1": sum(f1_values) / len(f1_values) if f1_values else 0.0,
-        "mean_temporal_iou": (
-            sum(iou for _, _, iou in matches) / len(matches) if matches else 0.0
-        ),
+        "mean_temporal_iou": (sum(iou for _, _, iou in matches) / len(matches) if matches else 0.0),
         "matched": len(matches),
         "reference_count": len(references),
         "prediction_count": len(predictions),
@@ -166,7 +164,7 @@ def position_aware_event_score(
         distance, prediction_index = min(candidates)
         unused_predictions.remove(prediction_index)
         scores.append(max(0.0, 1.0 - distance / tolerance_ms))
-    return sum(scores) / len(scores)
+    return sum(scores) / max(len(references), len(predictions))
 
 
 def macro_f1(

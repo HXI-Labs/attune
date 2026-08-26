@@ -31,9 +31,7 @@ def test_span_metrics_and_temporal_iou() -> None:
     references = [span("laugh", 100, 300), span("sigh", 500, 600)]
     predictions = [span("laugh", 150, 300), span("cough", 500, 600)]
     assert temporal_iou(references[0], predictions[0]) == pytest.approx(0.75)
-    result = span_classification_metrics(
-        references, predictions, labels=["laugh", "sigh", "cough"]
-    )
+    result = span_classification_metrics(references, predictions, labels=["laugh", "sigh", "cough"])
     assert result["per_class"]["laugh"]["f1"] == 1
     assert result["per_class"]["sigh"]["recall"] == 0
     assert result["mean_temporal_iou"] == pytest.approx(0.75)
@@ -42,18 +40,19 @@ def test_span_metrics_and_temporal_iou() -> None:
 def test_position_score_uses_time_not_word_anchors() -> None:
     reference = [span("laugh", 400, 500)]
     prediction = [span("laugh", 420, 520)]
-    assert position_aware_event_score(reference, prediction, duration_ms=1000) == pytest.approx(
-        0.8
-    )
+    assert position_aware_event_score(reference, prediction, duration_ms=1000) == pytest.approx(0.8)
+    assert position_aware_event_score(
+        reference,
+        [span("laugh", 400, 500), span("laugh", 700, 800)],
+        duration_ms=1000,
+    ) == pytest.approx(0.5)
 
 
 def test_affect_metrics_support_soft_gold() -> None:
     labels = ["joy", "anger"]
     references = [{"joy": 0.75, "anger": 0.25}, {"joy": 0.1, "anger": 0.9}]
     predictions = [{"joy": 0.8, "anger": 0.2}, {"joy": 0.2, "anger": 0.8}]
-    assert multiclass_brier_score(references, predictions, labels=labels) == pytest.approx(
-        0.0125
-    )
+    assert multiclass_brier_score(references, predictions, labels=labels) == pytest.approx(0.0125)
     assert soft_cross_entropy(references, predictions, labels=labels) > 0
     assert macro_f1(["joy", "anger"], ["joy", "anger"], labels=labels) == 1
     assert expected_calibration_error(

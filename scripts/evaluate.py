@@ -25,7 +25,7 @@ def main() -> None:
     arguments = parser.parse_args()
     report = run_fixture_harness(arguments.fixtures)
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
-    arguments.output.write_text(json.dumps(report, indent=2, default=str) + "\n")
+    arguments.output.write_text(json.dumps(report, indent=2) + "\n")
     print(f"Wrote {arguments.output}")
     for skipped in report["skipped_runners"]:
         print(f"Skipped {skipped['runner']}: {skipped['reason']}")

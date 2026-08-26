@@ -49,6 +49,13 @@ class EvaluationItem:
     runtime: RuntimeMetrics
 
 
+@dataclass(frozen=True)
+class _ReportSpan:
+    label: object
+    start_ms: int
+    end_ms: int
+
+
 @dataclass
 class EvaluationReport:
     runner: str
@@ -85,8 +92,16 @@ def evaluate_items(
                 "schema_valid": schema_valid,
                 "reference_text": item.reference.transcript.text,
                 "predicted_text": item.prediction.transcript.text,
-                "reference_affect": item.reference.affect.top_label,
-                "predicted_affect": item.prediction.affect.top_label,
+                "reference_affect": (
+                    item.reference.affect.top_label.value
+                    if item.reference.affect.top_label
+                    else None
+                ),
+                "predicted_affect": (
+                    item.prediction.affect.top_label.value
+                    if item.prediction.affect.top_label
+                    else None
+                ),
                 "acoustic_target": item.acoustic_target,
                 "lexical_target": item.lexical_target,
                 "runtime": asdict(item.runtime),
@@ -112,10 +127,12 @@ def evaluate_items(
         for output in predictions
     ]
 
-    all_reference_events = [event for output in references for event in output.events]
-    all_prediction_events = [event for output in predictions for event in output.events]
-    all_reference_styles = [style for output in references for style in output.styles]
-    all_prediction_styles = [style for output in predictions for style in output.styles]
+    all_reference_events, all_prediction_events = _separate_clip_spans(
+        references, predictions, attribute="events"
+    )
+    all_reference_styles, all_prediction_styles = _separate_clip_spans(
+        references, predictions, attribute="styles"
+    )
     metrics: dict[str, Any] = {
         "asr": {
             "wer": _mean(
@@ -187,11 +204,7 @@ def evaluate_items(
             "elapsed_seconds": elapsed,
             "real_time_factor": elapsed / audio if audio else None,
             "mean_latency_ms": _mean(
-                [
-                    item.runtime.latency_ms
-                    for item in items
-                    if item.runtime.latency_ms is not None
-                ]
+                [item.runtime.latency_ms for item in items if item.runtime.latency_ms is not None]
             ),
             "first_result_latency_ms": None,
         },
@@ -201,3 +214,26 @@ def evaluate_items(
 
 def _mean(values: list[float]) -> float:
     return sum(values) / len(values) if values else 0.0
+
+
+def _separate_clip_spans(
+    references: list[AttuneOutput],
+    predictions: list[AttuneOutput],
+    *,
+    attribute: str,
+) -> tuple[list[_ReportSpan], list[_ReportSpan]]:
+    """Offset clips so span matching cannot pair annotations across files."""
+    reference_spans: list[_ReportSpan] = []
+    prediction_spans: list[_ReportSpan] = []
+    offset = 0
+    for reference, prediction in zip(references, predictions, strict=True):
+        for span in getattr(reference, attribute):
+            reference_spans.append(
+                _ReportSpan(span.label, span.start_ms + offset, span.end_ms + offset)
+            )
+        for span in getattr(prediction, attribute):
+            prediction_spans.append(
+                _ReportSpan(span.label, span.start_ms + offset, span.end_ms + offset)
+            )
+        offset += max(reference.audio.duration_ms, prediction.audio.duration_ms) + 1
+    return reference_spans, prediction_spans

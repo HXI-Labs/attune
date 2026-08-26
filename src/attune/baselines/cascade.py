@@ -58,9 +58,7 @@ class ModularCascade(BaselineAdapter):
         payload["affect"] = affect_prediction.output.affect.model_dump(mode="json")
         payload["events"] = self.event_head.predict()
         output = AttuneOutput.model_validate(payload)
-        elapsed = (
-            asr_prediction.runtime.elapsed_seconds + affect_prediction.runtime.elapsed_seconds
-        )
+        elapsed = asr_prediction.runtime.elapsed_seconds + affect_prediction.runtime.elapsed_seconds
         return BaselinePrediction(
             output=output,
             runtime=RuntimeMetrics.measured(
