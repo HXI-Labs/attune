@@ -1,0 +1,37 @@
+model_id: emotion2vec_plus
+model_name: emotion2vec+
+provider: emotion2vec / FunASR
+variants:
+  - name: seed
+    source_url: https://huggingface.co/emotion2vec/emotion2vec_plus_seed
+    revision: null
+    checkpoint_hash: null
+  - name: base
+    source_url: https://huggingface.co/emotion2vec/emotion2vec_plus_base
+    revision: null
+    checkpoint_hash: null
+  - name: large
+    source_url: https://huggingface.co/emotion2vec/emotion2vec_plus_large
+    revision: null
+    checkpoint_hash: null
+licence:
+  hugging_face:
+    license: other
+    license_name: model-license
+    license_link: https://github.com/alibaba-damo-academy/FunASR
+  name: model-license
+  source_text_url: https://github.com/alibaba-damo-academy/FunASR
+  licence_family: FunASR Model Open Source License Agreement
+  licence_review_status: reviewed_internal_research_ok
+  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
+redistribution_status: not_authorised_by_this_review
+downloaded_at: null
+notes:
+  - This review permits downloading the official seed, base, and large weights for internal baseline runs only.
+  - It does not authorise fine-tuning or public redistribution of weights.
+  - Attribute emotion2vec+ and FunASR/FunAudioLLM, retain the model name, and link the model licence in internal work and later public artefacts.
+  - The emotion2vec repository code licences do not cover the emotion2vec+ weights.
+  - Do not download weights in CI.
+  - Record the exact variant, revision, licence text, and checkpoint hash before reporting results.
+  - The review is operational, not legal advice or lawyer sign-off.

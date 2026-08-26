@@ -17,10 +17,11 @@ validated JSON; a model never generates markup. Spoken text remains separate
 from paralinguistic metadata whenever outputs enter a trusted downstream
 channel.
 
-The intended base is **SenseVoice-Small (~234M parameters)**, subject to review
-of its separate model licence. **Whisper-Small** is the fallback baseline.
-Primary deployment is local or low-cost near-real-time inference, with INT8
-quantization evaluated later.
+The intended base is **SenseVoice-Small (~234M parameters)**, with
+**Whisper-Small** as the fallback baseline and emotion2vec+ as an affect
+baseline. Their 2026-08-26 licence review permits downloading official weights
+for internal baseline runs only. Primary deployment is local or low-cost
+near-real-time inference, with INT8 quantization evaluated later.
 
 ## Stage gate
 
@@ -28,7 +29,9 @@ quantization evaluated later.
 must first produce `research/baseline-report.md` with transcript, timing,
 ontology, calibration, abstention, runtime, and subgroup/error-slice results.
 Only then may the project decide whether probes, joint training, or another
-approach are justified.
+approach are justified. The model-licence review does not bypass this gate: it
+does not authorise fine-tuning, public weight redistribution, or MSP-Podcast
+use, whose review remains pending.
 
 ## Quick start
 
@@ -91,5 +94,12 @@ speaker truly feeling?”
 ## Licence
 
 Code is MIT licensed. Dataset licences and model licences remain independent.
-In particular, SenseVoice weights have a separate model licence that must be
-reviewed before use or redistribution; the MIT licence does not cover them.
+Official SenseVoice-Small weights use the
+[FunASR Model Open Source License Agreement v1.1](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE);
+use requires attribution to FunASR/FunAudioLLM SenseVoiceSmall, retention of the
+model name, and a link to that licence. Third-party conversions require their
+own review. Whisper's upstream project licenses its code and original weights
+under MIT, while its Hugging Face card currently says Apache-2.0; this project
+prefers the upstream MIT licence. emotion2vec+ weight cards use `model-license`
+from the FunASR model-agreement family; their weights are not covered by the
+emotion2vec code licence. Exact review records are in `data/provenance/`.

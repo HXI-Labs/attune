@@ -4,15 +4,26 @@ provider: FunAudioLLM
 source_url: https://huggingface.co/FunAudioLLM/SenseVoiceSmall
 revision: null
 checkpoint_hash: null
+source_code:
+  licence: MIT
+  url: https://github.com/FunAudioLLM/SenseVoice
 licence:
-  name: null
-  source_text_url: null
-  licence_review_status: pending
-  reviewed_by: null
-  reviewed_at: null
-redistribution_status: pending
+  name: FunASR Model Open Source License Agreement v1.1
+  source_text_url: https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE
+  licence_review_status: reviewed_internal_research_ok
+  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
+  clarification_urls:
+    - https://github.com/QwenAudio/SenseVoice/issues/334
+    - https://github.com/FunAudioLLM/SenseVoice/issues/287
+redistribution_status: not_authorised_by_this_review
 downloaded_at: null
 notes:
-  - SenseVoice weights have a separate licence that must be reviewed before download.
+  - This review permits downloading the official weights for internal baseline runs only.
+  - It does not authorise fine-tuning or public redistribution of weights.
+  - Section 3 is a risk disclaimer, not a non-commercial restriction; commercial use is allowed when the model licence conditions are followed.
+  - Attribute "SenseVoiceSmall by FunASR/FunAudioLLM", retain the model name, and link the model licence in internal work and later public artefacts.
+  - Fine-tuned derivative weights may remain private; attribution and model-name duties still apply when using them.
+  - Check third-party GGUF, ONNX, and other conversions separately for additional terms.
   - Do not download weights in CI.
-  - Set ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 only after review is recorded here.
+  - The review is operational, not legal advice or lawyer sign-off.
