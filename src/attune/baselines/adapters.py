@@ -120,6 +120,8 @@ class WhisperSmallAdapter(BaselineAdapter):
         self.checkpoint = checkpoint or _local_checkpoint(
             "ATTUNE_WHISPER_SMALL_PATH", "models--openai--whisper-small"
         )
+        self._processor: Any | None = None
+        self._model: Any | None = None
 
     def availability(self) -> tuple[bool, str | None]:
         if self.checkpoint is None:
@@ -146,11 +148,18 @@ class WhisperSmallAdapter(BaselineAdapter):
             raise ValueError("Whisper adapter currently requires 16 kHz fixture audio")
         from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
 
-        processor = AutoProcessor.from_pretrained(self.checkpoint, local_files_only=True)
-        model = AutoModelForSpeechSeq2Seq.from_pretrained(self.checkpoint, local_files_only=True)
-        inputs = processor(samples, sampling_rate=sample_rate, return_tensors="pt")
-        generated_ids = model.generate(inputs.input_features)
-        transcript = processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
+        if self._processor is None or self._model is None:
+            self._processor = AutoProcessor.from_pretrained(
+                self.checkpoint, local_files_only=True
+            )
+            self._model = AutoModelForSpeechSeq2Seq.from_pretrained(
+                self.checkpoint, local_files_only=True
+            )
+        inputs = self._processor(samples, sampling_rate=sample_rate, return_tensors="pt")
+        generated_ids = self._model.generate(inputs.input_features)
+        transcript = self._processor.batch_decode(
+            generated_ids, skip_special_tokens=True
+        )[0].strip()
         category, distribution = TranscriptSentimentAdapter().classify(transcript)
         output = build_partial_output(
             item,
@@ -178,6 +187,7 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
             "ATTUNE_SENSEVOICE_SMALL_PATH",
             "models--FunAudioLLM--SenseVoiceSmall",
         )
+        self._model: Any | None = None
 
     def availability(self) -> tuple[bool, str | None]:
         if os.environ.get("ATTUNE_SENSEVOICE_LICENSE_REVIEWED") != "1":
@@ -207,8 +217,11 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
         from funasr import AutoModel
 
         with _offline_model_environment():
-            model = AutoModel(model=str(self.checkpoint), disable_update=True)
-            result = model.generate(input=str(item.audio_path), cache={}, language="auto")
+            if self._model is None:
+                self._model = AutoModel(model=str(self.checkpoint), disable_update=True)
+            result = self._model.generate(
+                input=str(item.audio_path), cache={}, language="auto"
+            )
         transcript = _extract_funasr_text(result)
         category, distribution = TranscriptSentimentAdapter().classify(transcript)
         output = build_partial_output(
@@ -235,8 +248,9 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
     def __init__(self, checkpoint: Path | None = None) -> None:
         self.checkpoint = checkpoint or _local_checkpoint(
             "ATTUNE_EMOTION2VEC_PLUS_PATH",
-            "models--iic--emotion2vec_plus_large",
+            "models--emotion2vec--emotion2vec_plus_base",
         )
+        self._model: Any | None = None
 
     def availability(self) -> tuple[bool, str | None]:
         if self.checkpoint is None:
@@ -260,8 +274,11 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
         from funasr import AutoModel
 
         with _offline_model_environment():
-            model = AutoModel(model=str(self.checkpoint), disable_update=True)
-            result = model.generate(input=str(item.audio_path), granularity="utterance")
+            if self._model is None:
+                self._model = AutoModel(model=str(self.checkpoint), disable_update=True)
+            result = self._model.generate(
+                input=str(item.audio_path), granularity="utterance"
+            )
         category, distribution = _map_emotion2vec_result(result)
         output = build_partial_output(
             item,

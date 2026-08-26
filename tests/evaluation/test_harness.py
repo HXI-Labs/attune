@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from attune.baselines.adapters import (
@@ -6,7 +7,7 @@ from attune.baselines.adapters import (
     _map_emotion2vec_result,
 )
 from attune.baselines.cascade import ModularCascade
-from attune.evaluation.harness import run_fixture_harness
+from attune.evaluation.harness import run_fixture_harness, run_inspection_harness
 from attune.evaluation.report import EvaluationItem, RuntimeMetrics, evaluate_items
 from attune.schema.output import AttuneOutput
 
@@ -35,6 +36,42 @@ def test_fixture_harness_runs_without_optional_weights() -> None:
     assert transcript["metrics"]["asr"]["wer"] == 0
     assert transcript["metrics"]["acoustic_preference"]["conflict_items"] == 5
     assert report["fixture_notice"].startswith("Synthetic")
+
+
+def test_inspection_harness_reads_jsonl_and_local_wavs(tmp_path: Path) -> None:
+    rows = [
+        {
+            "clip_id": "crema-example",
+            "source_dataset": "CREMA-D",
+            "source_filename": "explicit_match_joy.wav",
+            "cache_path": "explicit_match_joy.wav",
+            "source_metadata": {"transcript": "I am happy about this"},
+            "intended_attune_labels": {"affect": ["joy"], "events": []},
+        },
+        {
+            "clip_id": "vocal-example",
+            "source_dataset": "VocalSound",
+            "source_filename": "semantic_conflict_joy.wav",
+            "cache_path": "semantic_conflict_joy.wav",
+            "source_metadata": {},
+            "intended_attune_labels": {"affect": [], "events": ["laugh"]},
+        },
+    ]
+    manifest = tmp_path / "inspection.jsonl"
+    manifest.write_text("\n".join(json.dumps(row) for row in rows), encoding="utf-8")
+
+    report = run_inspection_harness(manifest, FIXTURES)
+
+    transcript = next(
+        row
+        for row in report["runner_results"]
+        if row["runner"] == "transcript-only-lexicon"
+    )
+    assert report["scope"]["sealed_gold_baseline"] is False
+    assert transcript["schema_validity"] == {"valid": 1, "invalid": 0, "errors": []}
+    assert transcript["not_applicable_clips"] == 1
+    assert transcript["metrics"]["asr"]["wer"] == 0
+    assert transcript["metrics"]["affect"]["macro_f1"] == 1 / 3
 
 
 def test_modular_cascade_composes_schema_valid_channels() -> None:
