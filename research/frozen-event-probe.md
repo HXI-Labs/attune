@@ -1,0 +1,63 @@
+# Stage 2 frozen event probe
+
+## Status
+
+Code and speaker-disjoint split tests are complete. No scientific training run
+is reported in this revision because the local machine does not contain a
+large-enough VocalSound training pool. There is therefore no metrics JSON and
+no claim that the project gate has passed.
+
+## Task and representation
+
+The probe is utterance-level five-way classification over VocalSound
+`laughter`, `sigh`, `cough`, `throatclearing`, and `sneeze`, mapped respectively
+to Attune `laugh`, `sigh`, `cough`, `throat_clear`, and `sneeze`.
+
+This first Stage 2 implementation uses `fixed-logmel-v1`: a parameter-free
+40-bin log-mel spectrogram summarized by eight temporal mean-pooling bins and
+per-mel mean and standard deviation. Only a single linear classification head
+is trained. The embedding has no parameters, receives no gradients, and is not
+an approximation presented as SenseVoice. This documented fallback avoids
+depending on unstable, undocumented FunASR hooks for SenseVoice encoder
+activations. SenseVoice-Small is not unfrozen or fine-tuned.
+
+## Mandatory partitions
+
+`scripts/train_probe.py` reads every VocalSound speaker ID from both `inspect`
+and `held_out_speakers` in `data/manifests/inspection-set.jsonl`. All 16 are
+excluded before constructing the training and early-stopping validation pools.
+Eligible remaining speakers are deterministically assigned wholly to train or
+validation. The default report test set is all 80 committed inspection-manifest
+VocalSound clips; `--test-set held_out_speakers` selects only that manifest
+slice. Neither choice can contribute clips or speakers to training.
+
+The command refuses to train with fewer than 200 eligible training clips,
+requires all five labels in train, validation, and test, and records the exact
+speaker lists and label counts in its metrics JSON. Audio, downloaded archives,
+embeddings, and checkpoints remain under gitignored paths.
+
+## Local run
+
+Place the official 16 kHz VocalSound WAV files under
+`data/raw/vocalsound-16k/`, and prepare the inspection test cache as documented
+in `data/manifests/README.md`. Then run:
+
+```bash
+uv sync --extra torch
+uv run python scripts/prepare_dataset.py --download
+uv run python scripts/train_probe.py
+```
+
+The default local outputs are `artifacts/event-probe/head.pt` and
+`artifacts/event-probe/metrics.json`; both are gitignored. A reviewed scientific
+run may copy only its non-identifying metrics JSON into `research/`, together
+with corpus version, hardware, software, seed, and checkpoint provenance. It
+must not copy audio, embeddings, or weights.
+
+## Interpretation boundary
+
+VocalSound contains crowdsourced standalone acted vocal sounds. Its source
+labels are weak labels, not reviewed Attune gold, natural inline events, or
+evidence about speakers' internal states. This probe does not provide temporal
+localization, calibration, abstention, OOD evaluation, or missing demographic
+and recording-condition slices. Those omissions keep the gate closed.

@@ -40,13 +40,20 @@ emotion2vec+ weight downloads for internal baseline runs only. They do not
 authorise fine-tuning, public weight redistribution, third-party conversions,
 or MSP-Podcast use. See `data/provenance/` for exact terms and attribution.
 
-SenseVoice's off-the-shelf tags map as follows: laughter to `laugh`, cry/crying
-to `sob`, sigh to `sigh`, cough to `cough`, throat clearing to `throat_clear`,
-sneeze to `sneeze`, and breath/breathing to `breath`. Singing, whispering, and
-shouting tags map directly to styles. Laughter or crying tags accompanied by a
-non-empty transcript also produce `laughing_speech` or `crying_speech`; this is
-a low-confidence utterance-level heuristic, not proof that every spoken word
-has that style.
+The released SenseVoice-Small AED inventory covers laughter, crying, coughing,
+sneezing, and breath, plus BGM and applause (which are outside the Attune event
+ontology). It does **not** include sigh or throat clearing. Consequently a zero
+inspection F1 for `sigh` and `throat_clear` is expected coverage, not a parser
+failure. The parser contains `sigh` and throat-clearing aliases for
+forward-compatible structured results, but the off-the-shelf model is not
+expected to emit them.
+
+Covered SenseVoice tags map as follows: laughter to `laugh`, cry/crying to
+`sob`, cough to `cough`, sneeze to `sneeze`, and breath/breathing to `breath`.
+Singing, whispering, and shouting tags map directly to styles when present in a
+runtime result. Laughter or crying tags accompanied by a non-empty transcript
+also produce `laughing_speech` or `crying_speech`; this is a low-confidence
+utterance-level heuristic, not proof that every spoken word has that style.
 
 Current SenseVoice AED output has no event score or frame boundaries. Such
 annotations therefore use confidence `0.0`, status `provisional`, and span the

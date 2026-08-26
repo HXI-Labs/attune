@@ -14,7 +14,7 @@ data/raw/
 data/processed/
 checkpoints/
 artifacts/
-models/
+/models/
 .cache/
 model-cache/
 *.onnx
