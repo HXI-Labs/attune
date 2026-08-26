@@ -3,7 +3,9 @@
 All runners implement `BaselineAdapter` and return a schema-valid
 `AttuneOutput`. Unsupported channels are not inferred:
 
-- ASR-only and transcript-only runners emit empty `styles` and `events`.
+- Whisper and transcript-only runners emit empty `styles` and `events`.
+- SenseVoice maps only recognized rich-transcription/AED tags onto the Attune
+  ontology. Unmapped tags such as noise, music, or applause are dropped.
 - Placeholder word timings divide the clip uniformly and use confidence `0.5`;
   they are not alignment results.
 - Unsupported affect dimensions use value `0.0` and confidence `0.0`.
@@ -38,6 +40,23 @@ emotion2vec+ weight downloads for internal baseline runs only. They do not
 authorise fine-tuning, public weight redistribution, third-party conversions,
 or MSP-Podcast use. See `data/provenance/` for exact terms and attribution.
 
-`ModularCascade` combines an ASR adapter, an affect adapter, and the stub event
-head. This replaceable composition is the Phase 1 system; it is not a unified
-or newly trained model.
+SenseVoice's off-the-shelf tags map as follows: laughter to `laugh`, cry/crying
+to `sob`, sigh to `sigh`, cough to `cough`, throat clearing to `throat_clear`,
+sneeze to `sneeze`, and breath/breathing to `breath`. Singing, whispering, and
+shouting tags map directly to styles. Laughter or crying tags accompanied by a
+non-empty transcript also produce `laughing_speech` or `crying_speech`; this is
+a low-confidence utterance-level heuristic, not proof that every spoken word
+has that style.
+
+Current SenseVoice AED output has no event score or frame boundaries. Such
+annotations therefore use confidence `0.0`, status `provisional`, and span the
+whole clip. A structured runtime result with an explicit score preserves that
+score. These spans are **not frame-level localization**. Duplicate tags collapse
+to one ontology label per clip.
+
+`ModularCascade` combines an ASR adapter and an affect adapter while retaining
+events and styles emitted by the ASR source. Consequently the SenseVoice
+cascade uses SenseVoice AED output; the Whisper cascade still emits no events.
+An explicit `StubEventHead` can override ASR events when a no-op head is needed.
+This replaceable composition is the Phase 1 system; it is not a unified or newly
+trained model.

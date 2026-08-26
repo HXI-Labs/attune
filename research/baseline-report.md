@@ -152,6 +152,21 @@ torchaudio 2.11.0, Transformers 5.16.1, FunASR 1.4.4, and Pydantic 2.13.4.
 Checkpoint files lived under `/tmp`, outside the Git tree. The actual evaluation
 ran with Hugging Face, Transformers, ModelScope, and FunASR offline flags set.
 
+Baseline B replaces the SenseVoice stub event path with SenseVoice-Small's
+off-the-shelf rich-transcription/AED tags. It performs no training or
+fine-tuning. Known tags are conservatively mapped to the existing event
+ontology, and SenseVoice events/styles are retained by the SenseVoice cascade.
+Because these tags do not provide frame boundaries, predictions are provisional
+whole-clip spans with confidence `0.0` when no score is exposed. This is not
+frame-level event localization.
+
+The 150-clip cache and local checkpoints from the prior inspection were not
+available on the Baseline B implementation VM, so the inspection metrics were
+**not re-measured**. The table and machine-readable report below remain the
+historical pre-Baseline-B stub results and must not be presented as Baseline B
+performance. A licensed offline rerun is still required to report its new weak-
+label event F1.
+
 | Runner | Schema valid | CREMA-D WER | VocalSound event macro-F1 | CREMA-D affect macro-F1 | APS | RTF | Mean latency |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | transcript-only lexicon | 70/70 | 0.0000 supplied | N/A | 0.0833 | -1.0000 | 0.00003 | 0.08 ms |
@@ -208,4 +223,4 @@ verified shout/whisper slices, as well as spontaneous affect and inline events
 within speech. MSP-Podcast, RAVDESS, Ghana English ASR, SAVEE, DEED, and EmoV-DB
 were not downloaded. Gold review, calibration, abstention/OOD analysis, missing
 slice coverage, and an explicit human gate decision remain outstanding; the
-gate is not passed.
+gate remains closed.

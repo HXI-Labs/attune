@@ -168,7 +168,8 @@ def run_inspection_harness(manifest: Path, cache_root: Path) -> dict[str, Any]:
             ),
             "events": (
                 "VocalSound source labels are weak whole-clip event spans; "
-                "empty stub heads therefore score zero."
+                "SenseVoice AED tags are provisional whole-clip predictions, "
+                "not frame-level localization. Other runners may emit no events."
             ),
             "affect": (
                 "CREMA-D HAP/SAD/NEU source labels map to "
