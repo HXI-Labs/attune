@@ -1,0 +1,149 @@
+{
+  "report_version": "1",
+  "title": "British-English ASR slice \u2014 Mozilla Common Voice CC0",
+  "generated_at_utc": "2026-08-26T23:11:10.258990Z",
+  "scope": {
+    "dataset": "Mozilla Common Voice Corpus 17.0 English",
+    "transport_mirror": "fixie-ai/common_voice_17_0",
+    "dataset_revision": "34f78a43893414e7b6e271ba94c1d5e05f18b239",
+    "licence": "CC0-1.0",
+    "attribution": "Mozilla Common Voice Corpus 17.0 English, released under CC0.",
+    "manifest": "data/manifests/common-voice-british-wer.jsonl",
+    "clip_count": 100,
+    "duration_seconds": 550.029563,
+    "sample_rate_hz": 16000,
+    "channels": 1,
+    "speaker_count": 100,
+    "speaker_disjoint": true,
+    "accent_field": "accent",
+    "accent_values": [
+      "England English",
+      "Scottish English"
+    ],
+    "accent_counts": {
+      "England English": 96,
+      "Scottish English": 4
+    },
+    "fine_tuning_performed": false,
+    "gate_decision": "not_evaluated_gate_remains_closed"
+  },
+  "execution": {
+    "offline_after_fetch": true,
+    "network_disabled_by_model_runtime_flags": true,
+    "run_commit": "84c511d24c105d3b9ffd51d5c20ac68a40913335",
+    "wall_seconds": 109.15398406982422,
+    "python": "3.12.3",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.39",
+    "logical_cpu_count": 4
+  },
+  "checkpoint_hashes": {
+    "whisper-small": {
+      "model.safetensors": "1d7734884874f1a1513ed9aa760a4f8e97aaa02fd6d93a3a85d27b2ae9ca596b",
+      "pytorch_model.bin": "ea40d8f6c99cada3695b9ddec20d5ee228a58292650b79c94d8600f567bf9b37"
+    },
+    "sensevoice-small": {
+      "model.pt": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea"
+    }
+  },
+  "results": [
+    {
+      "runner": "whisper-small",
+      "status": "completed",
+      "evaluated_clips": 100,
+      "failed_clips": 0,
+      "metrics": {
+        "wer": 0.09971509971509972,
+        "cer": 0.0377906976744186,
+        "normalization": "lowercase ASCII alphanumeric tokens; punctuation removed",
+        "by_accent": {
+          "England English": {
+            "clips": 96,
+            "wer": 0.09504950495049505,
+            "cer": 0.03394957983193277
+          },
+          "Scottish English": {
+            "clips": 4,
+            "wer": 0.20930232558139536,
+            "cer": 0.1322314049586777
+          }
+        }
+      },
+      "comparisons": {
+        "crema_d_acted_us": {
+          "reference_wer": 0.1226,
+          "absolute_wer_difference": -0.022884900284900284
+        },
+        "ghanaian_english_nc": {
+          "reference_wer": 0.2562,
+          "absolute_wer_difference": -0.15648490028490025
+        }
+      },
+      "runtime": {
+        "audio_seconds": 550.0299999999997,
+        "elapsed_seconds": 89.40720458199962,
+        "real_time_factor": 0.16254968743886636,
+        "device": "cpu"
+      },
+      "model": {
+        "revision": "973afd24965f72e36ca33b3055d56a652f456b4d",
+        "attribution": "OpenAI Whisper-Small; upstream Whisper MIT licence."
+      },
+      "failures": []
+    },
+    {
+      "runner": "sensevoice-small",
+      "status": "completed",
+      "evaluated_clips": 100,
+      "failed_clips": 0,
+      "metrics": {
+        "wer": 0.11490978157644824,
+        "cer": 0.04780361757105943,
+        "normalization": "lowercase ASCII alphanumeric tokens; punctuation removed",
+        "by_accent": {
+          "England English": {
+            "clips": 96,
+            "wer": 0.11287128712871287,
+            "cer": 0.04655462184873949
+          },
+          "Scottish English": {
+            "clips": 4,
+            "wer": 0.16279069767441862,
+            "cer": 0.07851239669421488
+          }
+        }
+      },
+      "comparisons": {
+        "crema_d_acted_us": {
+          "reference_wer": 0.0806,
+          "absolute_wer_difference": 0.034309781576448234
+        },
+        "ghanaian_english_nc": {
+          "reference_wer": 0.2365,
+          "absolute_wer_difference": -0.12159021842355175
+        }
+      },
+      "runtime": {
+        "audio_seconds": 550.0299999999997,
+        "elapsed_seconds": 16.756538206002006,
+        "real_time_factor": 0.030464771387018915,
+        "device": "cpu"
+      },
+      "model": {
+        "revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
+        "attribution": "SenseVoiceSmall by FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1."
+      },
+      "failures": []
+    }
+  ],
+  "attribution": {
+    "dataset": "Mozilla Common Voice Corpus 17.0 English; CC0-1.0.",
+    "whisper-small": "OpenAI Whisper-Small; upstream Whisper MIT licence.",
+    "sensevoice-small": "SenseVoiceSmall by FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1."
+  },
+  "limitations": [
+    "Accent values are self-declared and do not verify nationality or residence.",
+    "The 100-speaker deterministic slice is not population-representative.",
+    "CREMA-D is acted US English and Ghanaian English NC is broadcast-domain context; neither is a matched control.",
+    "This WER/CER slice does not evaluate calibration, affect, events, or localization."
+  ]
+}
