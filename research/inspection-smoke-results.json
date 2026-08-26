@@ -17,7 +17,7 @@
   },
   "metric_notes": {
     "asr": "WER/CER use lowercase alphanumeric normalization and only CREMA-D clips with source transcripts.",
-    "events": "VocalSound source labels are weak whole-clip event spans; empty stub heads therefore score zero.",
+    "events": "VocalSound source labels are weak whole-clip event spans; SenseVoice AED tags are provisional whole-clip predictions, not frame-level localization. Other runners may emit no events.",
     "affect": "CREMA-D HAP/SAD/NEU source labels map to joy/distress/neutral and are weak acted labels.",
     "aps": "APS compares CREMA-D acoustic source labels with transcript-lexicon labels; it is descriptive, not gold."
   },
@@ -119,9 +119,9 @@
       },
       "runtime": {
         "audio_seconds": 179.263,
-        "elapsed_seconds": 0.005345034000185933,
-        "real_time_factor": 2.98167162224549e-05,
-        "mean_latency_ms": 0.07635762857408476,
+        "elapsed_seconds": 0.005343232999905467,
+        "real_time_factor": 2.9806669529715932e-05,
+        "mean_latency_ms": 0.07633189999864953,
         "first_result_latency_ms": null
       },
       "failures": [],
@@ -241,9 +241,9 @@
       },
       "runtime": {
         "audio_seconds": 503.311,
-        "elapsed_seconds": 258.97177650300006,
-        "real_time_factor": 0.5145362936693219,
-        "mean_latency_ms": 1726.4785100200004,
+        "elapsed_seconds": 250.8606281010001,
+        "real_time_factor": 0.49842071423235357,
+        "mean_latency_ms": 1672.4041873400006,
         "first_result_latency_ms": null
       },
       "failures": [],
@@ -287,10 +287,10 @@
         "events": {
           "per_class": {
             "laugh": {
-              "precision": 0.0,
-              "recall": 0.0,
-              "f1": 0.0,
-              "mean_temporal_iou": 0.0,
+              "precision": 0.875,
+              "recall": 0.875,
+              "f1": 0.875,
+              "mean_temporal_iou": 1.0,
               "support": 16
             },
             "sob": {
@@ -308,10 +308,10 @@
               "support": 16
             },
             "cough": {
-              "precision": 0.0,
-              "recall": 0.0,
-              "f1": 0.0,
-              "mean_temporal_iou": 0.0,
+              "precision": 0.48148148148148145,
+              "recall": 0.8125,
+              "f1": 0.6046511627906976,
+              "mean_temporal_iou": 1.0,
               "support": 16
             },
             "throat_clear": {
@@ -322,10 +322,10 @@
               "support": 16
             },
             "sneeze": {
-              "precision": 0.0,
-              "recall": 0.0,
-              "f1": 0.0,
-              "mean_temporal_iou": 0.0,
+              "precision": 1.0,
+              "recall": 0.625,
+              "f1": 0.7692307692307693,
+              "mean_temporal_iou": 1.0,
               "support": 16
             },
             "breath": {
@@ -336,12 +336,12 @@
               "support": 0
             }
           },
-          "macro_f1": 0.0,
-          "mean_temporal_iou": 0.0,
-          "matched": 0,
+          "macro_f1": 0.32126884743163814,
+          "mean_temporal_iou": 1.0,
+          "matched": 37,
           "reference_count": 80,
-          "prediction_count": 0,
-          "position_aware_score": 0.0,
+          "prediction_count": 65,
+          "position_aware_score": 0.4625,
           "evaluated_clips": 80
         },
         "affect": {
@@ -363,9 +363,9 @@
       },
       "runtime": {
         "audio_seconds": 503.311,
-        "elapsed_seconds": 19.620262654999237,
-        "real_time_factor": 0.03898238396339289,
-        "mean_latency_ms": 130.80175103332826,
+        "elapsed_seconds": 19.96028539200063,
+        "real_time_factor": 0.03965795580068909,
+        "mean_latency_ms": 133.06856928000417,
         "first_result_latency_ms": null
       },
       "failures": [],
@@ -485,9 +485,9 @@
       },
       "runtime": {
         "audio_seconds": 503.311,
-        "elapsed_seconds": 18.973181777000264,
-        "real_time_factor": 0.037696735769733355,
-        "mean_latency_ms": 126.48787851333509,
+        "elapsed_seconds": 16.380394746000547,
+        "real_time_factor": 0.03254527468304994,
+        "mean_latency_ms": 109.20263164000364,
         "first_result_latency_ms": null
       },
       "failures": [],
@@ -511,7 +511,7 @@
       ]
     },
     {
-      "runner": "cascade:whisper-small+emotion2vec-plus+stub-event-head",
+      "runner": "cascade:whisper-small+emotion2vec-plus+asr-event-output",
       "status": "completed",
       "attempted_clips": 150,
       "not_applicable_clips": 0,
@@ -607,9 +607,9 @@
       },
       "runtime": {
         "audio_seconds": 503.311,
-        "elapsed_seconds": 248.96776069199984,
-        "real_time_factor": 0.4946598836345716,
-        "mean_latency_ms": 1659.7850712799989,
+        "elapsed_seconds": 246.8257018619995,
+        "real_time_factor": 0.4904039487752096,
+        "mean_latency_ms": 1645.5046790799965,
         "first_result_latency_ms": null
       },
       "failures": [],
@@ -633,7 +633,7 @@
       ]
     },
     {
-      "runner": "cascade:sensevoice-small+emotion2vec-plus+stub-event-head",
+      "runner": "cascade:sensevoice-small+emotion2vec-plus+asr-event-output",
       "status": "completed",
       "attempted_clips": 150,
       "not_applicable_clips": 0,
@@ -653,10 +653,10 @@
         "events": {
           "per_class": {
             "laugh": {
-              "precision": 0.0,
-              "recall": 0.0,
-              "f1": 0.0,
-              "mean_temporal_iou": 0.0,
+              "precision": 0.875,
+              "recall": 0.875,
+              "f1": 0.875,
+              "mean_temporal_iou": 1.0,
               "support": 16
             },
             "sob": {
@@ -674,10 +674,10 @@
               "support": 16
             },
             "cough": {
-              "precision": 0.0,
-              "recall": 0.0,
-              "f1": 0.0,
-              "mean_temporal_iou": 0.0,
+              "precision": 0.48148148148148145,
+              "recall": 0.8125,
+              "f1": 0.6046511627906976,
+              "mean_temporal_iou": 1.0,
               "support": 16
             },
             "throat_clear": {
@@ -688,10 +688,10 @@
               "support": 16
             },
             "sneeze": {
-              "precision": 0.0,
-              "recall": 0.0,
-              "f1": 0.0,
-              "mean_temporal_iou": 0.0,
+              "precision": 1.0,
+              "recall": 0.625,
+              "f1": 0.7692307692307693,
+              "mean_temporal_iou": 1.0,
               "support": 16
             },
             "breath": {
@@ -702,12 +702,12 @@
               "support": 0
             }
           },
-          "macro_f1": 0.0,
-          "mean_temporal_iou": 0.0,
-          "matched": 0,
+          "macro_f1": 0.32126884743163814,
+          "mean_temporal_iou": 1.0,
+          "matched": 37,
           "reference_count": 80,
-          "prediction_count": 0,
-          "position_aware_score": 0.0,
+          "prediction_count": 65,
+          "position_aware_score": 0.4625,
           "evaluated_clips": 80
         },
         "affect": {
@@ -729,9 +729,9 @@
       },
       "runtime": {
         "audio_seconds": 503.311,
-        "elapsed_seconds": 33.32382739300124,
-        "real_time_factor": 0.06620921734871926,
-        "mean_latency_ms": 222.15884928667492,
+        "elapsed_seconds": 33.40311247600073,
+        "real_time_factor": 0.06636674437077816,
+        "mean_latency_ms": 222.68741650667152,
         "first_result_latency_ms": null
       },
       "failures": [],
@@ -755,9 +755,9 @@
       ]
     }
   ],
-  "generated_at_utc": "2026-08-26T20:43:30.672087Z",
+  "generated_at_utc": "2026-08-26T21:12:19.103445Z",
   "source": {
-    "run_commit": "b936e51c51dac8c4d88eca00d61a273007819392",
+    "run_commit": "a2ad5f0fc3ef0cf7055fa854fddf0f550ebe243f",
     "entrypoint": "scripts/evaluate.py --inspection-manifest",
     "model_downloads_during_evaluation": false,
     "offline_environment": {
