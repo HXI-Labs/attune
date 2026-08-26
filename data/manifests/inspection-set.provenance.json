@@ -1,0 +1,31 @@
+{
+  "created_at": "2026-08-26",
+  "hash_algorithm": "SHA-256 over UTF-8 lines clip_id + NUL + file_sha256 + LF, sorted by clip_id",
+  "manifest": "data/manifests/inspection-set.jsonl",
+  "notes": [
+    "Hashes cover only the selected 150 local audio files; no full-corpus hash is asserted.",
+    "The VocalSound Zenodo record is a transport mirror; VocalSound remains attributed and licensed according to the official project."
+  ],
+  "row_count": 150,
+  "schema_version": 1,
+  "sources": [
+    {
+      "row_count": 80,
+      "source_dataset": "VocalSound",
+      "source_repository": "https://github.com/YuanGongND/vocalsound",
+      "source_revision": "337ac5526f392987ab6e9214bf986bc923639338",
+      "speaker_count": 16,
+      "subset_content_sha256": "fe76f2a03e5882e32c53fc26f29aee9c3998942119270d09c5520dc4c14c8e79",
+      "transport_record": "https://doi.org/10.5281/zenodo.14650192"
+    },
+    {
+      "row_count": 70,
+      "source_dataset": "CREMA-D",
+      "source_repository": "https://github.com/CheyneyComputerScience/CREMA-D",
+      "source_revision": "1658cd342dff90010aa843eaeebd53610a08b1dc",
+      "speaker_count": 10,
+      "subset_content_sha256": "d5a3ae777b6460c7dbde688f4ff313fd61b1188eb34b8bd2945f2096d7b77675"
+    }
+  ],
+  "subset_content_sha256": "6639c105e9d840f7adc44c3d65c87adfcaf880229a5505fcf2bba0096e0c1d7f"
+}

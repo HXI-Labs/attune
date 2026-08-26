@@ -3,6 +3,7 @@ dataset_name: VocalSound
 source_urls:
   - https://sls.csail.mit.edu/downloads/vocalsound/
   - https://github.com/YuanGongND/vocalsound
+transport_url: https://doi.org/10.5281/zenodo.14650192
 intended_use: Small local inspection subset for internal research
 coverage:
   - laugh
@@ -26,10 +27,11 @@ redistribution:
 consent_review_status: not_reviewed
 contains_personal_data: true
 speaker_disjoint_split_required: true
-downloaded_at: null
-checksums_manifest: null
+downloaded_at: "2026-08-26"
+checksums_manifest: data/manifests/inspection-set.jsonl
 notes:
   - The events are acted, crowdsourced vocal events rather than inline speech.
   - Keep audio local and off git; do not download in CI.
-  - Record the exact release, attribution, file hashes, and speaker-disjoint selection in a later manifest.
+  - The versioned Zenodo WebDataset record is a transport mirror only; official VocalSound attribution and CC-BY-SA-4.0 terms govern.
+  - Selected-file hashes and speaker-disjoint partitions are recorded in data/manifests/inspection-set.jsonl and inspection-set.provenance.json.
   - This is an operational internal-research review, not legal advice or lawyer sign-off.

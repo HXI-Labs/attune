@@ -19,11 +19,11 @@ redistribution:
 consent_review_status: not_reviewed
 contains_personal_data: true
 speaker_disjoint_split_required: true
-downloaded_at: null
-checksums_manifest: null
+downloaded_at: "2026-08-26"
+checksums_manifest: data/manifests/inspection-set.jsonl
 notes:
   - Acted recordings provide shared sentences across emotion and intensity and are candidates for polarity-delivery conflict inspection.
   - Do not redistribute original audio where doing so would conflict with the ODbL or applicable produced-work rules; keep audio local and off git.
   - Do not download in CI.
-  - Record the exact release, file hashes, attribution, and speaker-disjoint selection in a later manifest.
+  - Selected-file hashes, pinned source revision, attribution, and speaker-disjoint partitions are recorded in data/manifests/.
   - This is an operational internal-research review, not legal advice or lawyer sign-off.
