@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Train the Stage 2 frozen-embedding VocalSound event probe.
-
-The parameter-free log-mel representation is intentionally fixed. Only one
-linear five-class classification head receives gradients.
-"""
+"""Train a linear VocalSound event head over a frozen representation."""
 
 from __future__ import annotations
 
@@ -15,6 +11,7 @@ import random
 import sys
 import wave
 from collections import Counter
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +23,10 @@ from attune.models.frozen_event_probe import (
     inspection_examples,
     load_inspection_rows,
     make_speaker_disjoint_split,
+)
+from attune.models.sensevoice_probe import (
+    SENSEVOICE_EMBEDDING,
+    FrozenSenseVoiceEncoder,
 )
 
 DEFAULT_MANIFEST = Path("data/manifests/inspection-set.jsonl")
@@ -157,6 +158,7 @@ def frozen_logmel_embedding(
 def extract_partition(
     examples: tuple[ProbeExample, ...],
     torch: Any,
+    extractor: Any = None,
 ) -> tuple[Any, Any]:
     """Materialize frozen embeddings and integer labels for one partition."""
     missing = [str(example.path) for example in examples if not example.path.is_file()]
@@ -164,10 +166,9 @@ def extract_partition(
         preview = "\n".join(f"  - {path}" for path in missing[:10])
         raise ProbeDataError(f"{len(missing)} audio files are missing:\n{preview}")
     label_indices = {label: index for index, label in enumerate(EVENT_LABELS)}
+    extractor = extractor or partial(frozen_logmel_embedding, torch=torch)
     with torch.inference_mode():
-        features = torch.stack(
-            [frozen_logmel_embedding(example.path, torch) for example in examples]
-        )
+        features = torch.stack([extractor(example.path) for example in examples])
     labels = torch.tensor([label_indices[example.label] for example in examples])
     return features, labels
 
@@ -250,9 +251,26 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         if missing_labels:
             raise ProbeDataError(f"{partition} partition lacks labels: {', '.join(missing_labels)}")
 
-    train_x, train_y = extract_partition(split.train, torch)
-    validation_x, validation_y = extract_partition(split.validation, torch)
-    test_x, test_y = extract_partition(split.test, torch)
+    embedding_name = getattr(args, "embedding", "fixed-logmel-v1")
+    sensevoice_extractor = None
+    if embedding_name == SENSEVOICE_EMBEDDING:
+        sensevoice_model = getattr(args, "sensevoice_model", None)
+        if sensevoice_model is None:
+            raise ProbeDataError("--sensevoice-model is required for SenseVoice extraction")
+        sensevoice_extractor = FrozenSenseVoiceEncoder(
+            sensevoice_model,
+            getattr(args, "embedding_cache", Path("artifacts/sensevoice-embeddings")),
+            torch,
+        )
+        extractor = sensevoice_extractor
+    elif embedding_name == "fixed-logmel-v1":
+        extractor = partial(frozen_logmel_embedding, torch=torch)
+    else:
+        raise ProbeDataError(f"unsupported embedding: {embedding_name}")
+
+    train_x, train_y = extract_partition(split.train, torch, extractor)
+    validation_x, validation_y = extract_partition(split.validation, torch, extractor)
+    test_x, test_y = extract_partition(split.test, torch, extractor)
     mean = train_x.mean(dim=0)
     scale = train_x.std(dim=0).clamp_min(1e-5)
     train_x = (train_x - mean) / scale
@@ -303,13 +321,22 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         raise ProbeDataError("training did not produce a checkpoint")
     head.load_state_dict(best_state)
     args.checkpoint_output.parent.mkdir(parents=True, exist_ok=True)
+    embedding_metadata = (
+        sensevoice_extractor.metadata()
+        if sensevoice_extractor is not None
+        else {
+            "name": "fixed-logmel-v1",
+            "trainable_parameters": 0,
+            "description": "40-bin log-mel temporal pooling plus per-bin mean/std",
+        }
+    )
     torch.save(
         {
             "head_state_dict": best_state,
             "feature_mean": mean,
             "feature_scale": scale,
             "labels": [label.value for label in EVENT_LABELS],
-            "embedding": "fixed-logmel-v1",
+            "embedding": embedding_name,
         },
         args.checkpoint_output,
     )
@@ -328,11 +355,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "task": "VocalSound utterance-level 5-way event classification",
         "gate_passed": False,
         "encoder_frozen": True,
-        "embedding": {
-            "name": "fixed-logmel-v1",
-            "trainable_parameters": 0,
-            "description": "40-bin log-mel temporal pooling plus per-bin mean/std",
-        },
+        "embedding": embedding_metadata,
         "head": {
             "type": "linear",
             "trainable_parameters": sum(parameter.numel() for parameter in head.parameters()),
@@ -349,12 +372,36 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         },
         "validation_metrics": evaluate(head, validation_x, validation_y, torch),
         "test_metrics": evaluate(head, test_x, test_y, torch),
+        "attribution": {
+            "SenseVoiceSmall": (
+                "FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1"
+            )
+            if sensevoice_extractor is not None
+            else "not used",
+            "VocalSound": "Gong, Yu, and Glass (ICASSP 2022); CC BY-SA 4.0",
+        },
     }
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Train a linear event head over a frozen log-mel embedding."
+        description="Train a linear event head over a frozen representation."
+    )
+    parser.add_argument(
+        "--embedding",
+        choices=("fixed-logmel-v1", SENSEVOICE_EMBEDDING),
+        default="fixed-logmel-v1",
+    )
+    parser.add_argument(
+        "--sensevoice-model",
+        type=Path,
+        help="local official SenseVoiceSmall checkpoint (never downloaded by this script)",
+    )
+    parser.add_argument(
+        "--embedding-cache",
+        type=Path,
+        default=Path("artifacts/sensevoice-embeddings"),
+        help="gitignored cache for frozen SenseVoice encoder embeddings",
     )
     parser.add_argument("--dataset-dir", type=Path, default=DEFAULT_DATASET)
     parser.add_argument("--inspection-manifest", type=Path, default=DEFAULT_MANIFEST)
