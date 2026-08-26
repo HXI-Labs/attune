@@ -15,10 +15,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from prepare_ghana_english import LICENCE, load_manifest, safe_target, verify
+
 from attune.baselines.adapters import BaselineInput, SenseVoiceSmallAdapter, WhisperSmallAdapter
 from attune.evaluation.metrics import corpus_character_error_rate, corpus_word_error_rate
-
-from prepare_ghana_english import LICENCE, load_manifest, safe_target, verify
 
 NC_LABEL = "NC research-only"
 CREMA_D_WER = {"sensevoice-small": 0.0806, "whisper-small": 0.1226}
