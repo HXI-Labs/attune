@@ -1,0 +1,3 @@
+# Phase 1 evaluation defaults
+speaker_disjoint: true
+calibration_metrics: [ece, brier_score]

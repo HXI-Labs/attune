@@ -1,0 +1,3 @@
+# Intended baseline; weights are not bundled.
+base_model: sensevoice-small
+fallback_model: whisper-small

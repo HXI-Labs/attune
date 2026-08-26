@@ -1,0 +1,21 @@
+dataset_id: msp_podcast_v2
+dataset_name: MSP-Podcast
+version: "2"
+source_url: https://ecs.utdallas.edu/research/researchlabs/msp-lab/MSP-Podcast.html
+intended_use: Phase 1 baseline research only after licence approval
+licence:
+  name: null
+  source_text_url: null
+  licence_review_status: pending
+  reviewed_by: null
+  reviewed_at: null
+redistribution:
+  audio: unknown
+  annotations: unknown
+consent_review_status: pending
+contains_personal_data: true
+speaker_disjoint_split_required: true
+checksums_manifest: null
+notes:
+  - Do not download, train on, or redistribute this dataset until review is complete.
+  - Record the exact release, access terms, manifest hash, and split procedure.
