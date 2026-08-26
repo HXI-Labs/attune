@@ -244,3 +244,51 @@ within speech. MSP-Podcast, RAVDESS, Ghana English ASR, SAVEE, DEED, and EmoV-DB
 were not downloaded. Gold review, calibration, abstention/OOD analysis, missing
 slice coverage, and an explicit human gate decision remain outstanding; the
 gate remains closed.
+
+## Stage 2 frozen VocalSound event probe
+
+The Stage 2 run used code at `4a3e8b9`, seed 0, and one checksum-verified
+VocalSound 16 kHz WebDataset training shard (`wds-audio-train-000000.tar`,
+MD5 `003d0a4cb29afa422042043aaec01c41`) from Zenodo record 14650192. VocalSound
+remains attributed to Gong, Yu, and Glass and governed by CC BY-SA 4.0. The
+source labels remain five-way acted VocalSound events, not reviewed gold.
+
+The frozen, parameter-free `fixed-logmel-v1` embedding had zero trainable
+parameters; only the 2,005-parameter linear head was trained. The sampled pool
+contained 646 clips from 576 speakers. A speaker-level split produced 514
+training clips/461 speakers and 132 validation clips/115 speakers. All 16
+speakers appearing in either inspection-manifest partition were excluded from
+both pools. The test set was the 80 inspection VocalSound clips from those 16
+speakers, balanced at 16 clips per class.
+
+| Event | Probe test F1 | SenseVoiceSmall F1 |
+|---|---:|---:|
+| laugh | 0.4118 | 0.8750 |
+| sigh | 0.4516 | 0.0000 |
+| cough | 0.2963 | 0.6047 |
+| throat_clear | 0.4444 | 0.0000 |
+| sneeze | 0.7500 | 0.7692 |
+
+Probe test accuracy was 0.4750 and five-class macro-F1 was 0.4708. The
+SenseVoice numbers are the existing off-the-shelf inspection results, not a
+fine-tuned comparator; in particular, its released AED inventory has no `sigh`
+or `throat_clear` class. Full-precision metrics, split membership, label counts,
+and loss history are in `research/stage2-vocalsound-probe-metrics.json`.
+
+Reproduce on CPU:
+
+```bash
+uv sync --extra torch
+uv run python scripts/prepare_dataset.py --download
+curl -fL -o data/raw/vocalsound-16k/wds-audio-train-000000.tar \
+  https://zenodo.org/api/records/14650192/files/wds-audio-train-000000.tar/content
+echo "003d0a4cb29afa422042043aaec01c41  data/raw/vocalsound-16k/wds-audio-train-000000.tar" | md5sum -c -
+tar -xf data/raw/vocalsound-16k/wds-audio-train-000000.tar \
+  -C data/raw/vocalsound-16k --wildcards "*.wav"
+uv run python scripts/train_probe.py \
+  --metrics-output research/stage2-vocalsound-probe-metrics.json
+```
+
+The run used Python 3.12.3, PyTorch 2.13.0+cpu, four logical CPUs, and no GPU.
+The generated head checkpoint stayed under gitignored `artifacts/` and is not
+included. This limited acted-event probe does not pass the gate.
