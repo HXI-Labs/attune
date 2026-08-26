@@ -92,7 +92,9 @@ audio contract, pinned revision, cache path, fetch script, attribution, and
 explicit `research_only` and `commercial_redistribution_prohibited` flags. The
 published corpus schema has no speaker identifier, so speaker-disjoint sampling
 and speaker leakage checks are impossible; the manifest records this limitation
-and does not claim speaker disjointness.
+and does not claim speaker disjointness. Selection is the first 100
+duration-valid rows from the pinned stream, so it may include repeated speakers
+or adjacent broadcast segments and is not population-representative.
 
 The Ghana NLP Community dataset is licensed under
 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). This manifest,
