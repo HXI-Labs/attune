@@ -131,13 +131,17 @@ def frozen_logmel_embedding(
     if waveform.numel() < n_fft:
         waveform = torch.nn.functional.pad(waveform, (0, n_fft - waveform.numel()))
     window = torch.hann_window(n_fft)
-    spectrum = torch.stft(
-        waveform,
-        n_fft=n_fft,
-        hop_length=hop_length,
-        window=window,
-        return_complex=True,
-    ).abs().square()
+    spectrum = (
+        torch.stft(
+            waveform,
+            n_fft=n_fft,
+            hop_length=hop_length,
+            window=window,
+            return_complex=True,
+        )
+        .abs()
+        .square()
+    )
     filters = mel_filterbank(
         torch,
         sample_rate=sample_rate,
@@ -173,12 +177,23 @@ def classification_metrics(targets: list[int], predictions: list[int]) -> dict[s
     per_class: dict[str, Any] = {}
     f1_values: list[float] = []
     for index, label in enumerate(EVENT_LABELS):
-        true_positive = sum(t == index and p == index for t, p in zip(targets, predictions))
-        false_positive = sum(t != index and p == index for t, p in zip(targets, predictions))
-        false_negative = sum(t == index and p != index for t, p in zip(targets, predictions))
+        pairs = zip(targets, predictions, strict=True)
+        true_positive = sum(t == index and p == index for t, p in pairs)
+        pairs = zip(targets, predictions, strict=True)
+        false_positive = sum(t != index and p == index for t, p in pairs)
+        pairs = zip(targets, predictions, strict=True)
+        false_negative = sum(t == index and p != index for t, p in pairs)
         support = sum(t == index for t in targets)
-        precision = true_positive / (true_positive + false_positive) if true_positive + false_positive else 0
-        recall = true_positive / (true_positive + false_negative) if true_positive + false_negative else 0
+        precision = (
+            true_positive / (true_positive + false_positive)
+            if true_positive + false_positive
+            else 0
+        )
+        recall = (
+            true_positive / (true_positive + false_negative)
+            if true_positive + false_negative
+            else 0
+        )
         f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0
         f1_values.append(f1)
         per_class[label.value] = {
@@ -187,7 +202,7 @@ def classification_metrics(targets: list[int], predictions: list[int]) -> dict[s
             "f1": f1,
             "support": support,
         }
-    accuracy = sum(t == p for t, p in zip(targets, predictions)) / len(targets)
+    accuracy = sum(t == p for t, p in zip(targets, predictions, strict=True)) / len(targets)
     return {
         "accuracy": accuracy,
         "macro_f1": sum(f1_values) / len(f1_values),
