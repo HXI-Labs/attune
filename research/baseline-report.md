@@ -238,12 +238,53 @@ FunASR/FunAudioLLM under the documented FunASR model licence. Exact checkpoint
 revisions and hashes are recorded in `research/fixture-smoke-test.json`;
 licence constraints and attribution are recorded in `data/provenance/`.
 
-Still missing are Ghanaian English, verified British English, cry/sob, and
-verified shout/whisper slices, as well as spontaneous affect and inline events
-within speech. MSP-Podcast, RAVDESS, Ghana English ASR, SAVEE, DEED, and EmoV-DB
-were not downloaded. Gold review, calibration, abstention/OOD analysis, missing
-slice coverage, and an explicit human gate decision remain outstanding; the
-gate remains closed.
+Still missing are verified British English, cry/sob, and verified
+shout/whisper slices, as well as spontaneous affect and inline events within
+speech. MSP-Podcast, RAVDESS, SAVEE, DEED, and EmoV-DB were not downloaded.
+Gold review, calibration, abstention/OOD analysis, missing slice coverage, and
+an explicit human gate decision remain outstanding; the gate remains closed.
+
+## Ghanaian-English WER slice — NC research-only
+
+This **NC research-only** run used code at
+`acf27aea44a3d3cae1dc176d5c4ece1900572633` and 100 streamed clips from
+`ghananlpcommunity/ghana-english-asr-2700hrs` revision
+`893a08082ec0f34b5d2fbec56f1ab2230ebea1e7`. The 1,328.911 seconds of audio
+were converted to mono 16 kHz PCM16 WAV and kept under gitignored `data/raw/`.
+Only the JSONL manifest, transcripts, hashes, and reproducible fetch path are
+committed. No full shard or full-corpus download occurred.
+
+The corpus exposes only `audio`, `corrected_text`, and `duration_ss`; it has no
+speaker identifier. Consequently this deterministic first-100-valid-row slice
+cannot be speaker-disjoint, may contain repeated speakers or adjacent broadcast
+segments, and cannot support speaker-leakage checks. It is an accent/domain
+inspection slice, not a population-representative Ghanaian-English benchmark.
+
+| Runner | Licence scope | Clips | Ghanaian-English WER | CER | CREMA-D acted US English WER | Absolute WER difference |
+|---|---|---:|---:|---:|---:|---:|
+| SenseVoiceSmall | NC research-only | 100 | 0.2365 | 0.1768 | 0.0806 | +0.1559 |
+| Whisper-Small | NC research-only | 100 | 0.2562 | 0.2099 | 0.1226 | +0.1336 |
+
+WER and CER use the same lowercase alphanumeric normalization as the CREMA-D
+inspection. Both runners completed all 100 clips without failure, offline after
+the one-time dataset and reviewed-weight fetch. Whisper was run in known-English
+transcription mode; this fixes an adapter defect where `language_hint="en"` was
+previously ignored and incorrect language detection could collapse a valid
+English clip to one token. On four CPU cores, SenseVoiceSmall had RTF 0.0193 and
+Whisper-Small RTF 0.0918. CREMA-D is acted US English rather than a matched
+domain control, so the differences are descriptive and combine accent, domain,
+recording, and transcript effects.
+
+The source is attributed to the Ghana NLP Community under CC BY-NC 4.0.
+Whisper-Small is attributed to OpenAI under the upstream Whisper MIT licence.
+SenseVoiceSmall is attributed to FunASR/FunAudioLLM under the FunASR Model Open
+Source License Agreement v1.1. Exact checkpoint revisions and hashes are in
+`research/ghana-english-wer-results.json`.
+
+This manifest and every metric in this section are **NC research-only**. They
+must never be used for a commercially redistributed training set and are not
+covered by the repository's MIT code licence. No fine-tuning occurred, this
+slice does not pass the gate, and the gate remains closed.
 
 ## Stage 2 frozen VocalSound event probe
 

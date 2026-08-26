@@ -1,0 +1,103 @@
+{
+  "report_version": "1",
+  "title": "Ghanaian-English ASR slice \u2014 NC research-only",
+  "licence_scope": "NC research-only",
+  "commercial_redistribution_prohibited": true,
+  "generated_at_utc": "2026-08-26T22:43:05.537247Z",
+  "scope": {
+    "dataset": "ghananlpcommunity/ghana-english-asr-2700hrs",
+    "dataset_revision": "893a08082ec0f34b5d2fbec56f1ab2230ebea1e7",
+    "licence": "CC-BY-NC-4.0",
+    "attribution": "Ghana NLP Community, Ghana English ASR Dataset (2026).",
+    "manifest": "data/manifests/ghana-english-wer.jsonl",
+    "clip_count": 100,
+    "duration_seconds": 1328.911,
+    "sample_rate_hz": 16000,
+    "channels": 1,
+    "speaker_disjoint": false,
+    "speaker_limitation": "The published corpus exposes no speaker IDs. Speaker-disjoint sampling and speaker leakage checks were therefore impossible.",
+    "fine_tuning_performed": false,
+    "gate_decision": "not_evaluated_gate_remains_closed"
+  },
+  "execution": {
+    "offline_after_fetch": true,
+    "network_disabled_by_model_runtime_flags": true,
+    "run_commit": "acf27aea44a3d3cae1dc176d5c4ece1900572633",
+    "wall_seconds": 151.16442322731018,
+    "python": "3.12.3",
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.39",
+    "logical_cpu_count": 4
+  },
+  "checkpoint_hashes": {
+    "whisper-small": {
+      "model.safetensors": "1d7734884874f1a1513ed9aa760a4f8e97aaa02fd6d93a3a85d27b2ae9ca596b",
+      "pytorch_model.bin": "ea40d8f6c99cada3695b9ddec20d5ee228a58292650b79c94d8600f567bf9b37"
+    },
+    "sensevoice-small": {
+      "model.pt": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea"
+    }
+  },
+  "results": [
+    {
+      "runner": "whisper-small",
+      "status": "completed",
+      "licence_scope": "NC research-only",
+      "evaluated_clips": 100,
+      "failed_clips": 0,
+      "metrics": {
+        "wer": 0.25617766656240226,
+        "cer": 0.20993462454939818,
+        "crema_d_acted_us_english_wer": 0.1226,
+        "wer_absolute_difference_vs_crema_d": 0.13357766656240228,
+        "normalization": "lowercase ASCII alphanumeric tokens; punctuation removed"
+      },
+      "runtime": {
+        "audio_seconds": 1328.9110000000003,
+        "elapsed_seconds": 122.00230876200044,
+        "real_time_factor": 0.09180622988446963,
+        "device": "cpu"
+      },
+      "model": {
+        "revision": "973afd24965f72e36ca33b3055d56a652f456b4d",
+        "attribution": "OpenAI Whisper-Small; upstream Whisper MIT licence."
+      },
+      "failures": []
+    },
+    {
+      "runner": "sensevoice-small",
+      "status": "completed",
+      "licence_scope": "NC research-only",
+      "evaluated_clips": 100,
+      "failed_clips": 0,
+      "metrics": {
+        "wer": 0.23647169221144823,
+        "cer": 0.17681920938473758,
+        "crema_d_acted_us_english_wer": 0.0806,
+        "wer_absolute_difference_vs_crema_d": 0.15587169221144823,
+        "normalization": "lowercase ASCII alphanumeric tokens; punctuation removed"
+      },
+      "runtime": {
+        "audio_seconds": 1328.9110000000003,
+        "elapsed_seconds": 25.61688353600016,
+        "real_time_factor": 0.01927659830944296,
+        "device": "cpu"
+      },
+      "model": {
+        "revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
+        "attribution": "SenseVoiceSmall by FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1."
+      },
+      "failures": []
+    }
+  ],
+  "attribution": {
+    "dataset": "Ghana NLP Community, Ghana English ASR Dataset (2026). CC BY-NC 4.0.",
+    "whisper-small": "OpenAI Whisper-Small; upstream Whisper MIT licence.",
+    "sensevoice-small": "SenseVoiceSmall by FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1."
+  },
+  "limitations": [
+    "NC research-only: these results and manifest are not authorised for a commercially redistributed training set.",
+    "The slice is deterministic but not speaker-disjoint because speaker IDs are absent.",
+    "Broadcast-news source transcripts may contain proper-noun errors.",
+    "CREMA-D is acted US English; its WER is context, not a matched-domain control."
+  ]
+}
