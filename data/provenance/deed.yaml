@@ -1,0 +1,29 @@
+dataset_id: deed
+dataset_name: Dysarthric Expressed Emotional Database
+source_url: https://sites.google.com/sheffield.ac.uk/deed
+access_contact: dysarthricdeed@gmail.com
+intended_use: Non-commercial internal research inspection after access approval
+licence:
+  name: Creative Commons terms described by the paper; exact terms pending access review
+  source_text_url: null
+  licence_review_status: pending_access_request
+  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
+conditions:
+  research_use_only: true
+  noncommercial_only: true
+  email_access_request_required: true
+redistribution:
+  original_audio: not_authorised
+  annotations: not_authorised
+consent_review_status: pending
+contains_personal_data: true
+speaker_disjoint_split_required: true
+access_approved_at: null
+downloaded_at: null
+checksums_manifest: null
+notes:
+  - Request access by emailing dysarthricdeed@gmail.com.
+  - The paper describes free research access under Creative Commons, non-commercial terms; quote and review the exact supplied terms before download or use.
+  - Do not download in CI. Keep any subsequently authorised audio local and off git.
+  - This records the current access review and is not legal advice or lawyer sign-off.

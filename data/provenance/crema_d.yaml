@@ -1,0 +1,29 @@
+dataset_id: crema_d
+dataset_name: CREMA-D
+source_url: https://github.com/CheyneyComputerScience/CREMA-D
+intended_use: Small local inspection subset of same-sentence emotion and intensity pairs
+licence:
+  database_name: Open Database License 1.0
+  database_identifier: ODbL-1.0
+  contents_name: Database Contents License
+  source_text_url: https://github.com/CheyneyComputerScience/CREMA-D
+  licence_review_status: reviewed_internal_research_ok
+  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
+conditions:
+  attribution_required: true
+  database_share_alike_required: true
+redistribution:
+  original_audio: not_authorised_by_this_review
+  database: subject_to_odbl_terms
+consent_review_status: not_reviewed
+contains_personal_data: true
+speaker_disjoint_split_required: true
+downloaded_at: null
+checksums_manifest: null
+notes:
+  - Acted recordings provide shared sentences across emotion and intensity and are candidates for polarity-delivery conflict inspection.
+  - Do not redistribute original audio where doing so would conflict with the ODbL or applicable produced-work rules; keep audio local and off git.
+  - Do not download in CI.
+  - Record the exact release, file hashes, attribution, and speaker-disjoint selection in a later manifest.
+  - This is an operational internal-research review, not legal advice or lawyer sign-off.

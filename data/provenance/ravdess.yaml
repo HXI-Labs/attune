@@ -1,0 +1,29 @@
+dataset_id: ravdess
+dataset_name: RAVDESS
+source_url: https://zenodo.org/records/1188976
+commercial_licence_url: https://affectivedatascience.com/licensing
+intended_use: Non-commercial Phase 1 inspection research only
+licence:
+  name: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+  identifier: CC-BY-NC-SA-4.0
+  source_text_url: https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+  licence_review_status: reviewed_nc_only
+  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
+conditions:
+  attribution_required: true
+  noncommercial_only: true
+  share_alike_required: true
+redistribution:
+  original_audio: not_authorised_by_this_review
+  commercial_training_set: prohibited_without_commercial_licence
+consent_review_status: not_reviewed
+contains_personal_data: true
+speaker_disjoint_split_required: true
+downloaded_at: null
+checksums_manifest: null
+notes:
+  - Acted, lexically matched recordings may support emotion/intensity and polarity-delivery conflict inspection.
+  - Do not include in a commercially redistributed training set without obtaining an applicable paid or commercial licence.
+  - Keep audio local and off git; do not download in CI.
+  - This is an operational non-commercial research review, not legal advice or lawyer sign-off.
