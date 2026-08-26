@@ -9,6 +9,7 @@ import json
 import os
 import platform
 import re
+import subprocess
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -181,6 +182,9 @@ def main() -> None:
         "execution": {
             "offline_after_fetch": True,
             "network_disabled_by_model_runtime_flags": True,
+            "run_commit": subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], text=True
+            ).strip(),
             "wall_seconds": time.time() - started,
             "python": platform.python_version(),
             "platform": platform.platform(),
