@@ -102,3 +102,35 @@ the local subset, and all reported results are **NC research-only**. They must
 never be used in a commercially redistributed training set and are not covered
 by this repository's MIT code licence. The preparation script must not run in
 CI, and raw audio must remain outside Git.
+
+## British-English WER slice — Common Voice CC0
+
+`common-voice-british-wer.jsonl` selects 100 clips (550.030 seconds) from
+Mozilla Common Voice Corpus 17.0 English, transported through the pinned
+`fixie-ai/common_voice_17_0` mirror revision
+`34f78a43893414e7b6e271ba94c1d5e05f18b239`. The exact self-declared `accent`
+field values present in the committed slice are **`England English`** (96
+clips) and **`Scottish English`** (4 clips). The configured British filter also
+accepts `Welsh English`, but no Welsh row occurred before the deterministic
+100-speaker target was reached. Accent metadata is self-declared and is not
+independent verification of nationality or residence.
+
+The fetcher streams only `client_id`, path, sentence, and accent metadata,
+stopping at source row 1,798. It then fetches only the selected audio assets;
+it never downloads a full Common Voice archive or Parquet shard. Selection
+keeps the first duration-valid row for each distinct `client_id`, yielding 100
+clips from 100 speakers. Each asset is converted to mono 16 kHz PCM16 WAV under
+gitignored `data/raw/common-voice-british-wer/`:
+
+```bash
+uv sync --extra dataset-tools
+uv run python scripts/prepare_common_voice_british.py --download
+uv run python scripts/prepare_common_voice_british.py
+```
+
+Every manifest row records its source row, source and converted hashes,
+transcript, exact accent value, `client_id`, duration, audio contract, pinned
+mirror revision, cache path, and fetch script. The source is Mozilla Common
+Voice under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+Mozilla Common Voice attribution is retained voluntarily. Do not attempt to
+determine speaker identities. No audio is committed.

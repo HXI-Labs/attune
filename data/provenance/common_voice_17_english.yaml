@@ -1,0 +1,43 @@
+dataset_id: common_voice_17_english_british_wer
+dataset_name: Mozilla Common Voice Corpus 17.0 English
+source_url: https://commonvoice.mozilla.org/en/datasets
+transport_mirror: https://huggingface.co/datasets/fixie-ai/common_voice_17_0
+transport_mirror_revision: 34f78a43893414e7b6e271ba94c1d5e05f18b239
+source_split: train
+intended_use: Phase 1 British-English ASR inspection slice only
+licence:
+  name: Creative Commons Zero v1.0 Universal
+  identifier: CC0-1.0
+  source_text_url: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+  licence_review_status: reviewed_ok
+  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
+conditions:
+  attribution_required: false
+  attribution_preserved_voluntarily: Mozilla Common Voice
+  identity_inference_prohibited_by_dataset_terms: true
+redistribution:
+  original_audio: not_in_git
+consent_review_status: source_terms_relied_on
+contains_personal_data: true
+speaker_disjoint_split_required: true
+speaker_metadata_available: true
+speaker_metadata_field: client_id
+accent_metadata_field: accent
+accent_filter_values_configured:
+  - England English
+  - Scottish English
+  - Welsh English
+accent_values_observed_in_manifest:
+  - England English
+  - Scottish English
+downloaded_at: "2026-08-26"
+checksums_manifest: data/manifests/common-voice-british-wer.jsonl
+fetch_script: scripts/prepare_common_voice_british.py
+notes:
+  - The committed slice contains 100 clips from 100 distinct client_id values.
+  - Selection streams metadata columns through row 1798 and fetches only selected audio assets; it never downloads a full Common Voice archive or Parquet shard.
+  - Audio is converted to mono 16 kHz PCM16 WAV under gitignored data/raw/ and is never committed.
+  - The source is CC0; attribution is retained as requested even though CC0 does not require it.
+  - Accent values are self-declared metadata and do not independently verify nationality, residence, or identity.
+  - Keep Common Voice's prohibition on attempts to determine speaker identities.
