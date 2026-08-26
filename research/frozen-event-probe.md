@@ -2,10 +2,10 @@
 
 ## Status
 
-Code and speaker-disjoint split tests are complete. No scientific training run
-is reported in this revision because the local machine does not contain a
-large-enough VocalSound training pool. There is therefore no metrics JSON and
-no claim that the project gate has passed.
+The committed log-mel probe and frozen SenseVoiceSmall encoder probe have both
+run under the same speaker-disjoint protocol. Their metrics are in
+`research/stage2-vocalsound-probe-metrics.json` and
+`research/sensevoice-frozen-probe-metrics.json`. Neither run passes the gate.
 
 ## Task and representation
 
@@ -13,13 +13,18 @@ The probe is utterance-level five-way classification over VocalSound
 `laughter`, `sigh`, `cough`, `throatclearing`, and `sneeze`, mapped respectively
 to Attune `laugh`, `sigh`, `cough`, `throat_clear`, and `sneeze`.
 
-This first Stage 2 implementation uses `fixed-logmel-v1`: a parameter-free
+The first Stage 2 implementation uses `fixed-logmel-v1`: a parameter-free
 40-bin log-mel spectrogram summarized by eight temporal mean-pooling bins and
 per-mel mean and standard deviation. Only a single linear classification head
 is trained. The embedding has no parameters, receives no gradients, and is not
-an approximation presented as SenseVoice. This documented fallback avoids
-depending on unstable, undocumented FunASR hooks for SenseVoice encoder
-activations. SenseVoice-Small is not unfrozen or fine-tuned.
+an approximation presented as SenseVoice.
+
+The H1 implementation loads official SenseVoiceSmall weights through FunASR,
+sets every model parameter to `requires_grad=False`, runs extraction under
+inference mode, and excludes the four prepended rich-transcription query
+frames. It pools only the remaining acoustic encoder frames and caches the
+fixed embeddings locally. Only a single linear five-class head receives
+gradients; SenseVoiceSmall is not unfrozen or fine-tuned.
 
 ## Mandatory partitions
 
@@ -46,13 +51,19 @@ in `data/manifests/README.md`. Then run:
 uv sync --extra torch
 uv run python scripts/prepare_dataset.py --download
 uv run python scripts/train_probe.py
+
+# Frozen SenseVoiceSmall encoder variant:
+ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/train_probe.py \
+  --embedding sensevoice-small-encoder-v1 \
+  --sensevoice-model /path/to/official/SenseVoiceSmall
 ```
 
 The default local outputs are `artifacts/event-probe/head.pt` and
-`artifacts/event-probe/metrics.json`; both are gitignored. A reviewed scientific
-run may copy only its non-identifying metrics JSON into `research/`, together
-with corpus version, hardware, software, seed, and checkpoint provenance. It
-must not copy audio, embeddings, or weights.
+`artifacts/event-probe/metrics.json`; both are gitignored. SenseVoice embeddings
+default to `artifacts/sensevoice-embeddings/`. A reviewed scientific run may
+copy only its non-identifying metrics JSON into `research/`, together with
+corpus version, hardware, software, seed, and checkpoint provenance. It must
+not copy audio, embeddings, heads, or weights.
 
 ## Interpretation boundary
 

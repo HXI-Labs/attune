@@ -292,3 +292,58 @@ uv run python scripts/train_probe.py \
 The run used Python 3.12.3, PyTorch 2.13.0+cpu, four logical CPUs, and no GPU.
 The generated head checkpoint stayed under gitignored `artifacts/` and is not
 included. This limited acted-event probe does not pass the gate.
+
+## H1: frozen SenseVoiceSmall encoder probe
+
+The H1 run used code at `1d0db85`, seed 0, the same checksum-verified
+`wds-audio-train-000000.tar` pool, the same deterministic speaker split, and
+the same 80 inspection clips as the committed log-mel probe. The train,
+validation, and test speaker lists match the committed report exactly: 514
+clips/461 speakers for training, 132 clips/115 speakers for validation, and 80
+clips/16 speakers for inspection testing. Every inspection-manifest VocalSound
+speaker was excluded from training and validation.
+
+Official SenseVoiceSmall revision
+`3847d57b6bdf2dd8875cb1508d2af43d80a16bf7` was loaded from a local checkpoint
+whose `model.pt` SHA-256 is
+`833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea`.
+All 233,999,167 model parameters were set to `requires_grad=False`, the model
+ran under inference mode, and no model parameter was passed to an optimizer.
+The four prepended rich-transcription query frames were excluded. Eight
+temporal means plus acoustic-frame mean and standard deviation were pooled from
+the remaining 512-dimensional encoder frames. FunASR frontend dither was set to
+`0.0` to remove inference-time randomness. Only a 25,605-parameter linear
+five-class head was trained. Fresh extraction and a cached rerun produced
+identical training history and metrics (excluding cache hit/miss counters).
+
+| Event | Frozen SenseVoice encoder | Frozen log-mel | Off-the-shelf SenseVoice AED |
+|---|---:|---:|---:|
+| laugh | 0.8571 | 0.4118 | 0.8750 |
+| sigh | 0.9032 | 0.4516 | 0.0000 |
+| cough | 0.8387 | 0.2963 | 0.6047 |
+| throat_clear | 0.7586 | 0.4444 | 0.0000 |
+| sneeze | 0.9412 | 0.7500 | 0.7692 |
+| **Macro-F1** | **0.8598** | **0.4708** | **0.3213** |
+
+The frozen encoder probe reached 0.8625 accuracy and 0.8598 five-class
+macro-F1. It improved macro-F1 by 0.3890 over the committed log-mel probe and
+by 0.5385 over the existing AED event score. In particular, `sigh` improved
+from 0.4516/0.0000 to 0.9032 and `throat_clear` improved from 0.4444/0.0000 to
+0.7586 relative to log-mel/AED. On this fixed weak-label inspection protocol,
+these results support H1: the frozen encoder exposes event-discriminative
+information that the released AED tag inventory does not expose.
+
+This is evidence on standalone, crowdsourced acted VocalSound events only. It
+does not establish frame localization, natural inline-event performance,
+calibration, abstention, OOD robustness, or performance on reviewed gold data.
+The gate remains closed. Full-precision metrics, loss history, checkpoint
+provenance, freeze evidence, and exact split membership are in
+`research/sensevoice-frozen-probe-metrics.json`. Audio, cached embeddings,
+weights, and the trained head remain gitignored.
+
+The run used Python 3.12.3, PyTorch 2.13.0+cu130, torchaudio 2.11.0+cu130,
+FunASR 1.4.4, four CPU threads, no available GPU, and early stopping after eight
+epochs. SenseVoiceSmall by FunASR/FunAudioLLM is used under the
+[FunASR Model Open Source License Agreement v1.1](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE).
+VocalSound by Gong, Yu, and Glass is used under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).

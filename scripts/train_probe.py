@@ -32,6 +32,30 @@ from attune.models.sensevoice_probe import (
 DEFAULT_MANIFEST = Path("data/manifests/inspection-set.jsonl")
 DEFAULT_INSPECTION_CACHE = Path("data/raw/inspection-set")
 DEFAULT_DATASET = Path("data/raw/vocalsound-16k")
+COMMITTED_COMPARATORS = {
+    "frozen_logmel": {
+        "macro_f1": 0.47082366996978003,
+        "per_class_f1": {
+            "laugh": 0.4117647058823529,
+            "sigh": 0.45161290322580644,
+            "cough": 0.29629629629629634,
+            "throat_clear": 0.4444444444444445,
+            "sneeze": 0.75,
+        },
+        "source": "research/stage2-vocalsound-probe-metrics.json",
+    },
+    "off_the_shelf_sensevoice_aed": {
+        "macro_f1": 0.32126884743163814,
+        "per_class_f1": {
+            "laugh": 0.875,
+            "sigh": 0.0,
+            "cough": 0.6046511627906976,
+            "throat_clear": 0.0,
+            "sneeze": 0.7692307692307693,
+        },
+        "source": "research/inspection-smoke-results.json",
+    },
+}
 
 
 def require_torch() -> Any:
@@ -219,6 +243,48 @@ def evaluate(head: Any, features: Any, labels: Any, torch: Any) -> dict[str, Any
     return classification_metrics(labels.tolist(), predictions.tolist())
 
 
+def h1_comparison(test_metrics: dict[str, Any]) -> dict[str, Any]:
+    """Compare a measured encoder probe with the two committed baselines."""
+    measured_macro_f1 = test_metrics["macro_f1"]
+    measured_per_class = {
+        label.value: test_metrics["per_class"][label.value]["f1"] for label in EVENT_LABELS
+    }
+    supported = (
+        measured_macro_f1 > COMMITTED_COMPARATORS["frozen_logmel"]["macro_f1"]
+        and measured_macro_f1
+        > COMMITTED_COMPARATORS["off_the_shelf_sensevoice_aed"]["macro_f1"]
+        and measured_per_class["sigh"] > 0
+        and measured_per_class["throat_clear"] > 0
+    )
+    return {
+        "hypothesis": (
+            "The frozen SenseVoiceSmall encoder contains event information "
+            "that off-the-shelf AED tags do not expose."
+        ),
+        "result": (
+            "supported_on_weak_label_inspection_set"
+            if supported
+            else "not_supported_on_weak_label_inspection_set"
+        ),
+        "frozen_sensevoice_encoder": {
+            "macro_f1": measured_macro_f1,
+            "per_class_f1": measured_per_class,
+        },
+        "committed_comparators": COMMITTED_COMPARATORS,
+        "macro_f1_delta_vs_logmel": (
+            measured_macro_f1 - COMMITTED_COMPARATORS["frozen_logmel"]["macro_f1"]
+        ),
+        "macro_f1_delta_vs_aed": (
+            measured_macro_f1
+            - COMMITTED_COMPARATORS["off_the_shelf_sensevoice_aed"]["macro_f1"]
+        ),
+        "scope": (
+            "80 standalone acted VocalSound inspection clips with weak source labels; "
+            "not reviewed gold or natural inline events"
+        ),
+    }
+
+
 def train(args: argparse.Namespace) -> dict[str, Any]:
     """Run speaker-disjoint head training and return a serializable report."""
     torch = require_torch()
@@ -277,6 +343,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     validation_x = (validation_x - mean) / scale
     test_x = (test_x - mean) / scale
 
+    # Extraction internals and cache hits must not change head initialization.
+    torch.manual_seed(args.seed)
     head = torch.nn.Linear(train_x.shape[1], len(EVENT_LABELS))
     optimizer = torch.optim.AdamW(head.parameters(), lr=args.learning_rate)
     generator = torch.Generator().manual_seed(args.seed)
@@ -350,7 +418,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             ),
         }
 
-    return {
+    validation_metrics = evaluate(head, validation_x, validation_y, torch)
+    test_metrics = evaluate(head, test_x, test_y, torch)
+    report = {
         "stage": 2,
         "task": "VocalSound utterance-level 5-way event classification",
         "gate_passed": False,
@@ -370,8 +440,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "test": partition_report(split.test),
             "excluded_inspection_speakers": sorted(excluded_speakers),
         },
-        "validation_metrics": evaluate(head, validation_x, validation_y, torch),
-        "test_metrics": evaluate(head, test_x, test_y, torch),
+        "validation_metrics": validation_metrics,
+        "test_metrics": test_metrics,
         "attribution": {
             "SenseVoiceSmall": (
                 "FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1"
@@ -381,6 +451,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "VocalSound": "Gong, Yu, and Glass (ICASSP 2022); CC BY-SA 4.0",
         },
     }
+    if sensevoice_extractor is not None:
+        report["h1_comparison"] = h1_comparison(test_metrics)
+    return report
 
 
 def parse_args() -> argparse.Namespace:

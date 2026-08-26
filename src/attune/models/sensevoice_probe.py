@@ -90,6 +90,10 @@ class FrozenSenseVoiceEncoder:
 
         self.model = self.wrapper.model
         self.model.eval()
+        self.frontend = self.wrapper.kwargs["frontend"]
+        self.frontend.eval()
+        # FunASR's default 1.0 dither makes inference embeddings order-dependent.
+        self.frontend.dither = 0.0
         for parameter in self.model.parameters():
             parameter.requires_grad_(False)
         self._assert_frozen()
@@ -109,6 +113,7 @@ class FrozenSenseVoiceEncoder:
     def _cache_path(self, audio_path: Path) -> Path:
         digest = hashlib.sha256()
         digest.update(SENSEVOICE_EMBEDDING.encode())
+        digest.update(b"frontend-dither=0")
         digest.update(self.model_sha256.encode())
         digest.update(file_sha256(audio_path).encode())
         return self.cache_dir / f"{digest.hexdigest()}.pt"
@@ -176,6 +181,7 @@ class FrozenSenseVoiceEncoder:
             "trainable_parameters": 0,
             "total_parameters": sum(parameter.numel() for parameter in self.model.parameters()),
             "query_frames_excluded": QUERY_FRAMES,
+            "frontend_dither": self.frontend.dither,
             "pooling": f"{TEMPORAL_BINS} temporal means plus acoustic-frame mean/std",
             "output_size": self.output_size,
             "cache_hits": self.cache_hits,

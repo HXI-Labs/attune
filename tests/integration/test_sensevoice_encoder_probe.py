@@ -31,6 +31,7 @@ class FakeSenseVoiceModel(torch.nn.Module):
 class FakeAutoModel:
     def __init__(self, **_kwargs: object) -> None:
         self.model = FakeSenseVoiceModel()
+        self.kwargs = {"frontend": torch.nn.Identity()}
 
     def generate(self, **_kwargs: object) -> list[dict[str, str]]:
         features = torch.ones(1, 12, 560)
@@ -75,6 +76,7 @@ def test_fake_encoder_is_frozen_and_embeddings_are_cached(
     assert torch.equal(first, second)
     assert not first.requires_grad
     assert all(not parameter.requires_grad for parameter in extractor.model.parameters())
+    assert extractor.metadata()["frontend_dither"] == 0.0
     assert extractor.metadata()["cache_misses"] == 1
     assert extractor.metadata()["cache_hits"] == 1
 
