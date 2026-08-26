@@ -200,8 +200,8 @@ DbCL 1.0 for individual contents. The run used OpenAI Whisper-Small (upstream
 Whisper MIT), SenseVoiceSmall by FunASR/FunAudioLLM under the FunASR Model Open
 Source License Agreement v1.1, and emotion2vec+ base by emotion2vec and
 FunASR/FunAudioLLM under the documented FunASR model licence. Exact checkpoint
-revisions and hashes remain recorded in `research/fixture-smoke-test.json` and
-the corresponding `data/provenance/` entries.
+revisions and hashes are recorded in `research/fixture-smoke-test.json`;
+licence constraints and attribution are recorded in `data/provenance/`.
 
 Still missing are Ghanaian English, verified British English, cry/sob, and
 verified shout/whisper slices, as well as spontaneous affect and inline events
