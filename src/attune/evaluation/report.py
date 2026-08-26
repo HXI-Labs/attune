@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
@@ -43,7 +44,7 @@ class RuntimeMetrics:
 class EvaluationItem:
     item_id: str
     reference: AttuneOutput
-    prediction: AttuneOutput
+    prediction: AttuneOutput | Mapping[str, Any]
     acoustic_target: str
     lexical_target: str
     runtime: RuntimeMetrics
@@ -79,27 +80,35 @@ def evaluate_items(
     labels = [category.value for category in AffectCategory]
     schema_errors: list[dict[str, str]] = []
     item_rows: list[dict[str, Any]] = []
+    valid_items: list[tuple[EvaluationItem, AttuneOutput]] = []
     for item in items:
         try:
-            AttuneOutput.model_validate(item.prediction.model_dump(mode="json"))
+            payload = (
+                item.prediction.model_dump(mode="json")
+                if isinstance(item.prediction, AttuneOutput)
+                else item.prediction
+            )
+            prediction = AttuneOutput.model_validate(payload)
             schema_valid = True
+            valid_items.append((item, prediction))
         except ValueError as error:
             schema_valid = False
             schema_errors.append({"item_id": item.item_id, "error": str(error)})
+            prediction = None
         item_rows.append(
             {
                 "item_id": item.item_id,
                 "schema_valid": schema_valid,
                 "reference_text": item.reference.transcript.text,
-                "predicted_text": item.prediction.transcript.text,
+                "predicted_text": prediction.transcript.text if prediction else None,
                 "reference_affect": (
                     item.reference.affect.top_label.value
                     if item.reference.affect.top_label
                     else None
                 ),
                 "predicted_affect": (
-                    item.prediction.affect.top_label.value
-                    if item.prediction.affect.top_label
+                    prediction.affect.top_label.value
+                    if prediction and prediction.affect.top_label
                     else None
                 ),
                 "acoustic_target": item.acoustic_target,
@@ -108,8 +117,8 @@ def evaluate_items(
             }
         )
 
-    references = [item.reference for item in items]
-    predictions = [item.prediction for item in items]
+    references = [item.reference for item, _ in valid_items]
+    predictions = [prediction for _, prediction in valid_items]
     reference_labels = [
         output.affect.top_label.value if output.affect.top_label else AffectCategory.AMBIGUOUS.value
         for output in references
@@ -180,8 +189,8 @@ def evaluate_items(
         },
         "acoustic_preference": acoustic_preference_score(
             prediction_labels,
-            [item.acoustic_target for item in items],
-            [item.lexical_target for item in items],
+            [item.acoustic_target for item, _ in valid_items],
+            [item.lexical_target for item, _ in valid_items],
         ),
     }
     elapsed = sum(item.runtime.elapsed_seconds for item in items)
@@ -199,10 +208,16 @@ def evaluate_items(
             "audio_seconds": audio,
             "elapsed_seconds": elapsed,
             "real_time_factor": elapsed / audio if audio else None,
-            "mean_latency_ms": _mean(
+            "mean_latency_ms": _mean_optional(
                 [item.runtime.latency_ms for item in items if item.runtime.latency_ms is not None]
             ),
-            "first_result_latency_ms": None,
+            "first_result_latency_ms": _mean_optional(
+                [
+                    item.runtime.first_result_latency_ms
+                    for item in items
+                    if item.runtime.first_result_latency_ms is not None
+                ]
+            ),
         },
         skipped_runners=skipped_runners or [],
     )
@@ -210,6 +225,10 @@ def evaluate_items(
 
 def _mean(values: list[float]) -> float:
     return sum(values) / len(values) if values else 0.0
+
+
+def _mean_optional(values: list[float]) -> float | None:
+    return sum(values) / len(values) if values else None
 
 
 def _separate_clip_spans(

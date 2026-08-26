@@ -36,8 +36,17 @@ def test_span_metrics_and_temporal_iou() -> None:
     assert temporal_iou(references[0], predictions[0]) == pytest.approx(0.75)
     result = span_classification_metrics(references, predictions, labels=["laugh", "sigh", "cough"])
     assert result["per_class"]["laugh"]["f1"] == 1
+    assert result["per_class"]["laugh"]["mean_temporal_iou"] == pytest.approx(0.75)
     assert result["per_class"]["sigh"]["recall"] == 0
     assert result["mean_temporal_iou"] == pytest.approx(0.75)
+
+
+def test_span_assignment_maximizes_valid_match_count() -> None:
+    references = [span("laugh", 0, 100), span("laugh", 0, 70)]
+    predictions = [span("laugh", 0, 100), span("laugh", 30, 100)]
+    result = span_classification_metrics(references, predictions, labels=["laugh"])
+    assert result["matched"] == 2
+    assert result["per_class"]["laugh"]["recall"] == 1
 
 
 def test_position_score_uses_time_not_word_anchors() -> None:
@@ -49,6 +58,11 @@ def test_position_score_uses_time_not_word_anchors() -> None:
         [span("laugh", 400, 500), span("laugh", 700, 800)],
         duration_ms=1000,
     ) == pytest.approx(0.5)
+    assert position_aware_event_score(
+        [span("laugh", 0, 0), span("laugh", 80, 80)],
+        [span("laugh", 90, 90)],
+        duration_ms=1000,
+    ) == pytest.approx(0.45)
 
 
 def test_affect_metrics_support_soft_gold() -> None:

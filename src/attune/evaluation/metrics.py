@@ -91,24 +91,57 @@ def _match_spans(
     *,
     iou_threshold: float,
 ) -> list[tuple[int, int, float]]:
-    candidates = [
-        (temporal_iou(reference, prediction), reference_index, prediction_index)
+    adjacency: dict[int, list[tuple[int, float]]] = {
+        reference_index: sorted(
+            [
+                (prediction_index, temporal_iou(reference, prediction))
+                for prediction_index, prediction in enumerate(predictions)
+                if _label(reference) == _label(prediction)
+                and temporal_iou(reference, prediction) >= iou_threshold
+            ],
+            key=lambda candidate: candidate[1],
+            reverse=True,
+        )
         for reference_index, reference in enumerate(references)
-        for prediction_index, prediction in enumerate(predictions)
-        if _label(reference) == _label(prediction)
+    }
+    return _maximum_cardinality_matches(adjacency)
+
+
+def _maximum_cardinality_matches(
+    adjacency: Mapping[int, Sequence[tuple[int, float]]],
+) -> list[tuple[int, int, float]]:
+    """Return augmenting-path matches, preferring higher-scored edges."""
+    prediction_to_reference: dict[int, int] = {}
+
+    def assign(reference_index: int, seen_predictions: set[int]) -> bool:
+        for prediction_index, _ in adjacency[reference_index]:
+            if prediction_index in seen_predictions:
+                continue
+            seen_predictions.add(prediction_index)
+            previous_reference = prediction_to_reference.get(prediction_index)
+            if previous_reference is None or assign(previous_reference, seen_predictions):
+                prediction_to_reference[prediction_index] = reference_index
+                return True
+        return False
+
+    for reference_index in sorted(
+        adjacency,
+        key=lambda index: max((score for _, score in adjacency[index]), default=0.0),
+        reverse=True,
+    ):
+        assign(reference_index, set())
+    return [
+        (
+            reference_index,
+            prediction_index,
+            next(
+                score
+                for candidate_index, score in adjacency[reference_index]
+                if candidate_index == prediction_index
+            ),
+        )
+        for prediction_index, reference_index in prediction_to_reference.items()
     ]
-    matches: list[tuple[int, int, float]] = []
-    used_references: set[int] = set()
-    used_predictions: set[int] = set()
-    for iou, reference_index, prediction_index in sorted(candidates, reverse=True):
-        if iou < iou_threshold:
-            break
-        if reference_index in used_references or prediction_index in used_predictions:
-            continue
-        used_references.add(reference_index)
-        used_predictions.add(prediction_index)
-        matches.append((reference_index, prediction_index, iou))
-    return matches
 
 
 def span_classification_metrics(
@@ -131,10 +164,16 @@ def span_classification_metrics(
         precision = true_positives / prediction_count if prediction_count else 0.0
         recall = true_positives / reference_count if reference_count else 0.0
         f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+        class_ious = [
+            iou
+            for reference_index, _, iou in matches
+            if _label(references[reference_index]) == label
+        ]
         per_class[label] = {
             "precision": precision,
             "recall": recall,
             "f1": f1,
+            "mean_temporal_iou": sum(class_ious) / len(class_ious) if class_ious else 0.0,
             "support": reference_count,
         }
         f1_values.append(f1)
@@ -157,8 +196,8 @@ def position_aware_event_score(
 ) -> float:
     """Score label and normalized acoustic position without using transcript anchors.
 
-    Each gold event is greedily paired with the nearest unmatched event of the
-    same class. A match at the same midpoint scores one and decays linearly to
+    Events are paired by label using augmenting-path assignment. A match at the
+    same midpoint scores one and decays linearly to
     zero at ``tolerance_fraction`` of clip duration. This deliberately ignores
     ``after_word_id`` so ASR word or alignment errors cannot become event errors.
     """
@@ -166,29 +205,23 @@ def position_aware_event_score(
         return 1.0 if not predictions else 0.0
     if duration_ms <= 0 or not 0 < tolerance_fraction <= 1:
         raise ValueError("duration_ms and tolerance_fraction must be positive")
-    unused_predictions = set(range(len(predictions)))
-    scores: list[float] = []
     tolerance_ms = duration_ms * tolerance_fraction
-    for reference in references:
+    adjacency: dict[int, list[tuple[int, float]]] = {}
+    for reference_index, reference in enumerate(references):
         reference_midpoint = (reference.start_ms + reference.end_ms) / 2
-        candidates = [
-            (
-                abs(
-                    reference_midpoint
-                    - (predictions[index].start_ms + predictions[index].end_ms) / 2
-                ),
-                index,
-            )
-            for index in unused_predictions
-            if _label(predictions[index]) == _label(reference)
-        ]
-        if not candidates:
-            scores.append(0.0)
-            continue
-        distance, prediction_index = min(candidates)
-        unused_predictions.remove(prediction_index)
-        scores.append(max(0.0, 1.0 - distance / tolerance_ms))
-    return sum(scores) / max(len(references), len(predictions))
+        candidates = []
+        for prediction_index, prediction in enumerate(predictions):
+            if _label(prediction) != _label(reference):
+                continue
+            prediction_midpoint = (prediction.start_ms + prediction.end_ms) / 2
+            score = max(0.0, 1.0 - abs(reference_midpoint - prediction_midpoint) / tolerance_ms)
+            if score > 0:
+                candidates.append((prediction_index, score))
+        adjacency[reference_index] = sorted(
+            candidates, key=lambda candidate: candidate[1], reverse=True
+        )
+    matches = _maximum_cardinality_matches(adjacency)
+    return sum(score for _, _, score in matches) / max(len(references), len(predictions))
 
 
 def macro_f1(

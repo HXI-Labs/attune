@@ -7,6 +7,7 @@ from attune.baselines.adapters import (
 )
 from attune.baselines.cascade import ModularCascade
 from attune.evaluation.harness import run_fixture_harness
+from attune.evaluation.report import EvaluationItem, RuntimeMetrics, evaluate_items
 from attune.schema.output import AttuneOutput
 
 FIXTURES = Path("data/fixtures/semantic_conflict")
@@ -56,3 +57,41 @@ def test_emotion2vec_bilingual_labels_are_mapped() -> None:
     )
     assert category == "anger"
     assert distribution[category] > 0.69
+
+
+def test_report_records_invalid_raw_prediction_and_optional_runtime() -> None:
+    valid = (
+        TranscriptSentimentAdapter()
+        .predict(
+            BaselineInput(
+                FIXTURES / "explicit_match_joy.wav",
+                transcript_hint="I am happy about this",
+            )
+        )
+        .output
+    )
+    invalid = valid.model_dump(mode="json")
+    invalid["schema_version"] = "broken"
+    report = evaluate_items(
+        "invalid-test",
+        [
+            EvaluationItem(
+                item_id="invalid",
+                reference=valid,
+                prediction=invalid,
+                acoustic_target="joy",
+                lexical_target="joy",
+                runtime=RuntimeMetrics(
+                    audio_seconds=0.5,
+                    elapsed_seconds=0.1,
+                    real_time_factor=0.2,
+                    latency_ms=None,
+                    first_result_latency_ms=25.0,
+                ),
+            )
+        ],
+    )
+    assert report.schema_validity["invalid"] == 1
+    assert report.items[0]["predicted_text"] is None
+    assert report.runtime["mean_latency_ms"] is None
+    assert report.runtime["first_result_latency_ms"] == 25.0

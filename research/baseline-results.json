@@ -17,9 +17,9 @@
           "lexical_target": "neutral",
           "runtime": {
             "audio_seconds": 0.5,
-            "elapsed_seconds": 0.00016615399999864167,
-            "real_time_factor": 0.00033230799999728333,
-            "latency_ms": 0.16615399999864167,
+            "elapsed_seconds": 0.00017072299999654206,
+            "real_time_factor": 0.0003414459999930841,
+            "latency_ms": 0.17072299999654206,
             "first_result_latency_ms": null
           }
         },
@@ -34,9 +34,9 @@
           "lexical_target": "neutral",
           "runtime": {
             "audio_seconds": 0.5,
-            "elapsed_seconds": 7.004500002949499e-05,
-            "real_time_factor": 0.00014009000005898997,
-            "latency_ms": 0.07004500002949499,
+            "elapsed_seconds": 8.089100003871863e-05,
+            "real_time_factor": 0.00016178200007743726,
+            "latency_ms": 0.08089100003871863,
             "first_result_latency_ms": null
           }
         },
@@ -51,9 +51,9 @@
           "lexical_target": "joy",
           "runtime": {
             "audio_seconds": 0.5,
-            "elapsed_seconds": 7.90560000041296e-05,
-            "real_time_factor": 0.0001581120000082592,
-            "latency_ms": 0.0790560000041296,
+            "elapsed_seconds": 0.00016640499995901337,
+            "real_time_factor": 0.00033280999991802673,
+            "latency_ms": 0.16640499995901337,
             "first_result_latency_ms": null
           }
         },
@@ -68,9 +68,9 @@
           "lexical_target": "joy",
           "runtime": {
             "audio_seconds": 0.5,
-            "elapsed_seconds": 0.000157692999948722,
-            "real_time_factor": 0.000315385999897444,
-            "latency_ms": 0.157692999948722,
+            "elapsed_seconds": 8.13780000044062e-05,
+            "real_time_factor": 0.0001627560000088124,
+            "latency_ms": 0.0813780000044062,
             "first_result_latency_ms": null
           }
         },
@@ -85,9 +85,9 @@
           "lexical_target": "neutral",
           "runtime": {
             "audio_seconds": 0.5,
-            "elapsed_seconds": 5.402499999718202e-05,
-            "real_time_factor": 0.00010804999999436404,
-            "latency_ms": 0.05402499999718202,
+            "elapsed_seconds": 6.11599999729151e-05,
+            "real_time_factor": 0.0001223199999458302,
+            "latency_ms": 0.0611599999729151,
             "first_result_latency_ms": null
           }
         },
@@ -102,9 +102,9 @@
           "lexical_target": "neutral",
           "runtime": {
             "audio_seconds": 0.5,
-            "elapsed_seconds": 4.870300000447969e-05,
-            "real_time_factor": 9.740600000895938e-05,
-            "latency_ms": 0.04870300000447969,
+            "elapsed_seconds": 5.632199997762655e-05,
+            "real_time_factor": 0.0001126439999552531,
+            "latency_ms": 0.05632199997762655,
             "first_result_latency_ms": null
           }
         }
@@ -120,42 +120,49 @@
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             },
             "sob": {
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             },
             "sigh": {
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             },
             "cough": {
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             },
             "throat_clear": {
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             },
             "sneeze": {
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             },
             "breath": {
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             }
           },
@@ -172,36 +179,42 @@
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             },
             "whispering": {
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             },
             "crying_speech": {
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             },
             "laughing_speech": {
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             },
             "singing": {
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             },
             "strained_speech": {
               "precision": 0.0,
               "recall": 0.0,
               "f1": 0.0,
+              "mean_temporal_iou": 0.0,
               "support": 0
             }
           },
@@ -231,9 +244,9 @@
       },
       "runtime": {
         "audio_seconds": 3.0,
-        "elapsed_seconds": 0.00057567599998265,
-        "real_time_factor": 0.00019189199999421666,
-        "mean_latency_ms": 0.09594599999710833,
+        "elapsed_seconds": 0.0006168789999492219,
+        "real_time_factor": 0.0002056263333164073,
+        "mean_latency_ms": 0.10281316665820366,
         "first_result_latency_ms": null
       },
       "skipped_runners": [

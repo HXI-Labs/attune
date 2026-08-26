@@ -8,6 +8,8 @@ import time
 import wave
 from abc import ABC, abstractmethod
 from array import array
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -204,8 +206,9 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
         started = time.perf_counter()
         from funasr import AutoModel
 
-        model = AutoModel(model=str(self.checkpoint), disable_update=True)
-        result = model.generate(input=str(item.audio_path), cache={}, language="auto")
+        with _offline_model_environment():
+            model = AutoModel(model=str(self.checkpoint), disable_update=True)
+            result = model.generate(input=str(item.audio_path), cache={}, language="auto")
         transcript = _extract_funasr_text(result)
         category, distribution = TranscriptSentimentAdapter().classify(transcript)
         output = build_partial_output(
@@ -256,8 +259,9 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
         started = time.perf_counter()
         from funasr import AutoModel
 
-        model = AutoModel(model=str(self.checkpoint), disable_update=True)
-        result = model.generate(input=str(item.audio_path), granularity="utterance")
+        with _offline_model_environment():
+            model = AutoModel(model=str(self.checkpoint), disable_update=True)
+            result = model.generate(input=str(item.audio_path), granularity="utterance")
         category, distribution = _map_emotion2vec_result(result)
         output = build_partial_output(
             item,
@@ -353,6 +357,27 @@ def _local_checkpoint(environment_variable: str, cache_name: str) -> Path | None
     if snapshots.is_dir():
         return next((path for path in snapshots.iterdir() if path.is_dir()), None)
     return None
+
+
+@contextmanager
+def _offline_model_environment() -> Iterator[None]:
+    """Prevent supported model hubs and FunASR update checks from using the network."""
+    values = {
+        "HF_HUB_OFFLINE": "1",
+        "TRANSFORMERS_OFFLINE": "1",
+        "MODELSCOPE_OFFLINE": "1",
+        "FUNASR_DISABLE_UPDATE": "1",
+    }
+    previous = {key: os.environ.get(key) for key in values}
+    os.environ.update(values)
+    try:
+        yield
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
 
 
 def _extract_funasr_text(result: Any) -> str:
