@@ -8,11 +8,24 @@ from __future__ import annotations
 
 from xml.etree import ElementTree as ET
 
-from attune.schema.output import AttuneOutput
+from attune.schema.output import AffectCategory, AttuneOutput
 
 
 def _probability(value: float) -> str:
     return format(value, ".6g")
+
+
+def _xml_safe(value: str) -> str:
+    """Replace characters forbidden by XML 1.0 while preserving valid text."""
+    return "".join(
+        character
+        if character in "\t\n\r"
+        or "\u0020" <= character <= "\ud7ff"
+        or "\ue000" <= character <= "\ufffd"
+        or "\U00010000" <= character <= "\U0010ffff"
+        else "\ufffd"
+        for character in value
+    )
 
 
 def render_xml(output: AttuneOutput) -> str:
@@ -23,25 +36,25 @@ def render_xml(output: AttuneOutput) -> str:
         root, "transcript", {"confidence": _probability(output.transcript.confidence)}
     )
     text = ET.SubElement(transcript, "text")
-    text.text = output.transcript.text
+    text.text = _xml_safe(output.transcript.text)
     words = ET.SubElement(transcript, "words")
     for word in output.transcript.words:
         node = ET.SubElement(
             words,
             "word",
             {
-                "id": word.id,
+                "id": _xml_safe(word.id),
                 "start_ms": str(word.start_ms),
                 "end_ms": str(word.end_ms),
                 "confidence": _probability(word.confidence),
             },
         )
-        node.text = word.text
+        node.text = _xml_safe(word.text)
 
     styles = ET.SubElement(root, "styles")
     for style in output.styles:
         attributes = {
-            "id": style.id,
+            "id": _xml_safe(style.id),
             "label": style.label.value,
             "start_ms": str(style.start_ms),
             "end_ms": str(style.end_ms),
@@ -49,15 +62,15 @@ def render_xml(output: AttuneOutput) -> str:
             "status": style.status.value,
         }
         if style.start_word_id is not None:
-            attributes["start_word_id"] = style.start_word_id
+            attributes["start_word_id"] = _xml_safe(style.start_word_id)
         if style.end_word_id is not None:
-            attributes["end_word_id"] = style.end_word_id
+            attributes["end_word_id"] = _xml_safe(style.end_word_id)
         ET.SubElement(styles, "style", attributes)
 
     events = ET.SubElement(root, "events")
     for event in output.events:
         attributes = {
-            "id": event.id,
+            "id": _xml_safe(event.id),
             "label": event.label.value,
             "start_ms": str(event.start_ms),
             "end_ms": str(event.end_ms),
@@ -65,7 +78,7 @@ def render_xml(output: AttuneOutput) -> str:
             "status": event.status.value,
         }
         if event.after_word_id is not None:
-            attributes["after_word_id"] = event.after_word_id
+            attributes["after_word_id"] = _xml_safe(event.after_word_id)
         ET.SubElement(events, "event", attributes)
 
     affect = ET.SubElement(
@@ -89,11 +102,14 @@ def render_xml(output: AttuneOutput) -> str:
             },
         )
     categories = ET.SubElement(affect, "categories")
-    for label, probability in output.affect.categories.items():
+    for label in AffectCategory:
         ET.SubElement(
             categories,
             "category",
-            {"label": label.value, "probability": _probability(probability)},
+            {
+                "label": label.value,
+                "probability": _probability(output.affect.categories[label]),
+            },
         )
     ET.SubElement(
         affect,
@@ -114,7 +130,7 @@ def render_xml(output: AttuneOutput) -> str:
         },
     )
     warning = ET.SubElement(uncertainty, "interpretation_warning")
-    warning.text = output.uncertainty.interpretation_warning
+    warning.text = _xml_safe(output.uncertainty.interpretation_warning)
 
     ET.indent(root, space="  ")
     return ET.tostring(root, encoding="unicode", xml_declaration=False)

@@ -10,15 +10,15 @@ from attune.schema.output import AttuneOutput
 class TrustedChannelPackage(TypedDict):
     """Transport shape that keeps untrusted speech separate from metadata."""
 
-    user_text: str
+    spoken_transcript: dict[str, Any]
     paralinguistic_metadata: dict[str, Any]
 
 
 def package_for_trusted_channel(output: AttuneOutput) -> TrustedChannelPackage:
     """Package transcript and metadata without concatenating either channel."""
     metadata = output.model_dump(mode="json")
-    metadata.pop("transcript")
+    transcript = metadata.pop("transcript")
     return {
-        "user_text": output.transcript.text,
+        "spoken_transcript": transcript,
         "paralinguistic_metadata": metadata,
     }

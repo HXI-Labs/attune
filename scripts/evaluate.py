@@ -5,7 +5,7 @@ import argparse
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='Evaluate a baseline or later model.')
+    parser = argparse.ArgumentParser(description="Evaluate a baseline or later model.")
     parser.parse_args()
     parser.exit(2, "not implemented until Phase 1\n")
 

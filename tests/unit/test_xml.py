@@ -23,6 +23,17 @@ def test_xml_parses_and_cannot_be_injected(example_payload: dict) -> None:
     assert "&lt;style" in rendered
 
 
+def test_xml_illegal_control_characters_cannot_break_rendering(example_payload: dict) -> None:
+    payload = deepcopy(example_payload)
+    payload["transcript"]["text"] = "before\x00after"
+    payload["transcript"]["words"][0]["text"] = "\x01word"
+
+    root = ET.fromstring(render_xml(AttuneOutput.model_validate(payload)))
+
+    assert root.findtext("./transcript/text") == "before\ufffdafter"
+    assert root.findtext("./transcript/words/word") == "\ufffdword"
+
+
 def test_overlapping_annotations_remain_independent(example_payload: dict) -> None:
     payload = deepcopy(example_payload)
     payload["styles"].append(
@@ -56,3 +67,14 @@ def test_overlapping_annotations_remain_independent(example_payload: dict) -> No
 
 def test_rendering_is_deterministic(example_output: AttuneOutput) -> None:
     assert render_xml(example_output) == render_xml(example_output)
+
+
+def test_category_order_does_not_depend_on_input_mapping_order(example_payload: dict) -> None:
+    reversed_payload = deepcopy(example_payload)
+    reversed_payload["affect"]["categories"] = dict(
+        reversed(list(reversed_payload["affect"]["categories"].items()))
+    )
+
+    assert render_xml(AttuneOutput.model_validate(reversed_payload)) == render_xml(
+        AttuneOutput.model_validate(example_payload)
+    )

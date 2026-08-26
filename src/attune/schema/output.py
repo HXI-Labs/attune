@@ -162,6 +162,12 @@ class Affect(StrictModel):
             raise ValueError("top_label must be null when abstain is true")
         if not self.abstain and self.top_label is None:
             raise ValueError("top_label is required when abstain is false")
+        if not self.abstain and self.top_label is not None:
+            maximum = max(self.categories.values())
+            if self.categories[self.top_label] != maximum:
+                raise ValueError("top_label must identify a maximum-probability category")
+            if abs(self.top_label_confidence - self.categories[self.top_label]) > 1e-6:
+                raise ValueError("top_label_confidence must equal the top category probability")
         return self
 
 
@@ -171,7 +177,7 @@ class Uncertainty(StrictModel):
 
 
 class AttuneOutput(StrictModel):
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: Literal["1.0"]
     model: ModelInfo
     audio: AudioInfo
     language: LanguageInfo
@@ -183,13 +189,36 @@ class AttuneOutput(StrictModel):
 
     @model_validator(mode="after")
     def validate_references_and_bounds(self) -> AttuneOutput:
-        word_ids = {word.id for word in self.transcript.words}
+        words_by_id = {word.id: word for word in self.transcript.words}
+        if any(word.end_ms > self.audio.duration_ms for word in self.transcript.words):
+            raise ValueError("word timestamps must be within audio duration")
+        if any(style.end_ms > self.audio.duration_ms for style in self.styles):
+            raise ValueError("style timestamps must be within audio duration")
+        if any(event.end_ms > self.audio.duration_ms for event in self.events):
+            raise ValueError("event timestamps must be within audio duration")
+        if self.affect.end_ms > self.audio.duration_ms:
+            raise ValueError("affect timestamps must be within audio duration")
+
+        style_ids = [style.id for style in self.styles]
+        event_ids = [event.id for event in self.events]
+        if len(style_ids) != len(set(style_ids)):
+            raise ValueError("style ids must be unique")
+        if len(event_ids) != len(set(event_ids)):
+            raise ValueError("event ids must be unique")
+
         for style in self.styles:
-            if style.start_word_id is not None and style.start_word_id not in word_ids:
+            if style.start_word_id is not None and style.start_word_id not in words_by_id:
                 raise ValueError(f"unknown start_word_id: {style.start_word_id}")
-            if style.end_word_id is not None and style.end_word_id not in word_ids:
+            if style.end_word_id is not None and style.end_word_id not in words_by_id:
                 raise ValueError(f"unknown end_word_id: {style.end_word_id}")
+            if (
+                style.start_word_id is not None
+                and style.end_word_id is not None
+                and words_by_id[style.end_word_id].start_ms
+                < words_by_id[style.start_word_id].start_ms
+            ):
+                raise ValueError("style word references must be ordered")
         for event in self.events:
-            if event.after_word_id is not None and event.after_word_id not in word_ids:
+            if event.after_word_id is not None and event.after_word_id not in words_by_id:
                 raise ValueError(f"unknown after_word_id: {event.after_word_id}")
         return self

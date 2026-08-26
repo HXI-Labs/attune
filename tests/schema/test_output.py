@@ -5,7 +5,7 @@ from copy import deepcopy
 import pytest
 from pydantic import ValidationError
 
-from attune.schema.output import AttuneOutput, DEFAULT_INTERPRETATION_WARNING
+from attune.schema.output import DEFAULT_INTERPRETATION_WARNING, AttuneOutput
 
 
 def test_example_round_trip_and_schema_version(example_payload: dict) -> None:
@@ -18,6 +18,13 @@ def test_example_round_trip_and_schema_version(example_payload: dict) -> None:
     assert restored.styles[0].label == "shouting"
     assert restored.events[0].label == "sob"
     assert restored.uncertainty.interpretation_warning == DEFAULT_INTERPRETATION_WARNING
+
+
+def test_schema_version_is_required(example_payload: dict) -> None:
+    payload = deepcopy(example_payload)
+    del payload["schema_version"]
+    with pytest.raises(ValidationError, match="schema_version"):
+        AttuneOutput.model_validate(payload)
 
 
 @pytest.mark.parametrize(
@@ -71,3 +78,27 @@ def test_abstention_requires_null_top_label(example_payload: dict) -> None:
     payload["affect"]["top_label"] = None
     payload["affect"]["top_label_confidence"] = 0.0
     assert AttuneOutput.model_validate(payload).affect.abstain is True
+
+
+def test_top_label_matches_distribution(example_payload: dict) -> None:
+    payload = deepcopy(example_payload)
+    payload["affect"]["top_label"] = "joy"
+    with pytest.raises(ValidationError, match="maximum-probability"):
+        AttuneOutput.model_validate(payload)
+
+    payload = deepcopy(example_payload)
+    payload["affect"]["top_label_confidence"] = 0.9
+    with pytest.raises(ValidationError, match="must equal"):
+        AttuneOutput.model_validate(payload)
+
+
+def test_annotations_must_fit_audio_and_have_unique_ids(example_payload: dict) -> None:
+    payload = deepcopy(example_payload)
+    payload["events"][0]["end_ms"] = payload["audio"]["duration_ms"] + 1
+    with pytest.raises(ValidationError, match="audio duration"):
+        AttuneOutput.model_validate(payload)
+
+    payload = deepcopy(example_payload)
+    payload["styles"].append(deepcopy(payload["styles"][0]))
+    with pytest.raises(ValidationError, match="style ids must be unique"):
+        AttuneOutput.model_validate(payload)
