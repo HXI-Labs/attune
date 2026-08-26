@@ -157,7 +157,11 @@ class WhisperSmallAdapter(BaselineAdapter):
                 self.checkpoint, local_files_only=True
             )
         inputs = self._processor(samples, sampling_rate=sample_rate, return_tensors="pt")
-        generated_ids = self._model.generate(inputs.input_features)
+        generated_ids = self._model.generate(
+            inputs.input_features,
+            language=item.language_hint,
+            task="transcribe",
+        )
         transcript = self._processor.batch_decode(
             generated_ids, skip_special_tokens=True
         )[0].strip()
