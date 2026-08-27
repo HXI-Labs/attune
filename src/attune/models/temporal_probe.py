@@ -59,7 +59,11 @@ class FrozenTemporalProbeHead:
         frames = extractor(audio_path)
         normalized = (frames - payload["feature_mean"]) / payload["feature_scale"]
         with torch.inference_mode():
-            probabilities = torch.sigmoid(head(normalized))
+            if payload.get("architecture") == "temporal_conv1d":
+                frame_logits = head(normalized.transpose(0, 1).unsqueeze(0))[0].transpose(0, 1)
+            else:
+                frame_logits = head(normalized)
+            probabilities = torch.sigmoid(frame_logits)
         duration_ms = _duration_ms(audio_path)
         annotations = _decode_annotations(
             probabilities,
@@ -97,7 +101,6 @@ class FrozenTemporalProbeHead:
             "feature_mean",
             "feature_scale",
             "labels",
-            "hidden_size",
             "threshold",
             "dataset",
             "embedding",
@@ -121,15 +124,36 @@ class FrozenTemporalProbeHead:
         gate = payload["gate"]
         if not isinstance(gate, dict) or gate.get("passed") is not True:
             raise RuntimeError("temporal checkpoint did not pass the held-out wiring gate")
-        if float(gate["margin_observed"]) < float(gate["margin_required"]):
+        if dataset == "starss23":
+            if float(gate.get("segment_margin_observed", -1)) < float(
+                gate.get("segment_margin_required", 0.05)
+            ) or float(gate.get("collar_f1_observed", -1)) < float(
+                gate.get("collar_f1_required", 0.25)
+            ):
+                raise RuntimeError("STARSS23 checkpoint failed the boundary-alignment gate")
+        elif float(gate["margin_observed"]) < float(gate["margin_required"]):
             raise RuntimeError("temporal checkpoint margin is below its wiring requirement")
 
-        hidden_size = int(payload["hidden_size"])
-        head = torch.nn.Sequential(
-            torch.nn.Linear(512, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, len(labels)),
-        )
+        if payload.get("architecture") == "temporal_conv1d":
+            channels = int(payload["conv_channels"])
+            kernel_size = int(payload["kernel_size"])
+            head = torch.nn.Sequential(
+                torch.nn.Conv1d(
+                    512,
+                    channels,
+                    kernel_size=kernel_size,
+                    padding=kernel_size // 2,
+                ),
+                torch.nn.ReLU(),
+                torch.nn.Conv1d(channels, len(labels), kernel_size=1),
+            )
+        else:
+            hidden_size = int(payload["hidden_size"])
+            head = torch.nn.Sequential(
+                torch.nn.Linear(512, hidden_size),
+                torch.nn.ReLU(),
+                torch.nn.Linear(hidden_size, len(labels)),
+            )
         head.load_state_dict(payload["head_state_dict"])
         head.eval()
         extractor = FrozenSenseVoiceFrameEncoder(

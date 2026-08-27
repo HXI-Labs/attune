@@ -311,14 +311,32 @@
       }
     }
   },
-  "cascade_wiring": {
-    "passed": true,
-    "margin_required": 0.05,
-    "margin_observed": 0.24866925622212638,
-    "temporal_segment_f1": 0.7380952380952381,
+  "single_pass_temporal_conv_followup": {
+    "result": "research/starss23-temporal-conv-results.json",
+    "architecture": "Conv1d(512,128,kernel_size=7)+ReLU+Conv1d(128,1,kernel_size=1)",
+    "trainable_parameters": 459009,
+    "seed": 0,
+    "inspection_evaluations": 1,
+    "segment_f1": 0.711340206185567,
     "whole_clip_segment_f1": 0.48942598187311176,
-    "timestamps_wired": true,
-    "policy": "wire STARSS23-derived laugh spans only when held-out segment margin passes"
+    "segment_margin": 0.22191422431245528,
+    "collar_event_f1": 0.028169014084507043,
+    "whole_clip_collar_event_f1": 0.0,
+    "collar_true_positive": 1,
+    "reference_event_count": 31
+  },
+  "cascade_wiring": {
+    "passed": false,
+    "segment_margin_required": 0.05,
+    "segment_margin_observed": 0.22191422431245528,
+    "collar_f1_required": 0.25,
+    "collar_f1_observed": 0.028169014084507043,
+    "temporal_segment_f1": 0.711340206185567,
+    "whole_clip_segment_f1": 0.48942598187311176,
+    "timestamps_wired": false,
+    "policy": "require collar F1 >= 0.25 and segment margin >= 0.05",
+    "decision": "unwire STARSS23 laugh timing; natural-scene boundaries remain unsolved",
+    "prior_mlp_segment_only_gate_superseded": true
   },
   "runtime": {
     "device": "cpu",

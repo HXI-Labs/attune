@@ -1,6 +1,6 @@
 {
   "report_version": "1",
-  "generated_at_utc": "2026-08-27T09:14:02.087565Z",
+  "generated_at_utc": "2026-08-27T09:29:41.025237Z",
   "gate_decision": "closed",
   "encoder_frozen": true,
   "data_verification": {
@@ -64,7 +64,7 @@
     "checkpoint_committed": false
   },
   "cascade_timestamps": {
-    "event_style_policy": "gated STARSS23 laugh or DCASE laugh/cough/throat_clear frame spans when the corresponding temporal checkpoint is configured; all other event/style labels remain utterance-scoped",
+    "event_style_policy": "gated DCASE laugh/cough/throat_clear frame spans when configured; STARSS23 laugh timing is unwired; all other event/style labels remain utterance-scoped",
     "zero_to_duration_is_localization": false,
     "changed_in_this_pr": true
   },
@@ -107,8 +107,34 @@
     "whole_clip_oracle_tag_collar_event_f1": 0.0,
     "collar_true_positive": 4,
     "reference_event_count": 31,
-    "eligible_for_cascade_wiring": true,
-    "timestamps_wired": true,
+    "prior_mlp_result": {
+      "segment_f1": 0.7380952380952381,
+      "whole_clip_segment_f1": 0.48942598187311176,
+      "collar_event_f1": 0.11594202898550725,
+      "collar_true_positive": 4,
+      "reference_event_count": 31
+    },
+    "single_pass_temporal_conv": {
+      "result": "research/starss23-temporal-conv-results.json",
+      "architecture": "Conv1d kernel 7",
+      "trainable_parameters": 459009,
+      "seed": 0,
+      "inspection_evaluations": 1,
+      "segment_f1": 0.711340206185567,
+      "whole_clip_segment_f1": 0.48942598187311176,
+      "segment_f1_margin": 0.22191422431245528,
+      "collar_event_f1": 0.028169014084507043,
+      "collar_true_positive": 1,
+      "reference_event_count": 31
+    },
+    "wiring_gate": {
+      "segment_margin_required": 0.05,
+      "collar_f1_required": 0.25,
+      "passed": false
+    },
+    "eligible_for_cascade_wiring": false,
+    "timestamps_wired": false,
+    "decision": "natural-scene boundaries remain unsolved; prior segment-only gate superseded",
     "english_metadata_filter_available": false,
     "language": "unverified",
     "merge_quality_localization": false,

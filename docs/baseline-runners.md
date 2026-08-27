@@ -160,7 +160,10 @@ failed DCASE eight-bin result remains authoritative for that pooled head. See
 The separate STARSS23 checkpoint maps only laughter to `laugh`. It scores
 0.7381 segment F1 versus 0.4894 whole-clip on held-out natural-scene windows,
 but collar F1 is only 0.1159. Its segment gate passes, yet the boundary result
-is explicitly not merge-quality. Language remains unverified.
+is explicitly not merge-quality. A single temporal Conv1d follow-up scores
+0.7113 segment and 0.0282 collar F1, failing the replacement requirement of
+collar F1 >= 0.25 plus segment margin >= 0.05. STARSS23 timing is therefore
+unwired; DCASE timing is unchanged. Language remains unverified.
 If timing work resumes, the bounded next candidate is a pre-existing,
 hash-verified STARSS23 slice only. STARSS23 is the MIT natural-spatial-audio
 dataset with 100 ms labels; its metadata does not permit filtering for English,

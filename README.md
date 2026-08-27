@@ -81,7 +81,9 @@ spans for laugh/cough/throat-clear when its gitignored checkpoint is configured.
 Other `0..duration` event/style spans remain utterance scope, never
 localization. A separate natural-scene STARSS23 laughter head scores 0.7381
 segment F1 versus 0.4894 whole-clip, but only 0.1159 collar F1; it is therefore
-not merge-quality boundary alignment. Details are in `research/timing-holes.md`.
+not merge-quality boundary alignment. A single temporal Conv1d follow-up scores
+0.7113 / 0.0282 and fails the fixed collar gate, so STARSS23 timestamps are
+unwired. Details are in `research/timing-holes.md`.
 For one or more local WAV files, `scripts/infer.py` emits authoritative JSON
 and optional deterministic XML; exact offline commands are in
 `docs/baseline-runners.md`.

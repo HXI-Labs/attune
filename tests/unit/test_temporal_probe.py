@@ -47,6 +47,28 @@ def test_temporal_checkpoint_is_rejected_when_held_out_gate_failed(tmp_path: Pat
         head._load()
 
 
+def test_starss23_checkpoint_requires_collar_and_segment_gate(tmp_path: Path) -> None:
+    payload = checkpoint_payload(gate_passed=True)
+    payload["dataset"] = "starss23"
+    payload["labels"] = ("laugh",)
+    payload["hidden_size"] = 64
+    payload["gate"] = {
+        "passed": True,
+        "margin_required": 0.05,
+        "margin_observed": 0.25,
+    }
+    checkpoint = tmp_path / "starss23-head.pt"
+    torch.save(payload, checkpoint)
+    head = FrozenTemporalProbeHead(
+        checkpoint=checkpoint,
+        sensevoice_checkpoint=tmp_path,
+        frame_cache=tmp_path / "cache",
+    )
+
+    with pytest.raises(RuntimeError, match="boundary-alignment"):
+        head._load()
+
+
 def test_frame_probabilities_decode_multiple_bounded_event_spans() -> None:
     probabilities = torch.tensor(
         [

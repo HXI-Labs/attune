@@ -2,9 +2,10 @@
 
 ## Decision
 
-The frame timing integration gate passed, but the scientific gold gate remains
-**closed**. When the held-out-gated temporal checkpoint is configured, cascade
-`laugh`, `cough`, and `throat_clear` events use frame-decoded spans. Other
+The DCASE frame timing integration gate passed, but the scientific gold gate
+remains **closed**. When the held-out-gated DCASE checkpoint is configured,
+cascade `laugh`, `cough`, and `throat_clear` events use frame-decoded spans. STARSS23
+natural-scene timing is unwired after failing its stricter boundary gate. Other
 event/style bounds still mean utterance scope. A provisional `0..duration` span
 is not localization and must not be scored or described as such. No Phase 3
 joint training is authorized by this work.
@@ -109,11 +110,26 @@ doors, and all other classes are not forced into the Attune ontology.
 | Frozen frame head | **0.7381** | **0.1159** |
 | Whole-clip oracle tags | 0.4894 | 0.0000 |
 
-The `+0.2487` segment-F1 margin clears the predeclared `+0.05` wiring gate, so
-the separate gated STARSS23 checkpoint may supply `laugh` spans when explicitly
-configured. Collar F1 remains weak: only 4 of 31 held-out event intervals match
-at the 200 ms criterion. This is bounded evidence of coarse natural-scene
-activity localization, not merge-quality event-boundary alignment.
+The old MLP's `+0.2487` segment-F1 margin cleared the original segment-only
+gate, but collar F1 remained weak: only 4 of 31 held-out event intervals
+matched at the 200 ms criterion. Jerry therefore predeclared a replacement gate
+requiring both collar F1 `>=0.25` and segment margin `>=0.05`.
+
+One 459,009-parameter temporal Conv1d head (kernel 7), one seed, and one
+validation-selected hysteresis/min-duration/gap recipe were run. The untouched
+inspection was evaluated once:
+
+| Single-pass temporal Conv1d | 1 s segment F1 | 200 ms collar event F1 |
+|---|---:|---:|
+| STARSS23 laugh | 0.7113 | **0.0282** |
+| Whole-clip oracle tags | 0.4894 | 0.0000 |
+
+The segment margin is `+0.2219`, but collar F1 is only 1/31 matched intervals
+and fails the fixed `0.25` requirement. STARSS23-derived timestamps are
+therefore **unwired**. The prior MLP result remains recorded, but its
+segment-only gate is superseded. Natural-scene event boundaries remain
+unsolved; no second architecture, seed, threshold pass, or larger slice was
+attempted. DCASE wiring is unchanged.
 
 STARSS23 metadata has no language field and its README states that speech spans
 multiple languages. Language is therefore `unverified`; no English claim or

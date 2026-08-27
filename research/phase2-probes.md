@@ -104,8 +104,10 @@ development slice, excluding Music and mapping only laughter to `laugh`.
 Held-out natural-scene segment F1 is 0.7381 versus 0.4894 whole-clip, while
 collar F1 is only 0.1159 versus 0. Language is unverified because STARSS23 has
 no language metadata, and natural participant recordings retain privacy and
-consent caveats. The segment gate passes, but this is not merge-quality
-event-boundary alignment.
+consent caveats. A single temporal Conv1d follow-up scores 0.7113 segment and
+0.0282 collar F1. It fails the replacement collar >=0.25 plus segment-margin
+>=0.05 gate, so STARSS23 timestamps are unwired and natural-scene boundaries
+remain unsolved.
 
 ## What Phase 2 established
 
