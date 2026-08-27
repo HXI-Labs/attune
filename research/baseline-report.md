@@ -1,10 +1,13 @@
 # Phase 1 baseline report
 
-**Status: fixture smoke-test complete; licensed, speaker-disjoint gold
-evaluation not started. This document is a gate, not a claim of scientific
-results.**
+**Status: Phase 1 closed with a runnable cascade and bounded weak-label
+inspections. Gold evaluation and real localization are not complete; the
+scientific gate remains closed. See `research/phase1-close.md`.**
 
-No large fine-tuning may begin until this report is completed and reviewed.
+On 2026-08-27 Jerry Buaba, project owner, authorized ending the project-level
+14-day/no-large-fine-tuning hold and beginning the next training experiment.
+This owner decision does not upgrade weak labels to gold or override model and
+dataset licences.
 
 ## How to fill this report
 
@@ -75,8 +78,8 @@ atypical voices, and confident failures.
 - Real event/style gold labels, alignment metrics, calibration and abstention
   analysis, OOD and permitted subgroup slices, runtime/memory measurements,
   and privacy-safe qualitative errors.
-- A documented gate decision. Until these are complete, the 14-day no-large-
-  fine-tuning restriction remains in force.
+- A documented gold gate decision. The original 14-day project hold was lifted
+  by the owner on 2026-08-27, but the gold gate itself remains closed.
 
 ## Fixture smoke-test (not a scientific baseline)
 

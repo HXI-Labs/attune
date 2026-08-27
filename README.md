@@ -25,13 +25,12 @@ near-real-time inference, with INT8 quantization evaluated later.
 
 ## Stage gate
 
-**14-day gate: no large fine-tuning until a baseline report exists.** Phase 1
-must first produce `research/baseline-report.md` with transcript, timing,
-ontology, calibration, abstention, runtime, and subgroup/error-slice results.
-Only then may the project decide whether probes, joint training, or another
-approach are justified. The model-licence review does not bypass this gate: it
-does not authorise fine-tuning, public weight redistribution, or MSP-Podcast
-use, whose review remains pending.
+Phase 1 is closed in `research/phase1-close.md`. The owner lifted the original
+14-day/no-large-fine-tuning project hold on 2026-08-27, but the gold gate remains
+closed: current event/style targets are weak source labels and their spans are
+whole utterances, not localization. Owner authorization does not override
+third-party model/data licences, permit public weight redistribution, or permit
+MSP-Podcast use, whose review remains pending.
 
 ## Quick start
 
@@ -60,6 +59,29 @@ uv sync --extra dev --extra torch --extra model-runners
 ```
 
 No model checkpoints are downloaded by installation.
+
+### Try one local file
+
+The CLI runs the inspected cascade and prints authoritative Attune JSON. Model
+and dataset licences remain independent from this repository's MIT licence.
+Review the recorded SenseVoice/emotion2vec+ terms first, then fetch the pinned
+local copies:
+
+```bash
+uv run python scripts/fetch_inspection_models.py \
+  --model sensevoice-small --model emotion2vec-plus
+export ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1
+uv run python scripts/infer.py path/to.wav
+```
+
+The default gitignored probe paths are `artifacts/event-probe/head.pt` for
+VocalSound and `artifacts/fsd50k-event-probe/head.pt` for FSD50K. Create them
+with `scripts/train_probe.py` and `scripts/train_fsd50k_probe.py` after preparing
+the documented licence-clean caches. If either head is absent, the CLI names it
+on stderr and still returns SenseVoice transcript/AED plus emotion2vec+ affect.
+Use `--xml` for XML instead, or `--xml-output output.xml` to write XML while
+keeping JSON on stdout. Inference is forced offline; it never fetches a missing
+model or head.
 
 `AttuneCascade` is the concrete inspected runner: SenseVoiceSmall transcript
 and AED, emotion2vec+ affect, and the union of the frozen VocalSound and FSD50K
