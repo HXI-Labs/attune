@@ -89,6 +89,21 @@ The CREMA-D expansion adds `ANG → anger`, `FEA → fear`, and `DIS → other` 
 category. `HI` remains source intensity metadata only and is not mapped to
 shouting, whispering, or vocal effort.
 
+### Frozen-probe training pool
+
+`data/manifests/fsd50k-frozen-probe.jsonl` adds a bounded 320-clip FSD50K
+train/validation pool for a frozen-encoder linear diagnostic: 64 train and 16
+validation clips each for shout, whisper, sob, and scream. All 100 FSD50K
+inspection rows above are excluded and remain the test set. The preparation
+contract applies the same clip-level CC0/CC BY and single-target filters before
+individual fetch; no full archive is used.
+
+FSD50K does not provide speaker IDs, so this protocol guarantees clip
+disjointness only. Uploader metadata is preserved for attribution but does not
+establish who produced a recorded voice. The source labels remain weak labels,
+and the additional rows are authorised only for the frozen linear probe—not
+encoder fine-tuning.
+
 ## What this subset still lacks
 
 This first set does **not** cover:

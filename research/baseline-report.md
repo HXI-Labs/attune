@@ -500,3 +500,89 @@ downloaded. The existing Ghanaian-English NC research-only slice was not
 expanded. Human listening, reviewed gold labels, localization, calibration,
 abstention/OOD thresholds, and an approved gate decision remain incomplete.
 The gate remains **CLOSED**.
+
+## Phase 1 hard-hole follow-up
+
+### Affect wiring diagnosis
+
+The original 60-clip affect table mixed three different paths without exposing
+their provenance. Whisper-Small has no affect head; its `neutral` 60/60 came
+from Attune's transcript-lexicon placeholder. SenseVoice affect tags were read,
+but the report discarded the raw rich-transcription output. The standalone
+emotion2vec+ acoustic SER adapter, which reached 0.9208 macro-F1 on the original
+NEU/HAP/SAD inspection set, was not run on the ANG/FEA/DIS expansion at all.
+
+Raw SenseVoice output resolves the apparent collapse. It emitted
+`<|EMO_UNKNOWN|>` on 58 clips and `<|SAD|>` on two. The two `SAD` tags mapped
+to Attune `distress`; the 58 unmapped SER results fell back to the neutral
+transcript lexicon. Thus the 58-neutral/2-distress schema histogram was not an
+ASR-path drop of mapped emotion tags, but it also was not evidence that a
+working acoustic classifier predicted neutral 58 times. The released
+SenseVoice SER behavior on this acted slice is mostly unknown.
+
+The corrected evaluator now runs emotion2vec+ directly and as the affect
+component in both Whisper and SenseVoice cascades. All three acoustic-affect
+paths produced the same categorical result:
+
+| Affect path | Accuracy | Macro-F1 | Raw/schema prediction counts |
+|---|---:|---:|---|
+| emotion2vec+ | 0.8500 | 0.8679 | angry 23, fearful 14, disgusted 20, sad 2, happy 1 |
+| Whisper + emotion2vec+ | 0.8500 | 0.8679 | identical |
+| SenseVoice + emotion2vec+ | 0.8500 | 0.8679 | identical |
+
+Per-class emotion2vec+ F1 was 0.9302 anger, 0.8235 fear, and 0.8500 other.
+Its raw `厌恶/disgusted` label occurred 20 times and maps explicitly to Attune
+`other`. CREMA-D `DIS` remains `other`, never `distress`; a model without an
+`other`/disgust output has structurally zero DIS recall. The machine report
+contains raw-label histograms and two raw-to-schema examples for each source
+emotion and each runner.
+
+This fixes an evaluation wiring omission and shows that emotion2vec+ did not
+collapse on the expansion. It does not turn acted source labels into gold,
+establish internal emotional state, or pass the gate. OpenAI Whisper-Small,
+SenseVoiceSmall by FunASR/FunAudioLLM, and emotion2vec+ by emotion2vec and
+FunASR/FunAudioLLM retain their recorded attributions and model licences.
+
+### Frozen FSD50K coverage probe
+
+The authorised H1 follow-up trained a new 20,484-parameter four-way linear head
+on frozen SenseVoiceSmall encoder embeddings. The bounded pool contains 256
+training clips (64 per class) and 64 validation clips (16 per class). All 100
+inspection rows remain the balanced test set and are excluded before
+selection. FSD50K has no speaker IDs, so this is clip-disjoint rather than
+speaker-disjoint; uploader attribution is not treated as speaker identity.
+Every clip is individually fetched, CC0 or CC BY, and carries exactly one
+target class. No NC, Sampling+, cross-target, or full-archive audio is used.
+
+The extraction path is now direct: official FunASR frontend with dither `0.0`,
+then the frozen encoder under inference mode. It no longer calls `generate()`
+or captures a forward hook. Investigation found that the version-1 hook path's
+`generate()` reset restored FunASR's frontend configuration, including dither
+`1.0`, after the extractor had set its frontend reference to zero. Version-2
+embeddings have a new representation fingerprint; version-1 caches and heads
+are not silently reused.
+
+All 233,999,167 SenseVoiceSmall parameters had gradients disabled and zero
+encoder parameters entered the optimizer. Only the linear head trained. The
+inspection result was 0.7400 accuracy and 0.7410 four-way macro-F1:
+
+| Source/probe class | Frozen encoder probe F1 | AED detection rate | AED one-vs-rest F1 |
+|---|---:|---:|---:|
+| shout | 0.7391 | 0.0000 | 0.0000 |
+| whisper | 0.8750 | 0.0000 | 0.0000 |
+| sob | 0.7500 | 0.3200 | 0.4848 |
+| scream | 0.6000 | 0.0000 | 0.0000 |
+
+The requested AED values `0/0/0.32/0` are detection rates, not F1. They remain
+reported under that name. From the committed raw AED outputs, sob has eight
+true positives, no false positives, and 17 false negatives, hence one-vs-rest
+F1 0.4848. `Screaming` stays a separate diagnostic class and is never remapped
+to Attune `shouting`; `Crying_and_sobbing` maps to `sob`, not
+`crying_speech`.
+
+These results support H1 on this weak, standalone FSD50K slice: frozen encoder
+features expose all four distinctions that the released AED outputs miss or
+under-cover. They do not establish speech-embedded style detection, reviewed
+gold performance, localization, calibration, abstention, or OOD robustness.
+No encoder fine-tuning occurred, no weights or probe checkpoint are committed,
+and the gate remains **CLOSED**.

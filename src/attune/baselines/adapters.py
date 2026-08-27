@@ -247,6 +247,9 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
             )
         parsed = parse_sensevoice_output(result)
         affect_trace = sensevoice_affect_trace(result)
+        mapped_affect_trace = [
+            row for row in affect_trace if row["schema_label"] is not None
+        ]
         if parsed.affect:
             category = parsed.affect[0].label
             if not isinstance(category, AffectCategory):
@@ -279,7 +282,13 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
             ),
             diagnostics={
                 "affect_source": (
-                    "sensevoice_ser" if affect_trace else "transcript_lexicon_fallback"
+                    "sensevoice_ser"
+                    if mapped_affect_trace
+                    else (
+                        "sensevoice_unmapped_ser_with_transcript_lexicon_fallback"
+                        if affect_trace
+                        else "transcript_lexicon_fallback"
+                    )
                 ),
                 "raw_model_output": _diagnostic_value(result),
                 "raw_affect_label": (
@@ -289,8 +298,12 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
                 "affect_mapping": affect_trace,
                 "note": (
                     "SenseVoice SER/rich-transcription affect was mapped directly."
-                    if affect_trace
-                    else "SenseVoice emitted no mapped SER label; transcript lexicon was used."
+                    if mapped_affect_trace
+                    else (
+                        "SenseVoice emitted an unmapped SER label; transcript lexicon was used."
+                        if affect_trace
+                        else "SenseVoice emitted no SER label; transcript lexicon was used."
+                    )
                 ),
             },
         )
@@ -499,7 +512,10 @@ def _emotion2vec_diagnostics(
     raw_index = max(range(len(scores)), key=lambda index: float(scores[index]))
     return {
         "affect_source": "emotion2vec_plus_ser",
-        "raw_model_output": _diagnostic_value(result),
+        "raw_model_output": {
+            "labels": _diagnostic_value(labels),
+            "scores": _diagnostic_value(scores),
+        },
         "raw_affect_label": str(labels[raw_index]),
         "raw_affect_score": float(scores[raw_index]),
         "schema_affect_label": category.value,

@@ -71,11 +71,9 @@ class ModularCascade(BaselineAdapter):
                 **(affect_prediction.diagnostics or {}),
                 "asr_component": {
                     "name": self.asr.name,
-                    "diagnostics": asr_prediction.diagnostics,
                 },
                 "affect_component": {
                     "name": self.affect.name,
-                    "diagnostics": affect_prediction.diagnostics,
                 },
                 "note": (
                     "Cascade output uses the acoustic affect component; "

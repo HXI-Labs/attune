@@ -69,6 +69,23 @@ def test_structured_ser_is_mapped_and_retained_in_raw_trace() -> None:
     ]
 
 
+def test_unmapped_ser_unknown_is_retained_without_silent_schema_mapping() -> None:
+    result = [{"text": "<|en|><|EMO_UNKNOWN|><|Speech|> hello"}]
+
+    parsed = parse_sensevoice_output(result)
+
+    assert parsed.affect == ()
+    assert sensevoice_affect_trace(result) == [
+        {
+            "raw_label": "EMO_UNKNOWN",
+            "normalized_label": "emo_unknown",
+            "schema_label": None,
+            "confidence": 0.0,
+            "source": "rich_transcription_tag",
+        }
+    ]
+
+
 def test_utterance_tags_become_provisional_whole_clip_spans() -> None:
     parsed = parse_sensevoice_output(
         [{"text": "<|Breath|><|Singing|> la la"}]

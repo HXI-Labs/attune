@@ -148,7 +148,7 @@ def parse_sensevoice_output(result: Any) -> SenseVoiceOutput:
     )
 
 
-def sensevoice_affect_trace(result: Any) -> list[dict[str, str | float]]:
+def sensevoice_affect_trace(result: Any) -> list[dict[str, str | float | None]]:
     """Return each raw SenseVoice SER label and its explicit schema mapping."""
     row = _result_row(result)
     if isinstance(row, str):
@@ -174,15 +174,16 @@ def sensevoice_affect_trace(result: Any) -> list[dict[str, str | float]]:
             for label, confidence in _structured_annotations(value)
         )
 
-    trace: list[dict[str, str | float]] = []
+    trace: list[dict[str, str | float | None]] = []
     for raw_label, confidence, source in candidates:
         normalized = _normalize_label(raw_label)
-        if mapped := _AFFECT_LABELS.get(normalized):
+        mapped = _AFFECT_LABELS.get(normalized)
+        if mapped is not None or normalized == "emo_unknown":
             trace.append(
                 {
                     "raw_label": str(raw_label),
                     "normalized_label": normalized,
-                    "schema_label": mapped.value,
+                    "schema_label": mapped.value if mapped is not None else None,
                     "confidence": confidence,
                     "source": source,
                 }
