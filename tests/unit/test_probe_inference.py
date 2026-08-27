@@ -114,7 +114,7 @@ def test_frozen_linear_probe_omits_annotation_for_none_logit(tmp_path: Path) -> 
             "embedding": SENSEVOICE_EMBEDDING,
             "abstention": {
                 "method": "none_logit",
-                "threshold": None,
+                "threshold": 0.0,
             },
         },
         checkpoint,

@@ -55,7 +55,7 @@ def test_calibration_can_select_genuine_negative_none_logit() -> None:
     )
 
     assert result["method"] == "none_logit"
-    assert result["threshold"] is None
+    assert isinstance(result["threshold"], float)
     assert result["validation"]["all_prediction_micro_f1"] == 1.0
     assert result["validation"]["ood_false_positive_rate"] == 0.0
 

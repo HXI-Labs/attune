@@ -53,16 +53,13 @@ def calibrate_abstention(
     if (none_id_logits is None) != (none_ood_logits is None):
         raise ValueError("both none-logit validation tensors are required")
     if none_id_logits is not None:
-        none_metrics = evaluate_none_logit(
-            logits=none_id_logits,
-            targets=id_targets,
+        comparisons["none_logit"] = _calibrate_none_method(
+            id_logits=none_id_logits,
+            id_targets=id_targets,
             ood_logits=none_ood_logits,
             label_count=label_count,
+            torch=torch,
         )
-        comparisons["none_logit"] = {
-            "selected": none_metrics,
-            "threshold_sweep": [{**none_metrics, "selected": True}],
-        }
     selected_method = max(
         comparisons,
         key=lambda method: _selection_key(comparisons[method]["selected"]),
@@ -72,7 +69,7 @@ def calibrate_abstention(
         "method": selected_method,
         "threshold": selected.get("threshold"),
         "score_rule": (
-            "emit when the argmax is not the trained none logit"
+            "emit when max class probability minus none probability >= threshold"
             if selected_method == "none_logit"
             else "emit when score >= threshold; otherwise abstain"
         ),
@@ -127,17 +124,28 @@ def evaluate_none_logit(
     targets: Any,
     ood_logits: Any,
     label_count: int,
+    threshold: float,
+    torch: Any,
 ) -> dict[str, Any]:
-    """Measure a head whose final output is a genuine-negative ``none`` class."""
-    predictions = logits.argmax(dim=1).tolist()
-    ood_predictions = ood_logits.argmax(dim=1).tolist()
+    """Measure a threshold over a genuine-negative ``none`` output."""
+    probabilities = torch.softmax(logits, dim=1)
+    ood_probabilities = torch.softmax(ood_logits, dim=1)
+    predictions = probabilities[:, :label_count].argmax(dim=1).tolist()
+    id_scores = (
+        probabilities[:, :label_count].max(dim=1).values
+        - probabilities[:, label_count]
+    ).tolist()
+    ood_scores = (
+        ood_probabilities[:, :label_count].max(dim=1).values
+        - ood_probabilities[:, label_count]
+    ).tolist()
     return _decision_metrics(
         target_values=targets.tolist(),
         predictions=predictions,
-        emitted=[prediction != label_count for prediction in predictions],
-        ood_emitted=[prediction != label_count for prediction in ood_predictions],
+        emitted=[accepts(float(score), threshold) for score in id_scores],
+        ood_emitted=[accepts(float(score), threshold) for score in ood_scores],
         label_count=label_count,
-        threshold=None,
+        threshold=threshold,
     )
 
 
@@ -294,7 +302,7 @@ def _decision_metrics(
 
 def checkpoint_abstention(
     payload: dict[str, Any],
-) -> tuple[AbstentionMethod, float | None]:
+) -> tuple[AbstentionMethod, float]:
     """Validate and return a checkpoint's mandatory abstention configuration."""
     config = payload.get("abstention")
     if not isinstance(config, dict):
@@ -303,8 +311,6 @@ def checkpoint_abstention(
     if method not in ABSTENTION_METHODS:
         raise RuntimeError(f"probe checkpoint has unsupported abstention method: {method!r}")
     threshold = config.get("threshold")
-    if method == "none_logit" and threshold is None:
-        return method, None
     if not isinstance(threshold, int | float):
         raise RuntimeError("probe checkpoint has an invalid abstention threshold")
     return method, float(threshold)
@@ -357,6 +363,62 @@ def _calibrate_method(
     return {"selected": selected, "threshold_sweep": sweep}
 
 
+def _calibrate_none_method(
+    *,
+    id_logits: Any,
+    id_targets: Any,
+    ood_logits: Any,
+    label_count: int,
+    torch: Any,
+) -> dict[str, Any]:
+    id_probabilities = torch.softmax(id_logits, dim=1)
+    ood_probabilities = torch.softmax(ood_logits, dim=1)
+    all_scores = [
+        *(
+            id_probabilities[:, :label_count].max(dim=1).values
+            - id_probabilities[:, label_count]
+        ).tolist(),
+        *(
+            ood_probabilities[:, :label_count].max(dim=1).values
+            - ood_probabilities[:, label_count]
+        ).tolist(),
+    ]
+    unique = sorted({float(score) for score in all_scores})
+    epsilon = max(1e-7, (unique[-1] - unique[0]) * 1e-7)
+    thresholds = [unique[0] - epsilon, *unique, unique[-1] + epsilon]
+    rows = [
+        evaluate_none_logit(
+            logits=id_logits,
+            targets=id_targets,
+            ood_logits=ood_logits,
+            label_count=label_count,
+            threshold=threshold,
+            torch=torch,
+        )
+        for threshold in thresholds
+    ]
+    selected_index, selected = max(
+        enumerate(rows),
+        key=lambda indexed: (*_selection_key(indexed[1]), indexed[1]["threshold"]),
+    )
+    compact_indices = sorted(
+        {
+            0,
+            len(rows) - 1,
+            max(0, selected_index - 1),
+            selected_index,
+            min(len(rows) - 1, selected_index + 1),
+        }
+    )
+    return {
+        "selected": selected,
+        "threshold_sweep": [
+            {**rows[index], "selected": index == selected_index}
+            for index in compact_indices
+        ],
+    }
+
+
 def _selection_key(row: dict[str, Any]) -> tuple[float, float, float, float]:
     return (
         float(row["all_prediction_micro_f1"]),
@@ -371,4 +433,4 @@ def _score_definition(method: AbstentionMethod) -> str:
         return "maximum closed-set softmax probability"
     if method == "energy":
         return "negative energy = logsumexp(logits); energy itself is -score"
-    return "trained final none logit; argmax none means abstain"
+    return "max class probability minus trained none probability"

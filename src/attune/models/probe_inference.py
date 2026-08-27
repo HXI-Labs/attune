@@ -123,16 +123,11 @@ class FrozenLinearProbeHead:
         method, threshold = checkpoint_abstention(payload)
         if method == "none_logit":
             none_index = len(payload["labels"])
-            output_index = int(probabilities.argmax())
-            abstained = output_index == none_index
-            index = (
-                int(probabilities[:none_index].argmax())
-                if abstained
-                else output_index
-            )
+            index = int(probabilities[:none_index].argmax())
             score = float(
                 probabilities[:none_index].max() - probabilities[none_index]
             )
+            abstained = not accepts(score, threshold)
         else:
             score = float(confidence_scores(logits, method, torch)[0])
             abstained = not accepts(score, threshold)
