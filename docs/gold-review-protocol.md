@@ -32,6 +32,7 @@ perceived vocal expression, never a verified internal state.
   "schema_version": "1.0",
   "clip_id": "source-stable-id",
   "audio_sha256": "64-lowercase-hex-characters",
+  "audio_duration_ms": 1800,
   "reviewer": "reviewer-id",
   "reviewed_at_utc": "2026-08-27T12:00:00Z",
   "source_label_status": "weak_source_or_acted",

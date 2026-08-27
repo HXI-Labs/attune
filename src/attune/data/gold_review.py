@@ -73,6 +73,7 @@ class GoldReviewRecord(ReviewModel):
     schema_version: Literal["1.0"] = "1.0"
     clip_id: str
     audio_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    audio_duration_ms: int = Field(gt=0)
     reviewer: str
     reviewed_at_utc: str
     source_label_status: Literal["weak_source_or_acted"]
@@ -90,4 +91,9 @@ class GoldReviewRecord(ReviewModel):
         ]
         if len(identities) != len(set(identities)):
             raise ValueError("duplicate span review decisions")
+        if any(
+            span.end_ms is not None and span.end_ms > self.audio_duration_ms
+            for span in self.spans
+        ):
+            raise ValueError("reviewed span exceeds audio duration")
         return self

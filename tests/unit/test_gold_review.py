@@ -42,6 +42,7 @@ def test_real_review_cannot_use_an_invalid_audio_hash() -> None:
             {
                 "clip_id": "clip",
                 "audio_sha256": "not-a-hash",
+                "audio_duration_ms": 500,
                 "reviewer": "reviewer",
                 "reviewed_at_utc": "2026-08-27T00:00:00Z",
                 "source_label_status": "weak_source_or_acted",

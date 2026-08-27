@@ -44,6 +44,7 @@ def main() -> None:
                 {
                     "clip_id": item["id"],
                     "audio_sha256": digest(audio),
+                    "audio_duration_ms": 500,
                     "reviewer": "fixture-dry-run",
                     "reviewed_at_utc": "2026-08-27T00:00:00Z",
                     "source_label_status": "weak_source_or_acted",
