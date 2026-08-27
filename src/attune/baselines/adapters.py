@@ -377,20 +377,6 @@ def build_partial_output(
 ) -> AttuneOutput:
     """Build a valid contract with documented placeholders for unsupported heads."""
     duration_ms, sample_rate, channels = _wave_info(item.audio_path)
-    words = transcript.split()
-    word_rows = []
-    for index, word in enumerate(words):
-        start_ms = round(index * duration_ms / max(len(words), 1))
-        end_ms = round((index + 1) * duration_ms / max(len(words), 1))
-        word_rows.append(
-            {
-                "id": f"w{index + 1}",
-                "text": word,
-                "start_ms": start_ms,
-                "end_ms": end_ms,
-                "confidence": 0.5,
-            }
-        )
     top_probability = distribution[category]
     return AttuneOutput.model_validate(
         {
@@ -403,7 +389,9 @@ def build_partial_output(
                 "quality": placeholder_quality_probabilities(),
             },
             "language": {"label": item.language_hint, "confidence": 0.5},
-            "transcript": {"text": transcript, "confidence": 0.5, "words": word_rows},
+            # These adapters expose utterance text, not word alignment. An empty
+            # list is authoritative and avoids fabricated word-level timestamps.
+            "transcript": {"text": transcript, "confidence": 0.5, "words": []},
             "styles": [],
             "events": [],
             "affect": {

@@ -67,7 +67,8 @@ def test_weak_label_mappings_do_not_overclaim_speech_or_intensity() -> None:
         for row in fsd_by_class["Whispering"]
     )
     assert all(
-        row["intended_attune_labels"]["styles"] == []
+        row["intended_attune_labels"]["events"] == ["scream"]
+        and row["intended_attune_labels"]["styles"] == []
         for row in fsd_by_class["Screaming"]
     )
     crema = [row for row in rows if row["source_dataset"] == "CREMA-D"]

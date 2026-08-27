@@ -8,11 +8,12 @@ from attune.baselines.adapters import (
     TranscriptSentimentAdapter,
     WhisperSmallAdapter,
 )
-from attune.baselines.cascade import ModularCascade
+from attune.baselines.cascade import AttuneCascade, ModularCascade
 
 __all__ = [
     "BaselineInput",
     "BaselineUnavailableError",
+    "AttuneCascade",
     "Emotion2VecPlusAdapter",
     "ModularCascade",
     "SenseVoiceSmallAdapter",

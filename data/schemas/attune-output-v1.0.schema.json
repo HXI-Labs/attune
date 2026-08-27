@@ -141,6 +141,7 @@
       "enum": [
         "laugh",
         "sob",
+        "scream",
         "sigh",
         "cough",
         "throat_clear",

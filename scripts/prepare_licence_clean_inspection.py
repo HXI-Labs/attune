@@ -33,9 +33,9 @@ FSD_CLASSES = {
     },
     "Screaming": {
         "affect": [],
-        "events": [],
+        "events": ["scream"],
         "styles": [],
-        "note": "Screaming is retained as a separate source class and is not mapped to shouting.",
+        "note": "Screaming maps to the separate scream event, never to shouting.",
     },
     "Shout": {
         "affect": [],
