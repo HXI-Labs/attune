@@ -125,6 +125,46 @@ def test_modular_cascade_retains_asr_events() -> None:
     assert prediction.output.transcript.words == []
 
 
+def test_modular_cascade_passes_through_genuine_asr_word_alignment() -> None:
+    class AlignedASR(TranscriptSentimentAdapter):
+        name = "aligned-asr"
+
+        def predict(self, item):
+            prediction = super().predict(item)
+            payload = prediction.output.model_dump(mode="json")
+            payload["transcript"]["words"] = [
+                {
+                    "id": "w1",
+                    "text": "hello",
+                    "start_ms": 20,
+                    "end_ms": 80,
+                    "confidence": 0.9,
+                }
+            ]
+            return prediction.__class__(
+                output=AttuneOutput.model_validate(payload),
+                runtime=prediction.runtime,
+            )
+
+    prediction = ModularCascade(
+        asr=AlignedASR(),
+        affect=TranscriptSentimentAdapter(),
+    ).predict(
+        BaselineInput(
+            FIXTURES / "explicit_match_joy.wav",
+            transcript_hint="hello",
+        )
+    )
+
+    assert prediction.output.transcript.words[0].model_dump(mode="json") == {
+        "start_ms": 20,
+        "end_ms": 80,
+        "id": "w1",
+        "text": "hello",
+        "confidence": 0.9,
+    }
+
+
 def test_modular_cascade_unions_probes_without_collapsing_scream_to_shout() -> None:
     class EventASR(TranscriptSentimentAdapter):
         name = "event-asr"

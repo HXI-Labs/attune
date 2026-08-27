@@ -1140,6 +1140,7 @@ dev = [
 ]
 model-runners = [
     { name = "funasr" },
+    { name = "numpy" },
     { name = "torchaudio" },
     { name = "transformers" },
 ]
@@ -1151,6 +1152,7 @@ torch = [
 requires-dist = [
     { name = "datasets", marker = "extra == 'dataset-tools'", specifier = ">=5.0.1" },
     { name = "funasr", marker = "extra == 'model-runners'", specifier = ">=1.4.4" },
+    { name = "numpy", marker = "extra == 'model-runners'", specifier = ">=2.5.2" },
     { name = "pydantic", specifier = ">=2.9,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3" },
     { name = "pyyaml", specifier = ">=6.0" },

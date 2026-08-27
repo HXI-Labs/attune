@@ -1,8 +1,21 @@
+import importlib.util
+from pathlib import Path
+from types import ModuleType
+
 from attune.evaluation.localization import (
     collar_event_metrics,
     segment_f1,
     whole_clip_predictions,
 )
+
+
+def load_training_script() -> ModuleType:
+    path = Path(__file__).parents[2] / "scripts" / "train_temporal_localization.py"
+    spec = importlib.util.spec_from_file_location("temporal_localization_script", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_exact_spans_have_perfect_segment_and_collar_f1() -> None:
@@ -30,3 +43,25 @@ def test_collar_matching_keeps_labels_separate() -> None:
     assert result["true_positive"] == 0
     assert result["false_positive"] == 1
     assert result["false_negative"] == 1
+
+
+def test_frame_decoder_uses_approximate_lfr_boundaries() -> None:
+    script = load_training_script()
+
+    spans = script.frame_spans(
+        [[[0.9, 0.1, 0.1], [0.9, 0.1, 0.1], [0.1, 0.1, 0.1]]],
+        0.5,
+        first_frame_center_ms=12.5,
+        frame_hop_ms=60.0,
+        duration_ms=180,
+    )
+
+    assert spans == [[{"label": "laugh", "start_ms": 0, "end_ms": 102}]]
+
+
+def test_cascade_wiring_requires_clear_gain_over_whole_clip() -> None:
+    script = load_training_script()
+
+    assert script.should_wire_timestamps(0.37, 0.3183) is True
+    assert script.should_wire_timestamps(0.36, 0.3183) is False
+    assert script.should_wire_timestamps(0.20, 0.3183) is False

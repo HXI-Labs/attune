@@ -87,9 +87,8 @@ class ModularCascade(BaselineAdapter):
         payload["model"] = {"name": self.name, "version": "cascade-1", "quantization": None}
         payload["affect"] = affect_prediction.output.affect.model_dump(mode="json")
 
-        # ASR adapters expose no genuine alignment. The cascade therefore keeps
-        # transcript text but emits no invented word timestamps or word anchors.
-        payload["transcript"]["words"] = []
+        # The ASR output is authoritative: genuine returned alignment passes
+        # through unchanged, while unavailable alignment remains an empty list.
         components = [_asr_annotations(asr_prediction.output, self.asr.name)]
         elapsed = asr_prediction.runtime.elapsed_seconds + affect_prediction.runtime.elapsed_seconds
         probe_diagnostics = []
@@ -146,7 +145,8 @@ class ModularCascade(BaselineAdapter):
                     "crying_speech. All spans cover the utterance and are provisional."
                 ),
                 "timestamp_policy": (
-                    "utterance-level only; no word alignment or frame localization inferred"
+                    "event/style spans remain utterance-level; genuine ASR word alignment "
+                    "passes through when available and is never inferred"
                 ),
                 "note": (
                     "Cascade output uses emotion2vec+ acoustic affect; transcript lexicon "

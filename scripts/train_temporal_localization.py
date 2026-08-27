@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train a small temporal head on frozen DCASE/SenseVoice bin features."""
+"""Train a small temporal head on frozen DCASE/SenseVoice acoustic frames."""
 
 from __future__ import annotations
 
@@ -20,12 +20,13 @@ from attune.evaluation.localization import (
     whole_clip_predictions,
 )
 from attune.models.sensevoice_probe import (
-    TEMPORAL_BINS,
-    FrozenSenseVoiceEncoder,
+    SENSEVOICE_FRAME_EMBEDDING,
+    FrozenSenseVoiceFrameEncoder,
 )
 
 LABELS = ("laugh", "cough", "throat_clear")
 DURATION_MS = 10_000
+CLEAR_SEGMENT_F1_MARGIN = 0.05
 
 
 def digest(path: Path) -> str:
@@ -50,24 +51,44 @@ def load_rows(manifest: Path, cache: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def targets(rows: list[dict[str, Any]], torch: Any) -> Any:
-    values = torch.zeros((len(rows), TEMPORAL_BINS, len(LABELS)))
-    bin_ms = DURATION_MS / TEMPORAL_BINS
-    for clip_index, row in enumerate(rows):
+def frame_targets(
+    rows: list[dict[str, Any]],
+    frame_counts: list[int],
+    *,
+    first_frame_center_ms: float,
+    frame_hop_ms: float,
+    torch: Any,
+) -> list[Any]:
+    """Create per-frame multi-label targets from strong event intervals."""
+    if len(rows) != len(frame_counts):
+        raise ValueError("row and frame-count lengths differ")
+    result = []
+    for row, frame_count in zip(rows, frame_counts, strict=True):
+        values = torch.zeros((frame_count, len(LABELS)))
         for event in row["events"]:
             label_index = LABELS.index(event["label"])
-            for bin_index in range(TEMPORAL_BINS):
-                start = bin_index * bin_ms
-                end = (bin_index + 1) * bin_ms
+            for frame_index in range(frame_count):
+                center = first_frame_center_ms + frame_index * frame_hop_ms
+                start = max(0.0, center - frame_hop_ms / 2)
+                end = min(float(row["duration_ms"]), center + frame_hop_ms / 2)
                 if event["end_ms"] > start and event["start_ms"] < end:
-                    values[clip_index, bin_index, label_index] = 1.0
-    return values
+                    values[frame_index, label_index] = 1.0
+        result.append(values)
+    return result
 
 
-def spans(probabilities: Any, threshold: float) -> list[list[dict[str, Any]]]:
-    bin_ms = DURATION_MS / TEMPORAL_BINS
+def frame_spans(
+    probabilities: list[Any],
+    threshold: float,
+    *,
+    first_frame_center_ms: float,
+    frame_hop_ms: float,
+    duration_ms: int = DURATION_MS,
+) -> list[list[dict[str, Any]]]:
+    """Decode contiguous active acoustic frames into bounded event spans."""
     result = []
-    for clip in probabilities.tolist():
+    for clip_tensor in probabilities:
+        clip = clip_tensor.tolist() if hasattr(clip_tensor, "tolist") else clip_tensor
         clip_spans = []
         for label_index, label in enumerate(LABELS):
             active = [row[label_index] >= threshold for row in clip]
@@ -76,16 +97,31 @@ def spans(probabilities: Any, threshold: float) -> list[list[dict[str, Any]]]:
                 if enabled and start is None:
                     start = index
                 elif not enabled and start is not None:
+                    first_center = first_frame_center_ms + start * frame_hop_ms
+                    after_last_center = first_frame_center_ms + index * frame_hop_ms
                     clip_spans.append(
                         {
                             "label": label,
-                            "start_ms": round(start * bin_ms),
-                            "end_ms": round(index * bin_ms),
+                            "start_ms": max(0, round(first_center - frame_hop_ms / 2)),
+                            "end_ms": min(
+                                duration_ms,
+                                round(after_last_center - frame_hop_ms / 2),
+                            ),
                         }
                     )
                     start = None
         result.append(clip_spans)
     return result
+
+
+def should_wire_timestamps(
+    temporal_segment_f1: float,
+    whole_clip_segment_f1: float,
+    *,
+    clear_margin: float = CLEAR_SEGMENT_F1_MARGIN,
+) -> bool:
+    """Require a predeclared material segment-F1 gain before cascade wiring."""
+    return temporal_segment_f1 >= whole_clip_segment_f1 + clear_margin
 
 
 def main() -> None:
@@ -109,17 +145,17 @@ def main() -> None:
     parser.add_argument(
         "--embedding-cache",
         type=Path,
-        default=Path("artifacts/dcase-localization/embeddings"),
+        default=Path("artifacts/dcase-frame-localization/embeddings"),
     )
     parser.add_argument(
         "--checkpoint-output",
         type=Path,
-        default=Path("artifacts/dcase-localization/temporal-head.pt"),
+        default=Path("artifacts/dcase-frame-localization/frame-head.pt"),
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("research/dcase-localization-results.json"),
+        default=Path("research/dcase-frame-localization-results.json"),
     )
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--patience", type=int, default=5)
@@ -139,28 +175,40 @@ def main() -> None:
     validation_rows = [
         row for row in training_rows if row["source_recording"] in validation_recordings
     ]
-    encoder = FrozenSenseVoiceEncoder(
+    encoder = FrozenSenseVoiceFrameEncoder(
         arguments.sensevoice_path,
         arguments.embedding_cache,
         torch,
     )
 
-    def features(rows: list[dict[str, Any]]) -> Any:
-        pooled = torch.stack([encoder(row["_audio"]) for row in rows])
-        return pooled[:, : TEMPORAL_BINS * 512].reshape(-1, TEMPORAL_BINS, 512)
+    def features(rows: list[dict[str, Any]]) -> list[Any]:
+        return [encoder(row["_audio"]) for row in rows]
 
     train_x = features(train_rows)
     validation_x = features(validation_rows)
     inspection_x = features(inspection_rows)
-    train_y = targets(train_rows, torch)
-    validation_y = targets(validation_rows, torch)
-    mean = train_x.reshape(-1, 512).mean(dim=0)
-    scale = train_x.reshape(-1, 512).std(dim=0).clamp_min(1e-5)
-    train_x = (train_x - mean) / scale
-    validation_x = (validation_x - mean) / scale
-    inspection_x = (inspection_x - mean) / scale
-    positives = train_y.reshape(-1, len(LABELS)).sum(dim=0)
-    negatives = len(train_rows) * TEMPORAL_BINS - positives
+    target_arguments = {
+        "first_frame_center_ms": encoder.first_frame_center_ms,
+        "frame_hop_ms": encoder.frame_hop_ms,
+        "torch": torch,
+    }
+    train_y = frame_targets(train_rows, [len(clip) for clip in train_x], **target_arguments)
+    validation_y = frame_targets(
+        validation_rows, [len(clip) for clip in validation_x], **target_arguments
+    )
+    train_matrix = torch.cat(train_x)
+    validation_matrix = torch.cat(validation_x)
+    inspection_lengths = [len(clip) for clip in inspection_x]
+    inspection_matrix = torch.cat(inspection_x)
+    train_target_matrix = torch.cat(train_y)
+    validation_target_matrix = torch.cat(validation_y)
+    mean = train_matrix.mean(dim=0)
+    scale = train_matrix.std(dim=0).clamp_min(1e-5)
+    train_matrix = (train_matrix - mean) / scale
+    validation_matrix = (validation_matrix - mean) / scale
+    inspection_matrix = (inspection_matrix - mean) / scale
+    positives = train_target_matrix.sum(dim=0)
+    negatives = len(train_target_matrix) - positives
     loss_function = torch.nn.BCEWithLogitsLoss(pos_weight=negatives / positives.clamp_min(1))
     head = torch.nn.Sequential(
         torch.nn.Linear(512, 128),
@@ -175,12 +223,14 @@ def main() -> None:
     for epoch in range(1, arguments.epochs + 1):
         head.train()
         optimizer.zero_grad()
-        train_loss = loss_function(head(train_x), train_y)
+        train_loss = loss_function(head(train_matrix), train_target_matrix)
         train_loss.backward()
         optimizer.step()
         head.eval()
         with torch.inference_mode():
-            validation_loss = loss_function(head(validation_x), validation_y).item()
+            validation_loss = loss_function(
+                head(validation_matrix), validation_target_matrix
+            ).item()
         history.append(
             {
                 "epoch": epoch,
@@ -190,9 +240,7 @@ def main() -> None:
         )
         if validation_loss < best_loss - 1e-6:
             best_loss = validation_loss
-            best_state = {
-                name: value.detach().clone() for name, value in head.state_dict().items()
-            }
+            best_state = {name: value.detach().clone() for name, value in head.state_dict().items()}
             stale = 0
         else:
             stale += 1
@@ -203,25 +251,35 @@ def main() -> None:
     head.load_state_dict(best_state)
     head.eval()
     with torch.inference_mode():
-        validation_probabilities = torch.sigmoid(head(validation_x))
-        inspection_probabilities = torch.sigmoid(head(inspection_x))
+        validation_flat = torch.sigmoid(head(validation_matrix))
+        inspection_flat = torch.sigmoid(head(inspection_matrix))
+    validation_probabilities = list(validation_flat.split([len(clip) for clip in validation_x]))
+    inspection_probabilities = list(inspection_flat.split(inspection_lengths))
     validation_references = [row["events"] for row in validation_rows]
+    span_arguments = {
+        "first_frame_center_ms": encoder.first_frame_center_ms,
+        "frame_hop_ms": encoder.frame_hop_ms,
+    }
     thresholds = [index / 20 for index in range(1, 20)]
     threshold = max(
         thresholds,
         key=lambda value: segment_f1(
             validation_references,
-            spans(validation_probabilities, value),
+            frame_spans(validation_probabilities, value, **span_arguments),
             duration_ms=DURATION_MS,
         )["f1"],
     )
     references = [row["events"] for row in inspection_rows]
-    predictions = spans(inspection_probabilities, threshold)
+    predictions = frame_spans(inspection_probabilities, threshold, **span_arguments)
     baseline = whole_clip_predictions(references, duration_ms=DURATION_MS)
     temporal_segment = segment_f1(references, predictions, duration_ms=DURATION_MS)
     baseline_segment = segment_f1(references, baseline, duration_ms=DURATION_MS)
     temporal_collar = collar_event_metrics(references, predictions)
     baseline_collar = collar_event_metrics(references, baseline)
+    wire_timestamps = should_wire_timestamps(
+        float(temporal_segment["f1"]),
+        float(baseline_segment["f1"]),
+    )
     arguments.checkpoint_output.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
         {
@@ -230,13 +288,15 @@ def main() -> None:
             "feature_scale": scale,
             "labels": LABELS,
             "threshold": threshold,
-            "temporal_bins": TEMPORAL_BINS,
+            "embedding": SENSEVOICE_FRAME_EMBEDDING,
+            "frame_hop_ms_approx": encoder.frame_hop_ms,
+            "first_frame_center_ms_approx": encoder.first_frame_center_ms,
             "encoder_frozen": True,
         },
         arguments.checkpoint_output,
     )
     payload = {
-        "report_version": "1",
+        "report_version": "2",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "gate_decision": "closed",
         "task": "DCASE 2016 Task 2 synthetic strong-label event localization",
@@ -245,7 +305,7 @@ def main() -> None:
         "encoder": encoder.metadata(),
         "encoder_frozen": True,
         "head": {
-            "type": "two-layer temporal MLP over 8 frozen encoder bins",
+            "type": "two-layer temporal MLP over every frozen 512-d acoustic frame",
             "trainable_parameters": sum(parameter.numel() for parameter in head.parameters()),
             "threshold": threshold,
             "threshold_selected_on": "development validation recordings",
@@ -257,6 +317,7 @@ def main() -> None:
             "inspection_test_clips": len(inspection_rows),
             "validation_recordings": sorted(validation_recordings),
             "source_disjoint_test": True,
+            "validation_file_disjoint": True,
         },
         "training": {
             "seed": arguments.seed,
@@ -284,11 +345,22 @@ def main() -> None:
                 "segment_f1": baseline_segment,
                 "collar_event_metrics": baseline_collar,
             },
-            "beats_whole_clip_on_segment_f1": (
-                temporal_segment["f1"] > baseline_segment["f1"]
+            "beats_whole_clip_on_segment_f1": (temporal_segment["f1"] > baseline_segment["f1"]),
+            "beats_whole_clip_on_collar_event_f1": (temporal_collar["f1"] > baseline_collar["f1"]),
+        },
+        "cascade_wiring": {
+            "clear_segment_f1_margin_required": CLEAR_SEGMENT_F1_MARGIN,
+            "margin_observed": temporal_segment["f1"] - baseline_segment["f1"],
+            "eligible_for_wiring": wire_timestamps,
+            "timestamps_wired": False,
+            "policy": (
+                "wire decoded DCASE-overlap event spans only when held-out segment F1 "
+                "is at least the declared margin above the whole-clip oracle-tag comparator"
             ),
-            "beats_whole_clip_on_collar_event_f1": (
-                temporal_collar["f1"] > baseline_collar["f1"]
+            "reason": (
+                "result clears the predeclared metric gate; cascade integration is still required"
+                if wire_timestamps
+                else "result does not clear the predeclared metric gate"
             ),
         },
         "runtime": {
@@ -298,7 +370,7 @@ def main() -> None:
         },
         "limitations": [
             "The scenes are synthetic office mixtures, not in-the-wild speech.",
-            "Eight encoder bins impose coarse 1.25-second boundaries.",
+            "Frame boundaries are approximate because SenseVoice LFR geometry is about 60 ms.",
             "Only laugh, cough, and throat-clear overlap the Attune ontology.",
             "The result does not localize the existing VocalSound/FSD50K clip labels.",
         ],
