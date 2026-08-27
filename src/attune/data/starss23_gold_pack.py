@@ -20,6 +20,15 @@ from attune.data.gold_review import (
 FIRST_60S_WINDOW_START_MS = 0
 EXPECTED_FIRST_60S_CLIPS = 49
 EXPECTED_FIRST_60S_LAUGH_EVENTS = 48
+EXPECTED_FIRST_60S_TRUE_NEGATIVES = 29
+EXPECTED_WINDOW_END_TRUNCATED_LAUGHS = 3
+# Source 100 ms overlays kept as-is; flagged incomplete even when
+# clipped_spanning_event_count is 0 (PR 22 first-tile keep-truncated behaviour).
+WINDOW_END_TRUNCATED_LAUGHS = (
+    ("starss23-scene-inspection_test-fold4_room24_mix006-w000000", 59400, 60000),
+    ("starss23-scene-inspection_test-fold4_room16_mix010-w000000", 51900, 60000),
+    ("starss23-scene-inspection_test-fold4_room8_mix002-w000000", 59500, 60000),
+)
 PACK_RELATIVE_PATH = Path("data/manifests/starss23-gold-review-pack.jsonl")
 PROVENANCE_RELATIVE_PATH = Path("data/manifests/starss23-gold-review-pack.provenance.json")
 DEFAULT_HTML_RELATIVE_PATH = Path("artifacts/gold-review/starss23-first60s")
@@ -69,8 +78,51 @@ def laugh_event_count(rows: Sequence[dict[str, Any]]) -> int:
     return sum(len(laugh_events(row)) for row in rows)
 
 
+def is_true_negative(row: dict[str, Any]) -> bool:
+    return len(laugh_events(row)) == 0
+
+
+def true_negative_count(rows: Sequence[dict[str, Any]]) -> int:
+    return sum(1 for row in rows if is_true_negative(row))
+
+
 def source_span_id(event: dict[str, Any]) -> str:
     return f"laugh@{event['start_ms']}-{event['end_ms']}"
+
+
+def event_is_truncated_at_window_end(event: dict[str, Any], duration_ms: int) -> bool:
+    """Window-end events are truncated even if clipped_spanning_event_count is 0."""
+    end_ms = event.get("end_ms")
+    return end_ms is not None and int(end_ms) >= int(duration_ms)
+
+
+def annotate_source_event(event: dict[str, Any], duration_ms: int) -> dict[str, Any]:
+    """Flag incomplete window-end events without rewriting source start/end."""
+    annotated = dict(event)
+    truncated = event_is_truncated_at_window_end(event, duration_ms)
+    annotated["start_ms"] = event["start_ms"]
+    annotated["end_ms"] = event["end_ms"]
+    annotated["truncated_at_window_end"] = truncated
+    annotated["incomplete"] = truncated
+    annotated["collar_eligible"] = not truncated
+    return annotated
+
+
+def annotate_pack_row(row: dict[str, Any]) -> dict[str, Any]:
+    packed_row = dict(row)
+    duration_ms = int(packed_row["duration_ms"])
+    packed_row["events"] = [
+        annotate_source_event(event, duration_ms) for event in row.get("events", [])
+    ]
+    packed_row["window_end_truncated_event_count"] = sum(
+        1
+        for event in packed_row["events"]
+        if event.get("label") == "laugh" and event.get("truncated_at_window_end")
+    )
+    packed_row["true_negative"] = is_true_negative(packed_row)
+    packed_row["review_pack"] = "starss23-first60s"
+    packed_row["source_label_status"] = HUMAN_100MS_ACTIVITY_NOT_ATTUNE_GOLD
+    return packed_row
 
 
 def pack_counts(rows: Sequence[dict[str, Any]]) -> tuple[int, int]:
@@ -88,6 +140,13 @@ def assert_expected_pack_counts(rows: Sequence[dict[str, Any]]) -> None:
         )
     if any(not is_first_60s_row(row) for row in rows):
         raise ValueError("STARSS23 gold-review pack must exclude later tiles")
+    negatives = true_negative_count(rows)
+    if negatives != EXPECTED_FIRST_60S_TRUE_NEGATIVES:
+        raise ValueError(
+            "STARSS23 gold-review pack must keep "
+            f"{EXPECTED_FIRST_60S_TRUE_NEGATIVES} zero-laugh true negatives, "
+            f"got {negatives}"
+        )
 
 
 def sha256_file(path: Path) -> str:
@@ -108,12 +167,7 @@ def verify_audio_sha256(path: Path, expected: str) -> str:
 
 
 def build_pack_rows(inspection_rows: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
-    packed: list[dict[str, Any]] = []
-    for row in first_60s_rows(inspection_rows):
-        packed_row = dict(row)
-        packed_row["review_pack"] = "starss23-first60s"
-        packed_row["source_label_status"] = HUMAN_100MS_ACTIVITY_NOT_ATTUNE_GOLD
-        packed.append(packed_row)
+    packed = [annotate_pack_row(row) for row in first_60s_rows(inspection_rows)]
     assert_expected_pack_counts(packed)
     return packed
 
@@ -213,6 +267,19 @@ def validate_starss23_review(record: GoldReviewRecord, pack_row: dict[str, Any])
         )
     if record.audio_duration_ms != pack_row["duration_ms"]:
         raise Starss23ReviewStatusError("review duration does not match the pack row")
+    if record.transcript.decision != "not_reviewable":
+        raise Starss23ReviewStatusError(
+            "STARSS23 reviews auto-fill transcript as not_reviewable; consent is "
+            "not independently verified and overlapping speech is not transcribed"
+        )
+    if record.affect.decision != "not_reviewable":
+        raise Starss23ReviewStatusError("STARSS23 reviews auto-fill affect as not_reviewable")
+    for span in record.spans:
+        if span.decision == "accept":
+            raise Starss23ReviewStatusError(
+                "STARSS23 100 ms source spans cannot be accepted as onset gold; "
+                "use reject, retime, or add at free millisecond resolution"
+            )
 
 
 def append_ledger(path: Path, record: GoldReviewRecord, pack_row: dict[str, Any]) -> None:
@@ -288,6 +355,10 @@ def clip_payload(
                 "end_ms": event["end_ms"],
                 "source_class": event.get("source_class"),
                 "source_indices": event.get("source_indices"),
+                "truncated_at_window_end": bool(event.get("truncated_at_window_end")),
+                "incomplete": bool(event.get("incomplete") or event.get("truncated_at_window_end")),
+                "collar_eligible": bool(event.get("collar_eligible", True))
+                and not bool(event.get("truncated_at_window_end")),
             }
         )
     return {
@@ -306,6 +377,7 @@ def clip_payload(
         "audio_href": audio_href,
         "peaks": peaks,
         "events": events,
+        "true_negative": is_true_negative(row),
         "gold": False,
     }
 
@@ -372,13 +444,15 @@ function collectRecord(clip) {
   const spans = [];
   document.querySelectorAll("[data-span]").forEach(card => {
     const decision = card.querySelector("[name=decision]").value;
-    if (!decision) return;
+    if (!decision || decision === "accept") return;
     const sourceLabel = card.dataset.sourceLabel || null;
-    const kind = card.dataset.kind;
     const reviewed = card.querySelector("[name=reviewed_label]").value || null;
     const start = card.querySelector("[name=start_ms]");
     const end = card.querySelector("[name=end_ms]");
-    const span = { channel: kind === "style" ? "style" : "event", source_label: sourceLabel,
+    let channel = "event";
+    if (reviewed === "laughing_speech") channel = "style";
+    if (reviewed === "laugh") channel = "event";
+    const span = { channel, source_label: sourceLabel || null,
                    decision, reviewed_label: reviewed, start_ms: null, end_ms: null };
     if (decision === "retime" || decision === "add") {
       span.start_ms = start.value === "" ? null : Number(start.value);
@@ -389,9 +463,7 @@ function collectRecord(clip) {
     }
     spans.push(span);
   });
-  const languageOk = $("language_clearly_english").checked;
-  const transcriptDecision = languageOk ? $("transcript_decision").value : "not_reviewable";
-  const record = {
+  return {
     schema_version: "1.0",
     clip_id: clip.clip_id,
     audio_sha256: clip.sha256,
@@ -399,22 +471,12 @@ function collectRecord(clip) {
     reviewer: $("reviewer").value.trim(),
     reviewed_at_utc: isoNow(),
     source_label_status: "human_100ms_activity_not_attune_gold",
-    transcript: { decision: transcriptDecision, corrected_text: null },
-    affect: { decision: $("affect_decision").value, reviewed_label: null },
+    transcript: { decision: "not_reviewable", corrected_text: null },
+    affect: { decision: "not_reviewable", reviewed_label: null },
     spans,
     notes: $("notes").value,
     dry_run_fixture: false
   };
-  if (record.transcript.decision === "reject") {
-    record.transcript.corrected_text = $("corrected_text").value;
-  }
-  if (record.affect.decision === "reject") {
-    record.affect.reviewed_label = $("affect_label").value || null;
-  }
-  if (record.affect.decision === "ambiguous") {
-    record.affect.reviewed_label = "ambiguous";
-  }
-  return record;
 }
 function boot(clip) {
   const canvas = $("wave");
@@ -425,6 +487,7 @@ function boot(clip) {
     window.addEventListener("resize", redraw);
     canvas.addEventListener("click", ev => {
       const rect = canvas.getBoundingClientRect();
+      // Free millisecond resolution; never snap to the 100 ms source grid.
       const ms = Math.round((ev.clientX - rect.left) / rect.width * clip.duration_ms);
       if (selection.start_ms == null || (selection.end_ms != null)) {
         selection.start_ms = ms; selection.end_ms = null;
@@ -464,6 +527,33 @@ function boot(clip) {
 """.strip()
 
 
+def _label_definitions_html() -> str:
+    return """
+<div class="panel" id="label-definitions">
+  <h2>Label definitions</h2>
+  <ul>
+    <li><code>laugh</code>: discrete non-speech laughter event.</li>
+    <li><code>laughing_speech</code>: laughter that modifies speech
+        (a style, not a discrete event).</li>
+    <li>Onset = first voiced burst. Offset = last voiced frame.</li>
+    <li>Split into separate events when a silent/unvoiced gap is >= 300 ms.</li>
+    <li>Downmix-audible only: label only what is audible in the
+        mean-of-4 16 kHz downmix.</li>
+    <li>>= 2 independent reviewers plus adjudication before any gold claim.</li>
+    <li>Do not compare gold collar to 0.1395
+        (failed frozen-MLP ceiling, not a review target).</li>
+    <li>Source 100 ms spans are overlays only. Do not accept them as onset gold.
+        Default action is retime at free millisecond resolution. Never snap to 100 ms.</li>
+    <li>Window-end truncated events are incomplete and collar-ineligible.
+        Do not gold clip-end as offset.</li>
+    <li>Transcript and affect are not reviewer tasks. STARSS23 consent is not independently
+        verified; do not transcribe overlapping speech. Ledger fields auto-fill
+        <code>not_reviewable</code>.</li>
+  </ul>
+</div>
+""".strip()
+
+
 def render_index(rows: Sequence[dict[str, Any]], missing: Sequence[str]) -> str:
     missing_set = set(missing)
     body_rows = []
@@ -471,14 +561,27 @@ def render_index(rows: Sequence[dict[str, Any]], missing: Sequence[str]) -> str:
         n_events = len(laugh_events(row))
         audio_state = "missing wav" if row["clip_id"] in missing_set else "hash-matched"
         href = f"clips/{escape(row['clip_id'])}.html"
+        truncated = any(
+            event.get("truncated_at_window_end")
+            or event_is_truncated_at_window_end(event, int(row["duration_ms"]))
+            for event in laugh_events(row)
+        )
+        if is_true_negative(row):
+            role = "true negative"
+        elif truncated:
+            role = "source laugh overlay; truncated window-end"
+        else:
+            role = "source laugh overlay"
         body_rows.append(
             "<tr>"
             f"<td><a href='{href}'>{escape(row['clip_id'])}</a></td>"
             f"<td>{escape(str(row.get('room', '')))}</td>"
             f"<td>{n_events}</td>"
+            f"<td>{escape(role)}</td>"
             f"<td>{escape(audio_state)}</td>"
             "</tr>"
         )
+
     missing_banner = ""
     if missing:
         missing_banner = (
@@ -495,16 +598,21 @@ def render_index(rows: Sequence[dict[str, Any]], missing: Sequence[str]) -> str:
   adjudication are required. Never commit wavs.</div>
   <h1>STARSS23 first-60s gold-review pack</h1>
   <p class="muted">{EXPECTED_FIRST_60S_CLIPS} clips /
-  {EXPECTED_FIRST_60S_LAUGH_EVENTS} source laugh events.
+  {EXPECTED_FIRST_60S_LAUGH_EVENTS} source laugh events /
+  {EXPECTED_FIRST_60S_TRUE_NEGATIVES} true-negative clips.
   Filter: <code>source_window_start_ms == 0</code>. Later tiles excluded.
   Source status: <code>{HUMAN_100MS_ACTIVITY_NOT_ATTUNE_GOLD}</code>.</p>
   {missing_banner}
-  <p>Privacy: public MIT natural scenes with identifiable speech. Review stays local.
-  Do not upload participant audio. See <code>docs/gold-review-starss23.md</code>.</p>
+  <p>Privacy: public MIT natural scenes with identifiable speech. STARSS23 consent
+  is not independently verified. Do not transcribe overlapping speech.
+  Review stays local. Do not upload participant audio.
+  See <code>docs/gold-review-starss23.md</code>.</p>
 </header>
+{_label_definitions_html()}
 <main class="panel">
 <table>
-<thead><tr><th>clip</th><th>room</th><th>source laughs</th><th>audio</th></tr></thead>
+<thead><tr><th>clip</th><th>room</th><th>source laughs</th>
+<th>pack role</th><th>audio</th></tr></thead>
 <tbody>{"".join(body_rows)}</tbody>
 </table>
 </main>
@@ -515,20 +623,27 @@ def render_index(rows: Sequence[dict[str, Any]], missing: Sequence[str]) -> str:
 def render_clip(payload: dict[str, Any]) -> str:
     events_html = []
     for event in payload["events"]:
+        truncated = bool(event.get("truncated_at_window_end") or event.get("incomplete"))
+        trunc_banner = (
+            "<p class='banner'>Incomplete window-end truncation. Collar-ineligible. "
+            "Do not gold clip-end as offset.</p>"
+            if truncated
+            else ""
+        )
         events_html.append(
             f"""
 <div class="span-card" data-span data-kind="event"
      data-source-label="{escape(event["source_label"])}">
-  <strong>Source class-4 span</strong>
+  <strong>Source class-4 overlay</strong>
+  {trunc_banner}
   <p class="muted">{escape(event["source_label"])} · {event["start_ms"]}–{event["end_ms"]} ms
-  (100 ms activity grid, merged). Do not keep 100 ms just because STARSS23 used it.</p>
+  (STARSS23 100 ms activity overlay, merged). Overlay only — not onset gold.
+  Reject, retime, or add at free millisecond resolution. Default retime. Never snap to 100 ms.</p>
   <div class="grid">
     <label>Decision
       <select name="decision">
-        <option value="">choose…</option>
-        <option value="accept">accept</option>
         <option value="reject">reject</option>
-        <option value="retime">retime</option>
+        <option value="retime" selected>retime</option>
       </select>
     </label>
     <label>Reviewed label
@@ -538,12 +653,14 @@ def render_clip(payload: dict[str, Any]) -> str:
       </select>
     </label>
     <label>Onset ms (retime)
-      <input type="number" name="start_ms" min="0"
-        max="{payload["duration_ms"]}" placeholder="{event["start_ms"]}">
+      <input type="number" name="start_ms" min="0" step="1"
+        max="{payload["duration_ms"]}"
+        placeholder="overlay {event["start_ms"]}; free ms, never snap">
     </label>
     <label>Offset ms (retime)
-      <input type="number" name="end_ms" min="0"
-        max="{payload["duration_ms"]}" placeholder="{event["end_ms"]}">
+      <input type="number" name="end_ms" min="0" step="1"
+        max="{payload["duration_ms"]}"
+        placeholder="overlay {event["end_ms"]}; free ms, never snap">
     </label>
   </div>
 </div>
@@ -562,22 +679,25 @@ def render_clip(payload: dict[str, Any]) -> str:
 <body>
 <header>
   <p><a href="../index.html">← pack index</a></p>
-  <div class="banner"><strong>Not gold.</strong> Source 100 ms spans are shown as overlays.
-  Attune model scores are not provided and must not be treated as answers.
-  Language is unverified: if speech is not clearly English, mark transcript
-  <code>not_reviewable</code> — do not guess.</div>
+  <div class="banner"><strong>Not gold.</strong> Source 100 ms spans are overlays only.
+  Do not accept them as onset gold. Default retime at free millisecond resolution.
+  Never snap to 100 ms. Attune model scores are not provided and must not be treated as answers.
+  Transcript and affect are not reviewer tasks and auto-fill <code>not_reviewable</code>.
+  STARSS23 consent is not independently verified; do not transcribe overlapping speech.</div>
   <h1>{escape(payload["clip_id"])}</h1>
   <p class="muted">{escape(str(payload.get("source_recording")))} ·
   {escape(str(payload.get("room")))} ·
   {payload["duration_ms"]} ms · sha256 {escape(payload["sha256"][:16])}… ·
   {escape(str(payload.get("downmix")))}</p>
 </header>
+{_label_definitions_html()}
 <main>
   <div class="panel">
     {audio}
     <canvas id="wave"></canvas>
-    <p class="muted">Orange overlays are STARSS23 class-4 activity. Click once for onset,
-    again for offset. Follow first and last audible evidence.</p>
+    <p class="muted">Orange overlays are STARSS23 class-4 100 ms activity. Click once for onset,
+    again for offset at free millisecond resolution (never snap to 100 ms).
+    Onset = first voiced burst. Offset = last voiced frame.</p>
     <div class="grid">
       <label>Clicked onset ms <input id="click_start" readonly></label>
       <label>Clicked offset ms <input id="click_end" readonly></label>
@@ -585,33 +705,9 @@ def render_clip(payload: dict[str, Any]) -> str:
   </div>
   <div class="panel">
     <label>Reviewer id <input id="reviewer" type="text" autocomplete="username"></label>
-    <label><input id="language_clearly_english" type="checkbox"> Speech is clearly English</label>
-    <div class="grid">
-      <label>Transcript
-        <select id="transcript_decision">
-          <option value="not_reviewable">not_reviewable</option>
-          <option value="accept">accept</option>
-          <option value="reject">reject</option>
-        </select>
-      </label>
-      <label>Affect
-        <select id="affect_decision">
-          <option value="not_reviewable">not_reviewable</option>
-          <option value="accept">accept</option>
-          <option value="reject">reject</option>
-          <option value="ambiguous">ambiguous</option>
-        </select>
-      </label>
-    </div>
-    <label>Corrected transcript (only if reject) <input id="corrected_text" type="text"></label>
-    <label>Replacement affect (only if reject)
-      <select id="affect_label">
-        <option value=""></option>
-        <option>neutral</option><option>joy</option><option>distress</option>
-        <option>anger</option><option>fear</option><option>surprise</option>
-        <option>other</option><option>ambiguous</option>
-      </select>
-    </label>
+    <p class="muted">Transcript and affect are hidden reviewer tasks. Ledger fields
+    auto-fill <code>not_reviewable</code>. STARSS23 consent is not independently
+    verified; do not transcribe overlapping speech.</p>
     {"".join(events_html)}
     <div class="span-card" data-span data-kind="event" data-source-label="">
       <strong>Add missing audible laugh / laughing_speech</strong>
@@ -628,9 +724,9 @@ def render_clip(payload: dict[str, Any]) -> str:
             <option value="laughing_speech">laughing_speech</option>
           </select>
         </label>
-        <label>Onset ms <input type="number" name="start_ms" min="0"
+        <label>Onset ms <input type="number" name="start_ms" min="0" step="1"
           max="{payload["duration_ms"]}"></label>
-        <label>Offset ms <input type="number" name="end_ms" min="0"
+        <label>Offset ms <input type="number" name="end_ms" min="0" step="1"
           max="{payload["duration_ms"]}"></label>
       </div>
     </div>
@@ -686,6 +782,10 @@ def write_html_pack(
         "laugh_events": laugh_event_count(rows),
         "copied_wavs": copied,
         "missing": list(missing),
+        "true_negatives": true_negative_count(rows),
+        "window_end_truncated_events": sum(
+            row.get("window_end_truncated_event_count", 0) for row in rows
+        ),
         "gold": False,
         "source_label_status": HUMAN_100MS_ACTIVITY_NOT_ATTUNE_GOLD,
         "index": str(output_dir / "index.html"),
@@ -703,8 +803,18 @@ def pack_provenance(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
         "manifest": str(PACK_RELATIVE_PATH),
         "row_count": len(rows),
         "laugh_event_count": laugh_event_count(rows),
+        "true_negative_count": true_negative_count(rows),
+        "window_end_truncated_event_count": sum(
+            row.get("window_end_truncated_event_count", 0) for row in rows
+        ),
         "filter": "source_window_start_ms == 0",
         "excluded": "later 60s tiles from the failed tiled train protocol",
+        "source_span_policy": (
+            "100 ms source start/end kept as overlays; never overwritten. "
+            "Review may reject, retime, or add at free millisecond resolution; "
+            "accept is not onset gold. Window-end events are incomplete and "
+            "collar-ineligible even if clipped_spanning_event_count is 0."
+        ),
         "derived_from": {
             "pull_request": SOURCE_PR,
             "branch": SOURCE_BRANCH,
@@ -729,12 +839,12 @@ def pack_provenance(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
         "gold": False,
         "subset_content_sha256": subset_content_sha256(rows),
         "hash_algorithm": (
-            "SHA-256 over UTF-8 lines clip_id + NUL + file_sha256 + LF, "
-            "sorted by clip_id"
+            "SHA-256 over UTF-8 lines clip_id + NUL + file_sha256 + LF, sorted by clip_id"
         ),
         "privacy": (
-            "Public MIT natural scenes with identifiable speech. Review stays local. "
-            "Never commit wavs. Never upload participant audio."
+            "Public MIT natural scenes with identifiable speech. STARSS23 consent "
+            "is not independently verified. Do not transcribe overlapping speech. "
+            "Review stays local. Never commit wavs. Never upload participant audio."
         ),
         "attribution": (
             "STARSS23 by Politis, Shimada, Sudarsanam, Hakala, Takahashi, Krause, "

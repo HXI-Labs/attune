@@ -9,7 +9,7 @@ that Attune has not independently reviewed.
 
 ## Recommendation
 
-1. Review the 48-event STARSS23 first-60s pack already on disk
+1. Review the 48-event / 29-true-negative STARSS23 first-60s pack already on disk
    (`data/manifests/starss23-gold-review-pack.jsonl`) under
    `docs/gold-review-starss23.md`.
 2. Fetch ICSI only after Jerry green-lights a new download, and only after a
@@ -24,8 +24,10 @@ that Attune has not independently reviewed.
 - Human 100 ms activity plus optically tracked spatial position. Class 4 maps
   to Attune `laugh`. Language unverified. Natural overlapping speech.
 - Eligible for Attune gold **only** after two independent Attune review passes
-  and adjudication. The frozen frame-MLP collar F1 of 0.1395 is not a gold
-  substitute.
+  and adjudication. Do not compare a gold collar to 0.1395; that is a failed
+  frozen-MLP ceiling, not a review target.
+- STARSS23 consent is not independently verified; do not transcribe overlapping
+  speech. Transcript/affect ledger fields auto-fill not_reviewable.
 - **Do not download again.** Use the existing first-60s mean-of-4 16 kHz cache.
 
 ## VocalSound — clip-level acted probe, not timestamp gold

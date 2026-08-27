@@ -84,9 +84,11 @@ segment F1 versus 0.4894 whole-clip, but only 0.1159 collar F1; it is therefore
 not merge-quality boundary alignment. A single temporal Conv1d follow-up scores
 0.7113 / 0.0282 and fails the fixed collar gate, so STARSS23 timestamps are
 unwired. Details are in `research/timing-holes.md`.
-A 49-clip / 48-event STARSS23 first-60s gold-review pack lives in
+A 49-clip / 48-event STARSS23 first-60s gold-review pack (29 true negatives
+kept) lives in
 `data/manifests/starss23-gold-review-pack.jsonl`. It is human 100 ms activity,
-not Attune gold. Review protocol: `docs/gold-review-starss23.md`. Source memo:
+not Attune gold. Source 100 ms spans are overlays only. Review protocol:
+`docs/gold-review-starss23.md`. Source memo:
 `research/gold-sources.md`. The gate stays closed.
 
 For one or more local WAV files, `scripts/infer.py` emits authoritative JSON,

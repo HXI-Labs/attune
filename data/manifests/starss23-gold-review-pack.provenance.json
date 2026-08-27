@@ -3,8 +3,11 @@
   "manifest": "data/manifests/starss23-gold-review-pack.jsonl",
   "row_count": 49,
   "laugh_event_count": 48,
+  "true_negative_count": 29,
+  "window_end_truncated_event_count": 3,
   "filter": "source_window_start_ms == 0",
   "excluded": "later 60s tiles from the failed tiled train protocol",
+  "source_span_policy": "100 ms source start/end kept as overlays; never overwritten. Review may reject, retime, or add at free millisecond resolution; accept is not onset gold. Window-end events are incomplete and collar-ineligible even if clipped_spanning_event_count is 0.",
   "derived_from": {
     "pull_request": 22,
     "branch": "cursor/starss23-scene-timing",
@@ -26,6 +29,6 @@
   "gold": false,
   "subset_content_sha256": "a1d4652eee23a820092f116d62201f933a48aeffac11caf36543f5cdc7ae1cd4",
   "hash_algorithm": "SHA-256 over UTF-8 lines clip_id + NUL + file_sha256 + LF, sorted by clip_id",
-  "privacy": "Public MIT natural scenes with identifiable speech. Review stays local. Never commit wavs. Never upload participant audio.",
+  "privacy": "Public MIT natural scenes with identifiable speech. STARSS23 consent is not independently verified. Do not transcribe overlapping speech. Review stays local. Never commit wavs. Never upload participant audio.",
   "attribution": "STARSS23 by Politis, Shimada, Sudarsanam, Hakala, Takahashi, Krause, Adavanne, Koyama, Uchida, Mitsufuji, Virtanen, and collaborators."
 }

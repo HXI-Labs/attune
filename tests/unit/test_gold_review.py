@@ -92,3 +92,24 @@ def test_weak_source_or_acted_still_validates() -> None:
     )
     assert review.source_label_status == "weak_source_or_acted"
     assert review.dry_run_fixture is True
+
+
+def test_committed_dry_run_fixture_still_uses_weak_source_or_acted() -> None:
+    import json
+    from pathlib import Path as _Path
+
+    fixture = (
+        _Path(__file__).resolve().parents[2]
+        / "research/error-analysis/gold-review-fixture-dry-run.jsonl"
+    )
+    rows = [
+        json.loads(line)
+        for line in fixture.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert rows
+    for row in rows:
+        review = GoldReviewRecord.model_validate(row)
+        assert review.source_label_status == "weak_source_or_acted"
+        assert review.dry_run_fixture is True
+        assert review.transcript.decision == "accept"

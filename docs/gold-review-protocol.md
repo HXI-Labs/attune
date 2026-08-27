@@ -63,9 +63,10 @@ longer matches. Re-review appends a later row rather than replacing history.
 
 ## STARSS23 natural-scene pack
 
-The 49-clip / 48-event first-60s pack is a candidate for *future* gold, not gold
-now. Review it under `docs/gold-review-starss23.md`. Do not stamp those ledger
-rows `weak_source_or_acted`.
+The 49-clip / 48-event first-60s pack (29 true-negative clips kept) is a
+candidate for *future* gold, not gold now. Review it under `docs/gold-review-starss23.md`.
+Source 100 ms spans cannot be accepted as onset gold. Transcript and affect
+are not reviewer tasks. Do not stamp those ledger rows `weak_source_or_acted`.
 
 ## Promotion rule
 
