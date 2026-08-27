@@ -282,10 +282,12 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
                 "closed_set": sum(
                     parameter.numel() for parameter in closed_head.parameters()
                 ),
-                "none_logit": sum(
+                "closed_set_plus_none_checkpoint": sum(
                     parameter.numel() for parameter in none_head.parameters()
                 ),
             },
+            "fitted_none_logit_parameters": train_x.shape[1] + 1,
+            "closed_set_rows_preserved": True,
         },
         "embedding": extractor.metadata(),
         "data_contract": {
