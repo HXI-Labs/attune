@@ -4,6 +4,11 @@ The committed manifests contain weak source or acted labels. No real inspection
 row is gold. `attune.data.gold_review.GoldReviewRecord` is the strict,
 append-only JSONL contract for a future human pass.
 
+`source_label_status` is `weak_source_or_acted` for the 310-clip acted/weak
+inspection. STARSS23 first-60s reviews use the separate value
+`human_100ms_activity_not_attune_gold` and the protocol in
+`docs/gold-review-starss23.md`. That pack is still not gold.
+
 ## Review procedure
 
 Review the hash-verified local audio while showing the clip ID, waveform,
@@ -55,6 +60,12 @@ perceived vocal expression, never a verified internal state.
 
 The review tool copies the manifest audio hash and must fail if local audio no
 longer matches. Re-review appends a later row rather than replacing history.
+
+## STARSS23 natural-scene pack
+
+The 49-clip / 48-event first-60s pack is a candidate for *future* gold, not gold
+now. Review it under `docs/gold-review-starss23.md`. Do not stamp those ledger
+rows `weak_source_or_acted`.
 
 ## Promotion rule
 

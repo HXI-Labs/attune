@@ -51,3 +51,44 @@ def test_real_review_cannot_use_an_invalid_audio_hash() -> None:
                 "spans": [],
             }
         )
+
+
+def test_human_100ms_activity_status_is_valid_and_not_gold() -> None:
+    review = GoldReviewRecord.model_validate(
+        {
+            "clip_id": "clip",
+            "audio_sha256": "a" * 64,
+            "audio_duration_ms": 500,
+            "reviewer": "reviewer",
+            "reviewed_at_utc": "2026-08-27T00:00:00Z",
+            "source_label_status": "human_100ms_activity_not_attune_gold",
+            "transcript": {"decision": "not_reviewable"},
+            "affect": {"decision": "not_reviewable"},
+            "spans": [],
+        }
+    )
+    assert review.source_label_status == "human_100ms_activity_not_attune_gold"
+    from attune.data.gold_review import evaluate_gold_promotion
+
+    result = evaluate_gold_promotion([review])
+    assert result.gold is False
+    assert result.status == "reviewer_labelled"
+
+
+def test_weak_source_or_acted_still_validates() -> None:
+    review = GoldReviewRecord.model_validate(
+        {
+            "clip_id": "clip",
+            "audio_sha256": "a" * 64,
+            "audio_duration_ms": 500,
+            "reviewer": "reviewer",
+            "reviewed_at_utc": "2026-08-27T00:00:00Z",
+            "source_label_status": "weak_source_or_acted",
+            "transcript": {"decision": "accept"},
+            "affect": {"decision": "accept"},
+            "spans": [],
+            "dry_run_fixture": True,
+        }
+    )
+    assert review.source_label_status == "weak_source_or_acted"
+    assert review.dry_run_fixture is True

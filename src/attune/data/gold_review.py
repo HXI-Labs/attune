@@ -1,12 +1,20 @@
-"""Human review ledger contract for weak-label inspection rows."""
+"""Human review ledger contract for weak-label and STARSS23 activity rows."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from attune.schema.output import AffectCategory, EventLabel, StyleLabel
+
+WEAK_SOURCE_OR_ACTED = "weak_source_or_acted"
+HUMAN_100MS_ACTIVITY_NOT_ATTUNE_GOLD = "human_100ms_activity_not_attune_gold"
+SourceLabelStatus = Literal[
+    "weak_source_or_acted",
+    "human_100ms_activity_not_attune_gold",
+]
 
 
 class ReviewModel(BaseModel):
@@ -76,7 +84,7 @@ class GoldReviewRecord(ReviewModel):
     audio_duration_ms: int = Field(gt=0)
     reviewer: str
     reviewed_at_utc: str
-    source_label_status: Literal["weak_source_or_acted"]
+    source_label_status: SourceLabelStatus
     transcript: TranscriptReview
     affect: AffectReview
     spans: list[SpanReview]
@@ -85,15 +93,82 @@ class GoldReviewRecord(ReviewModel):
 
     @model_validator(mode="after")
     def unique_span_reviews(self) -> GoldReviewRecord:
-        identities = [
-            (span.channel, span.source_label, span.decision)
-            for span in self.spans
-        ]
+        identities = [(span.channel, span.source_label, span.decision) for span in self.spans]
         if len(identities) != len(set(identities)):
             raise ValueError("duplicate span review decisions")
         if any(
-            span.end_ms is not None and span.end_ms > self.audio_duration_ms
-            for span in self.spans
+            span.end_ms is not None and span.end_ms > self.audio_duration_ms for span in self.spans
         ):
             raise ValueError("reviewed span exceeds audio duration")
         return self
+
+
+class PromotionResult(ReviewModel):
+    gold: bool
+    status: Literal[
+        "reviewer_labelled",
+        "needs_second_pass",
+        "needs_adjudication",
+        "gold",
+    ]
+    reason: str
+
+
+def evaluate_gold_promotion(
+    records: Sequence[GoldReviewRecord],
+    *,
+    adjudication_resolved: bool = False,
+) -> PromotionResult:
+    """Decide whether reviewed rows may enter a versioned gold manifest.
+
+    A single pass is reviewer-labelled, never gold. Dry-run fixtures are never
+    gold. Consensus gold requires two independent reviewers on every clip,
+    matching audio hashes, and separately recorded adjudication.
+    """
+    if not records:
+        return PromotionResult(
+            gold=False,
+            status="needs_second_pass",
+            reason="no review rows",
+        )
+    if any(record.dry_run_fixture for record in records):
+        return PromotionResult(
+            gold=False,
+            status="reviewer_labelled",
+            reason="dry-run fixtures are not scientific gold",
+        )
+    reviewers = {record.reviewer for record in records}
+    if len(reviewers) < 2:
+        return PromotionResult(
+            gold=False,
+            status="reviewer_labelled",
+            reason="a single pass is reviewer-labelled, not consensus gold",
+        )
+    clips = {record.clip_id for record in records}
+    for clip_id in clips:
+        clip_rows = [record for record in records if record.clip_id == clip_id]
+        clip_reviewers = {record.reviewer for record in clip_rows}
+        hashes = {record.audio_sha256 for record in clip_rows}
+        if len(clip_reviewers) < 2:
+            return PromotionResult(
+                gold=False,
+                status="needs_second_pass",
+                reason=f"{clip_id} lacks an independent second pass",
+            )
+        if len(hashes) != 1:
+            return PromotionResult(
+                gold=False,
+                status="needs_adjudication",
+                reason=f"{clip_id} review hashes disagree; audio is not matched",
+            )
+    if not adjudication_resolved:
+        return PromotionResult(
+            gold=False,
+            status="needs_adjudication",
+            reason="independent second pass exists but adjudication is unresolved",
+        )
+    return PromotionResult(
+        gold=True,
+        status="gold",
+        reason="two independent hash-matched passes with resolved adjudication",
+    )

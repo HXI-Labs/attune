@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "manifest": "data/manifests/starss23-gold-review-pack.jsonl",
+  "row_count": 49,
+  "laugh_event_count": 48,
+  "filter": "source_window_start_ms == 0",
+  "excluded": "later 60s tiles from the failed tiled train protocol",
+  "derived_from": {
+    "pull_request": 22,
+    "branch": "cursor/starss23-scene-timing",
+    "source_manifest": "data/manifests/starss23-scene-raster-inspection.jsonl",
+    "note": "First-60s rows only. PR 22 is not merged. This pack is not Attune gold and does not wire STARSS23 into training."
+  },
+  "dataset": "STARSS23 v1.1 development set",
+  "record": "https://zenodo.org/records/7880637",
+  "doi": "10.5281/zenodo.7880637",
+  "licence": "MIT",
+  "language": "unverified",
+  "annotation": "human 100 ms activity, class 4 laughter; laugh vs laughing_speech unsplit",
+  "label_status": "STARSS23 human activity label; not reviewed Attune gold",
+  "source_label_status": "human_100ms_activity_not_attune_gold",
+  "downmix": "mean_of_4_tetrahedral_mic",
+  "duration_ms": 60000,
+  "sample_rate_hz": 16000,
+  "audio_committed": false,
+  "gold": false,
+  "subset_content_sha256": "a1d4652eee23a820092f116d62201f933a48aeffac11caf36543f5cdc7ae1cd4",
+  "hash_algorithm": "SHA-256 over UTF-8 lines clip_id + NUL + file_sha256 + LF, sorted by clip_id",
+  "privacy": "Public MIT natural scenes with identifiable speech. Review stays local. Never commit wavs. Never upload participant audio.",
+  "attribution": "STARSS23 by Politis, Shimada, Sudarsanam, Hakala, Takahashi, Krause, Adavanne, Koyama, Uchida, Mitsufuji, Virtanen, and collaborators."
+}
