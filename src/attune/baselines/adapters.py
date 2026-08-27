@@ -241,7 +241,11 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
 
         with _offline_model_environment():
             if self._model is None:
-                self._model = AutoModel(model=str(self.checkpoint), disable_update=True)
+                self._model = AutoModel(
+                    model=str(self.checkpoint),
+                    disable_update=True,
+                    frontend_conf={"dither": 0.0},
+                )
             result = self._model.generate(
                 input=str(item.audio_path), cache={}, language="auto"
             )
