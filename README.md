@@ -56,10 +56,17 @@ PyTorch support is optional and required only for local model runners and the
 Stage 2 frozen event probe:
 
 ```bash
-uv sync --extra dev --extra torch
+uv sync --extra dev --extra torch --extra model-runners
 ```
 
 No model checkpoints are downloaded by installation.
+
+`AttuneCascade` is the concrete inspected runner: SenseVoiceSmall transcript
+and AED, emotion2vec+ affect, and the union of the frozen VocalSound and FSD50K
+linear probes. Run the combined original-150 plus licence-clean-160 inspection
+with `scripts/evaluate_attune_cascade.py` after preparing the bounded datasets,
+reviewed local model paths, and gitignored heads. The encoder remains frozen,
+all annotations are utterance-level and provisional, and the gate is closed.
 
 ## Repository map
 

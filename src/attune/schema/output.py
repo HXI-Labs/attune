@@ -41,6 +41,7 @@ class StyleLabel(StrEnum):
 class EventLabel(StrEnum):
     LAUGH = "laugh"
     SOB = "sob"
+    SCREAM = "scream"
     SIGH = "sigh"
     COUGH = "cough"
     THROAT_CLEAR = "throat_clear"

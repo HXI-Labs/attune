@@ -27,6 +27,16 @@ def test_schema_version_is_required(example_payload: dict) -> None:
         AttuneOutput.model_validate(payload)
 
 
+def test_scream_is_a_distinct_event_not_a_shouting_style(example_payload: dict) -> None:
+    payload = deepcopy(example_payload)
+    payload["events"][0]["label"] = "scream"
+
+    output = AttuneOutput.model_validate(payload)
+
+    assert output.events[0].label == "scream"
+    assert output.styles[0].label == "shouting"
+
+
 @pytest.mark.parametrize(
     ("path", "value"),
     [

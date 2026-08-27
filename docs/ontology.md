@@ -22,6 +22,7 @@ occurrences belong to discrete events.
 
 - `laugh`
 - `sob`
+- `scream`
 - `sigh`
 - `cough`
 - `throat_clear`
@@ -31,6 +32,9 @@ occurrences belong to discrete events.
 Events have temporal extents even when treated as point-like in an interface.
 `after_word_id` anchors a between-word or trailing event without embedding it in
 transcript text.
+
+`scream` is a discrete event. It is never coerced to the continuous speech
+style `shouting`; `sob` likewise never implies `crying_speech`.
 
 ## Affect
 

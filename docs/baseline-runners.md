@@ -6,12 +6,12 @@ All runners implement `BaselineAdapter` and return a schema-valid
 - Whisper and transcript-only runners emit empty `styles` and `events`.
 - SenseVoice maps only recognized rich-transcription/AED tags onto the Attune
   ontology. Unmapped tags such as noise, music, or applause are dropped.
-- Placeholder word timings divide the clip uniformly and use confidence `0.5`;
-  they are not alignment results.
+- These runners emit utterance transcript text with an empty `words` list. They
+  do not fabricate word timing or alignment.
 - Unsupported affect dimensions use value `0.0` and confidence `0.0`.
 - Unknown quality probabilities are Phase 0 placeholders.
-- An explicitly configured `StubEventHead` emits no events. Its zero event
-  scores are expected, not a claim that fixtures contain no events.
+- An explicitly configured `StubEventHead` emits no events. It exists only for
+  fixture wiring and is not part of the inspected Attune cascade.
 
 The transcript-only lexicon runner is deterministic, CPU-only, and always
 available. It receives a supplied transcript and is intentionally sensitive to
@@ -61,9 +61,31 @@ whole clip. A structured runtime result with an explicit score preserves that
 score. These spans are **not frame-level localization**. Duplicate tags collapse
 to one ontology label per clip.
 
-`ModularCascade` combines an ASR adapter and an affect adapter while retaining
-events and styles emitted by the ASR source. Consequently the SenseVoice
-cascade uses SenseVoice AED output; the Whisper cascade still emits no events.
-An explicit `StubEventHead` can override ASR events when a no-op head is needed.
-This replaceable composition is the Phase 1 system; it is not a unified or newly
-trained model.
+## Inspected Attune cascade
+
+`AttuneCascade` is the concrete local runner:
+
+- SenseVoiceSmall supplies the transcript and off-the-shelf AED tags;
+- emotion2vec+ supplies acoustic affect, including disgust → Attune `other`;
+- the frozen-SenseVoice VocalSound linear head supplies `laugh`, `sigh`,
+  `cough`, `throat_clear`, and `sneeze`; and
+- the clip-disjoint frozen-SenseVoice FSD50K head supplies `shouting`,
+  `whispering`, `sob`, and the separate `scream` event.
+
+The encoder is placed in evaluation mode, every encoder parameter has
+`requires_grad=False`, frontend dither is `0`, and extraction calls the
+frontend and encoder directly. Only the two small linear heads are trained.
+Their checkpoints, embeddings, model weights, and audio remain gitignored.
+
+Merge order is deterministic: SenseVoice AED first, then VocalSound probe, then
+FSD50K probe. The result is a set union by structured channel plus ontology
+label. A later duplicate is suppressed, so a probe fills AED coverage holes
+without replacing an AED annotation. Different labels coexist. In particular,
+`scream` never maps to `shouting`, `sob` never maps to `crying_speech`, and
+CREMA-D intensity never creates a style.
+
+All event, style, and affect spans cover the full utterance. Probe softmax
+values are retained as uncalibrated closed-set diagnostics, not gold confidence
+or frame localization. Word timestamps are absent. Every annotation is
+provisional and the research gate remains closed because neither probe has an
+evaluated OOD/abstention threshold.

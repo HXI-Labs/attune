@@ -9,7 +9,8 @@ from attune.baselines.adapters import (
 from attune.baselines.cascade import ModularCascade
 from attune.evaluation.harness import run_fixture_harness, run_inspection_harness
 from attune.evaluation.report import EvaluationItem, RuntimeMetrics, evaluate_items
-from attune.schema.output import AttuneOutput
+from attune.models.probe_inference import ProbeAnnotation, ProbePrediction
+from attune.schema.output import AttuneOutput, EventLabel, StyleLabel
 
 FIXTURES = Path("data/fixtures/semantic_conflict")
 
@@ -63,9 +64,7 @@ def test_inspection_harness_reads_jsonl_and_local_wavs(tmp_path: Path) -> None:
     report = run_inspection_harness(manifest, FIXTURES)
 
     transcript = next(
-        row
-        for row in report["runner_results"]
-        if row["runner"] == "transcript-only-lexicon"
+        row for row in report["runner_results"] if row["runner"] == "transcript-only-lexicon"
     )
     assert report["scope"]["sealed_gold_baseline"] is False
     assert transcript["schema_validity"] == {"valid": 1, "invalid": 0, "errors": []}
@@ -122,7 +121,76 @@ def test_modular_cascade_retains_asr_events() -> None:
     )
 
     assert [event.label for event in prediction.output.events] == ["cough"]
-    assert prediction.output.model.name.endswith("+asr-event-output")
+    assert prediction.output.model.name.endswith("+asr-aed")
+    assert prediction.output.transcript.words == []
+
+
+def test_modular_cascade_unions_probes_without_collapsing_scream_to_shout() -> None:
+    class EventASR(TranscriptSentimentAdapter):
+        name = "event-asr"
+
+        def predict(self, item):
+            prediction = super().predict(item)
+            payload = prediction.output.model_dump(mode="json")
+            payload["events"] = [
+                {
+                    "id": "e1",
+                    "label": "cough",
+                    "start_ms": 0,
+                    "end_ms": prediction.output.audio.duration_ms,
+                    "after_word_id": None,
+                    "confidence": 0.0,
+                    "status": "provisional",
+                }
+            ]
+            return prediction.__class__(
+                output=AttuneOutput.model_validate(payload),
+                runtime=prediction.runtime,
+            )
+
+    class Probe:
+        name = "test-probe"
+
+        def availability(self):
+            return True, None
+
+        def predict(self, audio_path):
+            del audio_path
+            return ProbePrediction(
+                annotations=(
+                    ProbeAnnotation("event", EventLabel.COUGH, 0.8),
+                    ProbeAnnotation("event", EventLabel.SCREAM, 0.7),
+                    ProbeAnnotation("style", StyleLabel.SHOUTING, 0.6),
+                ),
+                elapsed_seconds=0.01,
+                diagnostics={"encoder_frozen": True},
+            )
+
+    prediction = ModularCascade(
+        asr=EventASR(),
+        affect=TranscriptSentimentAdapter(),
+        event_heads=(Probe(),),
+    ).predict(
+        BaselineInput(
+            FIXTURES / "explicit_match_joy.wav",
+            transcript_hint="I am happy about this",
+        )
+    )
+
+    assert [event.label for event in prediction.output.events] == ["cough", "scream"]
+    assert [style.label for style in prediction.output.styles] == ["shouting"]
+    assert all(
+        span.start_ms == 0 and span.end_ms == prediction.output.audio.duration_ms
+        for span in [*prediction.output.events, *prediction.output.styles]
+    )
+    assert prediction.diagnostics["merge_decisions"] == [
+        {
+            "channel": "event",
+            "label": "cough",
+            "kept_source": "event-asr-aed",
+            "suppressed_duplicate_source": "test-probe",
+        }
+    ]
 
 
 def test_emotion2vec_bilingual_labels_are_mapped() -> None:
