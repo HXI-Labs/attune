@@ -14,7 +14,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from attune.models.frozen_event_probe import ProbeDataError
+from attune.models.frozen_event_probe import (
+    ProbeDataError,
+    discover_vocalsound,
+    make_speaker_disjoint_split,
+)
+from attune.models.frozen_event_probe import (
+    inspection_examples as vocalsound_inspection_examples,
+)
+from attune.models.frozen_event_probe import (
+    load_inspection_rows as load_vocalsound_inspection_rows,
+)
 from attune.models.fsd50k_probe import (
     FSD50K_PROBE_LABELS,
     FSD50KProbeExample,
@@ -23,6 +33,7 @@ from attune.models.fsd50k_probe import (
     training_examples,
     validate_clip_disjoint,
 )
+from attune.models.probe_abstention import calibrate_abstention
 from attune.models.sensevoice_probe import SENSEVOICE_EMBEDDING, FrozenSenseVoiceEncoder
 
 AED_DETECTION_RATE = {
@@ -52,16 +63,22 @@ def extract_partition(
     extractor: FrozenSenseVoiceEncoder,
     torch: Any,
 ) -> tuple[Any, Any]:
+    features = extract_features(examples, extractor, torch)
+    indices = {label: index for index, label in enumerate(FSD50K_PROBE_LABELS)}
+    targets = torch.tensor([indices[example.label] for example in examples])
+    return features, targets
+
+
+def extract_features(examples: Any, extractor: FrozenSenseVoiceEncoder, torch: Any) -> Any:
+    """Materialize frozen embeddings for examples that expose an audio path."""
     missing = [str(example.path) for example in examples if not example.path.is_file()]
     if missing:
         raise ProbeDataError(
             f"{len(missing)} probe audio files are missing; first missing file: {missing[0]}"
         )
-    indices = {label: index for index, label in enumerate(FSD50K_PROBE_LABELS)}
     with torch.inference_mode():
         features = torch.stack([extractor(example.path) for example in examples])
-    targets = torch.tensor([indices[example.label] for example in examples])
-    return features, targets
+    return features
 
 
 def evaluate(head: Any, features: Any, targets: Any, torch: Any) -> dict[str, Any]:
@@ -88,6 +105,16 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         arguments.inspection_manifest, arguments.inspection_cache
     )
     validate_clip_disjoint(train_examples, validation_examples, test_examples)
+    vocalsound_rows = load_vocalsound_inspection_rows(arguments.vocalsound_manifest)
+    vocalsound_ood = make_speaker_disjoint_split(
+        discover_vocalsound(arguments.vocalsound_dataset),
+        vocalsound_inspection_examples(
+            arguments.vocalsound_manifest, arguments.vocalsound_cache
+        ),
+        excluded_speakers={row["speaker_id"] for row in vocalsound_rows},
+        validation_fraction=arguments.vocalsound_validation_fraction,
+        seed=arguments.seed,
+    ).validation
 
     extractor = FrozenSenseVoiceEncoder(
         arguments.sensevoice_model,
@@ -97,11 +124,13 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
     train_x, train_y = extract_partition(train_examples, extractor, torch)
     validation_x, validation_y = extract_partition(validation_examples, extractor, torch)
     test_x, test_y = extract_partition(test_examples, extractor, torch)
+    ood_validation_x = extract_features(vocalsound_ood, extractor, torch)
     mean = train_x.mean(dim=0)
     scale = train_x.std(dim=0).clamp_min(1e-5)
     train_x = (train_x - mean) / scale
     validation_x = (validation_x - mean) / scale
     test_x = (test_x - mean) / scale
+    ood_validation_x = (ood_validation_x - mean) / scale
 
     torch.manual_seed(arguments.seed)
     head = torch.nn.Linear(train_x.shape[1], len(FSD50K_PROBE_LABELS))
@@ -147,6 +176,15 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
     if best_state is None:
         raise ProbeDataError("linear-head training did not produce a checkpoint")
     head.load_state_dict(best_state)
+    head.eval()
+    with torch.inference_mode():
+        abstention = calibrate_abstention(
+            id_logits=head(validation_x),
+            id_targets=validation_y,
+            ood_logits=head(ood_validation_x),
+            label_count=len(FSD50K_PROBE_LABELS),
+            torch=torch,
+        )
     arguments.checkpoint_output.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
         {
@@ -155,6 +193,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
             "feature_scale": scale,
             "labels": list(FSD50K_PROBE_LABELS),
             "embedding": SENSEVOICE_EMBEDDING,
+            "abstention": abstention,
         },
         arguments.checkpoint_output,
     )
@@ -179,6 +218,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
             "type": "linear",
             "trainable_parameters": sum(parameter.numel() for parameter in head.parameters()),
             "checkpoint_committed": False,
+            "abstention": abstention,
         },
         "embedding": extractor.metadata(),
         "data_contract": {
@@ -199,6 +239,12 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
             "train": partition_report(train_examples),
             "validation": partition_report(validation_examples),
             "inspection_test": partition_report(test_examples),
+            "ood_validation": {
+                "clips": len(vocalsound_ood),
+                "speakers": sorted({example.speaker_id for example in vocalsound_ood}),
+                "source": "speaker-disjoint VocalSound validation partition",
+                "expected_probe_annotations": "empty for the FSD50K head",
+            },
         },
         "seed": arguments.seed,
         "epochs_completed": len(history),
@@ -267,6 +313,22 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("data/raw/licence-clean-inspection"),
     )
+    parser.add_argument(
+        "--vocalsound-dataset",
+        type=Path,
+        default=Path("data/raw/vocalsound-16k"),
+    )
+    parser.add_argument(
+        "--vocalsound-manifest",
+        type=Path,
+        default=Path("data/manifests/inspection-set.jsonl"),
+    )
+    parser.add_argument(
+        "--vocalsound-cache",
+        type=Path,
+        default=Path("data/raw/inspection-set"),
+    )
+    parser.add_argument("--vocalsound-validation-fraction", type=float, default=0.2)
     parser.add_argument("--sensevoice-model", type=Path, required=True)
     parser.add_argument(
         "--embedding-cache",

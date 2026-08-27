@@ -78,12 +78,34 @@ def test_probe_trains_only_a_linear_head_on_synthetic_wavs(tmp_path: Path) -> No
         "".join(f"{json.dumps(row)}\n" for row in rows),
         encoding="utf-8",
     )
+    fsd50k_cache = tmp_path / "fsd50k"
+    fsd50k_manifest = tmp_path / "fsd50k.jsonl"
+    fsd50k_rows = []
+    for label_index, source_class in enumerate(
+        ("Shout", "Whispering", "Crying_and_sobbing", "Screaming")
+    ):
+        relative_path = f"fsd50k/ood-{label_index}.wav"
+        write_tone(fsd50k_cache / relative_path, 900 + label_index * 100)
+        fsd50k_rows.append(
+            {
+                "cache_path": relative_path,
+                "clip_id": f"ood-{label_index}",
+                "partition": "validation",
+                "source_class": source_class,
+            }
+        )
+    fsd50k_manifest.write_text(
+        "".join(f"{json.dumps(row)}\n" for row in fsd50k_rows),
+        encoding="utf-8",
+    )
 
     report = TRAIN_PROBE.train(
         SimpleNamespace(
             dataset_dir=dataset,
             inspection_manifest=manifest,
             inspection_cache=inspection_cache,
+            fsd50k_probe_manifest=fsd50k_manifest,
+            fsd50k_probe_cache=fsd50k_cache,
             test_set="inspection",
             validation_fraction=0.33,
             min_train_clips=10,

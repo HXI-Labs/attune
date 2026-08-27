@@ -24,6 +24,8 @@ from attune.models.frozen_event_probe import (
     load_inspection_rows,
     make_speaker_disjoint_split,
 )
+from attune.models.fsd50k_probe import training_examples as fsd50k_training_examples
+from attune.models.probe_abstention import calibrate_abstention
 from attune.models.sensevoice_probe import (
     SENSEVOICE_EMBEDDING,
     FrozenSenseVoiceEncoder,
@@ -185,16 +187,26 @@ def extract_partition(
     extractor: Any = None,
 ) -> tuple[Any, Any]:
     """Materialize frozen embeddings and integer labels for one partition."""
+    features = extract_features(examples, torch, extractor)
+    label_indices = {label: index for index, label in enumerate(EVENT_LABELS)}
+    labels = torch.tensor([label_indices[example.label] for example in examples])
+    return features, labels
+
+
+def extract_features(
+    examples: Any,
+    torch: Any,
+    extractor: Any,
+) -> Any:
+    """Materialize frozen embeddings for examples that expose an audio path."""
     missing = [str(example.path) for example in examples if not example.path.is_file()]
     if missing:
         preview = "\n".join(f"  - {path}" for path in missing[:10])
         raise ProbeDataError(f"{len(missing)} audio files are missing:\n{preview}")
-    label_indices = {label: index for index, label in enumerate(EVENT_LABELS)}
     extractor = extractor or partial(frozen_logmel_embedding, torch=torch)
     with torch.inference_mode():
         features = torch.stack([extractor(example.path) for example in examples])
-    labels = torch.tensor([label_indices[example.label] for example in examples])
-    return features, labels
+    return features
 
 
 def classification_metrics(targets: list[int], predictions: list[int]) -> dict[str, Any]:
@@ -306,6 +318,13 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         validation_fraction=args.validation_fraction,
         seed=args.seed,
     )
+    ood_validation = tuple(
+        example
+        for example in fsd50k_training_examples(
+            args.fsd50k_probe_manifest, args.fsd50k_probe_cache
+        )
+        if example.partition == "validation"
+    )
     if len(split.train) < args.min_train_clips:
         raise ProbeDataError(
             f"training pool has {len(split.train)} clips after inspection-speaker exclusion; "
@@ -337,11 +356,13 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     train_x, train_y = extract_partition(split.train, torch, extractor)
     validation_x, validation_y = extract_partition(split.validation, torch, extractor)
     test_x, test_y = extract_partition(split.test, torch, extractor)
+    ood_validation_x = extract_features(ood_validation, torch, extractor)
     mean = train_x.mean(dim=0)
     scale = train_x.std(dim=0).clamp_min(1e-5)
     train_x = (train_x - mean) / scale
     validation_x = (validation_x - mean) / scale
     test_x = (test_x - mean) / scale
+    ood_validation_x = (ood_validation_x - mean) / scale
 
     # Extraction internals and cache hits must not change head initialization.
     torch.manual_seed(args.seed)
@@ -388,6 +409,15 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     if best_state is None:
         raise ProbeDataError("training did not produce a checkpoint")
     head.load_state_dict(best_state)
+    head.eval()
+    with torch.inference_mode():
+        abstention = calibrate_abstention(
+            id_logits=head(validation_x),
+            id_targets=validation_y,
+            ood_logits=head(ood_validation_x),
+            label_count=len(EVENT_LABELS),
+            torch=torch,
+        )
     args.checkpoint_output.parent.mkdir(parents=True, exist_ok=True)
     embedding_metadata = (
         sensevoice_extractor.metadata()
@@ -405,6 +435,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "feature_scale": scale,
             "labels": [label.value for label in EVENT_LABELS],
             "embedding": embedding_name,
+            "abstention": abstention,
         },
         args.checkpoint_output,
     )
@@ -429,6 +460,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "head": {
             "type": "linear",
             "trainable_parameters": sum(parameter.numel() for parameter in head.parameters()),
+            "abstention": abstention,
         },
         "seed": args.seed,
         "epochs_completed": len(history),
@@ -438,6 +470,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "train": partition_report(split.train),
             "validation": partition_report(split.validation),
             "test": partition_report(split.test),
+            "ood_validation": {
+                "clips": len(ood_validation),
+                "source": "FSD50K probe validation partition",
+                "expected_probe_annotations": "empty for the VocalSound head",
+            },
             "excluded_inspection_speakers": sorted(excluded_speakers),
         },
         "validation_metrics": validation_metrics,
@@ -479,6 +516,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset-dir", type=Path, default=DEFAULT_DATASET)
     parser.add_argument("--inspection-manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--inspection-cache", type=Path, default=DEFAULT_INSPECTION_CACHE)
+    parser.add_argument(
+        "--fsd50k-probe-manifest",
+        type=Path,
+        default=Path("data/manifests/fsd50k-frozen-probe.jsonl"),
+        help="bounded FSD50K pool whose validation split supplies OOD negatives",
+    )
+    parser.add_argument(
+        "--fsd50k-probe-cache",
+        type=Path,
+        default=Path("data/raw/fsd50k-frozen-probe"),
+    )
     parser.add_argument(
         "--test-set",
         choices=("inspection", "held_out_speakers"),

@@ -193,6 +193,42 @@ def test_modular_cascade_unions_probes_without_collapsing_scream_to_shout() -> N
     ]
 
 
+def test_modular_cascade_abstaining_probe_preserves_aed_only() -> None:
+    class AbstainingProbe:
+        name = "abstaining-probe"
+
+        def availability(self):
+            return True, None
+
+        def predict(self, audio_path):
+            del audio_path
+            return ProbePrediction(
+                annotations=(),
+                elapsed_seconds=0.01,
+                diagnostics={"abstained": True},
+                abstained=True,
+            )
+
+    prediction = ModularCascade(
+        asr=TranscriptSentimentAdapter(),
+        affect=TranscriptSentimentAdapter(),
+        event_heads=(AbstainingProbe(),),
+    ).predict(
+        BaselineInput(
+            FIXTURES / "explicit_match_joy.wav",
+            transcript_hint="I am happy about this",
+        )
+    )
+
+    assert prediction.output.events == []
+    assert prediction.output.styles == []
+    assert prediction.diagnostics["event_style_components"][1] == {
+        "name": "abstaining-probe",
+        "abstained": True,
+        "annotations": [],
+    }
+
+
 def test_emotion2vec_bilingual_labels_are_mapped() -> None:
     category, distribution = _map_emotion2vec_result(
         [{"labels": ["生气/angry", "开心/happy", "未知/unknown"], "scores": [0.7, 0.2, 0.1]}]
