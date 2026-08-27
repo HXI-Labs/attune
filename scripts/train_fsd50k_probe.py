@@ -34,6 +34,11 @@ from attune.models.fsd50k_probe import (
     validate_clip_disjoint,
 )
 from attune.models.probe_abstention import calibrate_abstention, fit_none_logit_head
+from attune.models.probe_ood import (
+    crema_probe_negatives,
+    partition_negatives,
+    source_speakers,
+)
 from attune.models.sensevoice_probe import SENSEVOICE_EMBEDDING, FrozenSenseVoiceEncoder
 
 AED_DETECTION_RATE = {
@@ -117,6 +122,16 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
     )
     ood_training = vocalsound_split.train
     ood_validation = vocalsound_split.validation
+    crema_negatives = crema_probe_negatives(
+        arguments.crema_ood_manifest,
+        arguments.crema_ood_cache,
+        excluded_speakers=source_speakers(
+            (arguments.vocalsound_manifest, arguments.inspection_manifest),
+            "CREMA-D",
+        ),
+    )
+    crema_ood_training = partition_negatives(crema_negatives, "train")
+    crema_ood_validation = partition_negatives(crema_negatives, "validation")
 
     extractor = FrozenSenseVoiceEncoder(
         arguments.sensevoice_model,
@@ -126,8 +141,18 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
     train_x, train_y = extract_partition(train_examples, extractor, torch)
     validation_x, validation_y = extract_partition(validation_examples, extractor, torch)
     test_x, test_y = extract_partition(test_examples, extractor, torch)
-    ood_training_x = extract_features(ood_training, extractor, torch)
-    ood_validation_x = extract_features(ood_validation, extractor, torch)
+    ood_training_x = torch.cat(
+        (
+            extract_features(ood_training, extractor, torch),
+            extract_features(crema_ood_training, extractor, torch),
+        )
+    )
+    ood_validation_x = torch.cat(
+        (
+            extract_features(ood_validation, extractor, torch),
+            extract_features(crema_ood_validation, extractor, torch),
+        )
+    )
     mean = train_x.mean(dim=0)
     scale = train_x.std(dim=0).clamp_min(1e-5)
     train_x = (train_x - mean) / scale
@@ -281,15 +306,31 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
             "validation": partition_report(validation_examples),
             "inspection_test": partition_report(test_examples),
             "ood_training": {
-                "clips": len(ood_training),
-                "speakers": sorted({example.speaker_id for example in ood_training}),
-                "source": "speaker-disjoint VocalSound training partition",
+                "clips": len(ood_training) + len(crema_ood_training),
+                "speakers": sorted(
+                    {
+                        example.speaker_id
+                        for example in (*ood_training, *crema_ood_training)
+                    }
+                ),
+                "sources": {
+                    "VocalSound": len(ood_training),
+                    "CREMA-D": len(crema_ood_training),
+                },
                 "target": "none logit only",
             },
             "ood_validation": {
-                "clips": len(ood_validation),
-                "speakers": sorted({example.speaker_id for example in ood_validation}),
-                "source": "speaker-disjoint VocalSound validation partition",
+                "clips": len(ood_validation) + len(crema_ood_validation),
+                "speakers": sorted(
+                    {
+                        example.speaker_id
+                        for example in (*ood_validation, *crema_ood_validation)
+                    }
+                ),
+                "sources": {
+                    "VocalSound": len(ood_validation),
+                    "CREMA-D": len(crema_ood_validation),
+                },
                 "expected_probe_annotations": "empty for the FSD50K head",
             },
         },
@@ -377,6 +418,16 @@ def parse_args() -> argparse.Namespace:
         default=Path("data/raw/inspection-set"),
     )
     parser.add_argument("--vocalsound-validation-fraction", type=float, default=0.2)
+    parser.add_argument(
+        "--crema-ood-manifest",
+        type=Path,
+        default=Path("data/manifests/crema-probe-ood.jsonl"),
+    )
+    parser.add_argument(
+        "--crema-ood-cache",
+        type=Path,
+        default=Path("data/raw/crema-probe-ood"),
+    )
     parser.add_argument("--sensevoice-model", type=Path, required=True)
     parser.add_argument(
         "--embedding-cache",

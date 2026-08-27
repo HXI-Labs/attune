@@ -81,15 +81,16 @@ Merge order is deterministic: SenseVoice AED first, then VocalSound probe, then
 FSD50K probe. The result is a set union by structured channel plus ontology
 label. Each head compares max-softmax and energy scoring with an additional
 `none` logit trained on genuine negatives from the other probe's training
-domain. Its in-domain validation partition and the other probe's separate
-validation partition select the candidate and operating point. The selected
-method and threshold (when applicable) are stored in the gitignored checkpoint.
-An abstaining probe contributes no annotation, leaving AED-only output
-unchanged; if AED and both probes are empty, events and styles remain empty. A
-later duplicate is suppressed, so an emitting probe fills AED coverage holes
-without replacing an AED annotation. Different labels coexist. In particular,
-`scream` never maps to `shouting`, `sob` never maps to `crying_speech`, and
-CREMA-D intensity never creates a style.
+domain and actor-disjoint CREMA speech. Its in-domain validation partition, the
+other probe's separate validation partition, and separate CREMA actors select
+the candidate and operating point. Inspection actors never choose the method.
+The selected method and threshold (when applicable) are stored in the
+gitignored checkpoint. An abstaining probe contributes no annotation, leaving
+AED-only output unchanged; if AED and both probes are empty, events and styles
+remain empty. A later duplicate is suppressed, so an emitting probe fills AED
+coverage holes without replacing an AED annotation. Different labels coexist.
+In particular, `scream` never maps to `shouting`, `sob` never maps to
+`crying_speech`, and CREMA-D intensity never creates a style.
 
 All event, style, and affect spans cover the full utterance. Probe softmax
 values and abstention scores are retained as diagnostics, not gold confidence

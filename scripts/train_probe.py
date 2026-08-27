@@ -26,6 +26,11 @@ from attune.models.frozen_event_probe import (
 )
 from attune.models.fsd50k_probe import training_examples as fsd50k_training_examples
 from attune.models.probe_abstention import calibrate_abstention, fit_none_logit_head
+from attune.models.probe_ood import (
+    crema_probe_negatives,
+    partition_negatives,
+    source_speakers,
+)
 from attune.models.sensevoice_probe import (
     SENSEVOICE_EMBEDDING,
     FrozenSenseVoiceEncoder,
@@ -327,6 +332,16 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     ood_validation = tuple(
         example for example in fsd50k_candidates if example.partition == "validation"
     )
+    crema_negatives = crema_probe_negatives(
+        args.crema_ood_manifest,
+        args.crema_ood_cache,
+        excluded_speakers=source_speakers(
+            (args.inspection_manifest, args.expansion_manifest),
+            "CREMA-D",
+        ),
+    )
+    crema_ood_training = partition_negatives(crema_negatives, "train")
+    crema_ood_validation = partition_negatives(crema_negatives, "validation")
     if len(split.train) < args.min_train_clips:
         raise ProbeDataError(
             f"training pool has {len(split.train)} clips after inspection-speaker exclusion; "
@@ -362,8 +377,18 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     train_x, train_y = extract_partition(split.train, torch, extractor)
     validation_x, validation_y = extract_partition(split.validation, torch, extractor)
     test_x, test_y = extract_partition(split.test, torch, extractor)
-    ood_training_x = extract_features(ood_training, torch, extractor)
-    ood_validation_x = extract_features(ood_validation, torch, extractor)
+    ood_training_x = torch.cat(
+        (
+            extract_features(ood_training, torch, extractor),
+            extract_features(crema_ood_training, torch, extractor),
+        )
+    )
+    ood_validation_x = torch.cat(
+        (
+            extract_features(ood_validation, torch, extractor),
+            extract_features(crema_ood_validation, torch, extractor),
+        )
+    )
     mean = train_x.mean(dim=0)
     scale = train_x.std(dim=0).clamp_min(1e-5)
     train_x = (train_x - mean) / scale
@@ -517,13 +542,19 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "validation": partition_report(split.validation),
             "test": partition_report(split.test),
             "ood_training": {
-                "clips": len(ood_training),
-                "source": "FSD50K probe training partition",
+                "clips": len(ood_training) + len(crema_ood_training),
+                "sources": {
+                    "FSD50K": len(ood_training),
+                    "CREMA-D": len(crema_ood_training),
+                },
                 "target": "none logit only",
             },
             "ood_validation": {
-                "clips": len(ood_validation),
-                "source": "FSD50K probe validation partition",
+                "clips": len(ood_validation) + len(crema_ood_validation),
+                "sources": {
+                    "FSD50K": len(ood_validation),
+                    "CREMA-D": len(crema_ood_validation),
+                },
                 "expected_probe_annotations": "empty for the VocalSound head",
             },
             "excluded_inspection_speakers": sorted(excluded_speakers),
@@ -568,6 +599,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--inspection-manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--inspection-cache", type=Path, default=DEFAULT_INSPECTION_CACHE)
     parser.add_argument(
+        "--expansion-manifest",
+        type=Path,
+        default=Path("data/manifests/licence-clean-inspection.jsonl"),
+    )
+    parser.add_argument(
         "--fsd50k-probe-manifest",
         type=Path,
         default=Path("data/manifests/fsd50k-frozen-probe.jsonl"),
@@ -577,6 +613,16 @@ def parse_args() -> argparse.Namespace:
         "--fsd50k-probe-cache",
         type=Path,
         default=Path("data/raw/fsd50k-frozen-probe"),
+    )
+    parser.add_argument(
+        "--crema-ood-manifest",
+        type=Path,
+        default=Path("data/manifests/crema-probe-ood.jsonl"),
+    )
+    parser.add_argument(
+        "--crema-ood-cache",
+        type=Path,
+        default=Path("data/raw/crema-probe-ood"),
     )
     parser.add_argument(
         "--test-set",

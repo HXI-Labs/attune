@@ -205,11 +205,31 @@ Audio, direct-encoder embeddings, and the linear checkpoint remain under
 gitignored paths. The committed provenance file records the manifest hash,
 selection boundary, class/partition counts, and clip-licence counts.
 
+## CREMA probe OOD negatives
+
+`crema-probe-ood.jsonl` contains 90 neutral spoken CREMA-D clips for abstention
+only: three sentences each from actors 1031–1050 for training and actors
+1051–1060 for validation. The combined 310-clip inspection uses actors
+1001–1030, so actor identities are disjoint across training, validation, and
+inspection. These clips always target the probe `none` logit; CREMA `NEU` is not
+introduced as an event or style label.
+
+```bash
+uv run python scripts/prepare_crema_probe_ood.py --download
+uv run python scripts/prepare_crema_probe_ood.py
+```
+
+The script fetches only the 90 named files from the pinned CREMA-D revision,
+converts them to mono 16 kHz PCM16, and verifies the committed SHA-256 values.
+Audio stays under gitignored `data/raw/crema-probe-ood/`. CREMA-D attribution
+and its ODbL 1.0 database / DbCL 1.0 contents terms are retained per row.
+
 The VocalSound and FSD50K training entry points share
 `artifacts/cascade-sensevoice-embeddings` by default. Each compares max-softmax
 and energy thresholds with a `none` logit trained on the other probe's training
-partition as genuine OOD negatives. Its own in-domain validation partition and
-the other probe's validation partition select the candidate and operating
-point. The chosen method and threshold (when applicable) are written only to
-the gitignored head checkpoint and metrics artifact; inspection/test clips do
-not choose the operating point.
+partition and the actor-disjoint CREMA training partition as genuine OOD
+negatives. Its own in-domain validation partition, the other probe's validation
+partition, and the CREMA validation partition select the candidate and
+operating point. The chosen method and threshold (when applicable) are written
+only to the gitignored head checkpoint and metrics artifact; inspection/test
+clips do not choose the operating point.
