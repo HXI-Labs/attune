@@ -1,7 +1,7 @@
 {
   "report_version": "2",
   "title": "Attune cascade combined 310-clip inspection",
-  "generated_at_utc": "2026-08-27T07:27:55.424109Z",
+  "generated_at_utc": "2026-08-27T07:32:33.885025Z",
   "gate_decision": "closed",
   "scope": {
     "clip_count": 310,
@@ -19,7 +19,7 @@
     "events_styles": "SenseVoice AED UNION validation-selected abstaining frozen VocalSound linear probe UNION validation-selected abstaining frozen FSD50K linear probe",
     "merge_rule": "Deterministic set union by channel and label in AED, VocalSound, FSD50K order. An abstaining probe contributes nothing, preserving AED-only output; if every source is empty, events and styles remain empty. Later duplicates are suppressed. Scream remains a discrete event, not shouting. Sob remains an event, not crying_speech.",
     "timestamps": "whole utterance only; no word or frame localization",
-    "probe_confidence": "closed-set softmax diagnostic plus validation selection among max-softmax, energy, and a genuine-negative none logit; not reviewed gold"
+    "probe_confidence": "validation-temperature-scaled class/none probabilities; abstention uses the existing validation-selected uncalibrated none margin"
   },
   "slices": {
     "original_150": {
@@ -3322,8 +3322,8 @@
     "checkpoints_committed": false
   },
   "execution": {
-    "run_commit": "5edba4bfa2dc3493966df7d639003d6464ce2ab0",
-    "wall_seconds": 102.38639807701111,
+    "run_commit": "d0b7544286b187e50eecdcec0e004f4de2f97705",
+    "wall_seconds": 102.27028298377991,
     "python": "3.12.3",
     "platform": "Linux-6.12.94+-x86_64-with-glibc2.39",
     "logical_cpu_count": 4,
@@ -3382,7 +3382,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 4.8619241540000075,
+      "elapsed_seconds": 4.893072730000313,
       "audio_seconds": 1.768
     },
     {
@@ -3420,7 +3420,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.15561868200006757,
+      "elapsed_seconds": 0.16090821000011601,
       "audio_seconds": 1.602
     },
     {
@@ -3458,7 +3458,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17977299999984098,
+      "elapsed_seconds": 0.17508531100020264,
       "audio_seconds": 2.002
     },
     {
@@ -3496,7 +3496,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18486574499956987,
+      "elapsed_seconds": 0.18279759500001092,
       "audio_seconds": 2.102
     },
     {
@@ -3534,7 +3534,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21403486699978203,
+      "elapsed_seconds": 0.21012077100044735,
       "audio_seconds": 2.836
     },
     {
@@ -3578,7 +3578,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17800374500029648,
+      "elapsed_seconds": 0.19545910200031358,
       "audio_seconds": 2.169
     },
     {
@@ -3616,7 +3616,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18916572000034648,
+      "elapsed_seconds": 0.20995386100003088,
       "audio_seconds": 2.502
     },
     {
@@ -3654,7 +3654,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.184154014999649,
+      "elapsed_seconds": 0.209561506,
       "audio_seconds": 2.502
     },
     {
@@ -3692,7 +3692,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19089128699988578,
+      "elapsed_seconds": 0.21842190600000322,
       "audio_seconds": 2.569
     },
     {
@@ -3730,7 +3730,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20020521399987956,
+      "elapsed_seconds": 0.22948960500002613,
       "audio_seconds": 2.736
     },
     {
@@ -3768,7 +3768,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20223326799987262,
+      "elapsed_seconds": 0.2308323649999693,
       "audio_seconds": 2.87
     },
     {
@@ -3806,7 +3806,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19737899600022502,
+      "elapsed_seconds": 0.2248049780000656,
       "audio_seconds": 2.703
     },
     {
@@ -3850,7 +3850,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1695178200002374,
+      "elapsed_seconds": 0.19577363599978526,
       "audio_seconds": 2.035
     },
     {
@@ -3894,7 +3894,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1834141520000685,
+      "elapsed_seconds": 0.2140055790000588,
       "audio_seconds": 2.402
     },
     {
@@ -3932,7 +3932,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17657302599991453,
+      "elapsed_seconds": 0.2093590569998014,
       "audio_seconds": 2.202
     },
     {
@@ -3970,7 +3970,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17887540300012006,
+      "elapsed_seconds": 0.2103639210001802,
       "audio_seconds": 2.269
     },
     {
@@ -4008,7 +4008,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18834421400038082,
+      "elapsed_seconds": 0.21608250700001008,
       "audio_seconds": 2.469
     },
     {
@@ -4046,7 +4046,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.24254955700007486,
+      "elapsed_seconds": 0.273179268000149,
       "audio_seconds": 3.904
     },
     {
@@ -4084,7 +4084,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2333413080000355,
+      "elapsed_seconds": 0.2662398130000838,
       "audio_seconds": 3.737
     },
     {
@@ -4122,7 +4122,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.22146109500022249,
+      "elapsed_seconds": 0.25448999399964123,
       "audio_seconds": 3.37
     },
     {
@@ -4166,7 +4166,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20582301400008873,
+      "elapsed_seconds": 0.23929022800029998,
       "audio_seconds": 2.97
     },
     {
@@ -4204,7 +4204,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20499730100004854,
+      "elapsed_seconds": 0.24020548700013933,
       "audio_seconds": 2.936
     },
     {
@@ -4242,7 +4242,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18308450699987588,
+      "elapsed_seconds": 0.2142849289998594,
       "audio_seconds": 2.336
     },
     {
@@ -4280,7 +4280,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2847901409993483,
+      "elapsed_seconds": 0.32419808000008743,
       "audio_seconds": 5.005
     },
     {
@@ -4318,7 +4318,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2105457979998846,
+      "elapsed_seconds": 0.24052977100018325,
       "audio_seconds": 3.003
     },
     {
@@ -4356,7 +4356,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.22258438200015007,
+      "elapsed_seconds": 0.2536794730001475,
       "audio_seconds": 3.303
     },
     {
@@ -4400,7 +4400,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1786363109999911,
+      "elapsed_seconds": 0.2072806019998552,
       "audio_seconds": 2.336
     },
     {
@@ -4444,7 +4444,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1863447600001109,
+      "elapsed_seconds": 0.21325800400018124,
       "audio_seconds": 2.436
     },
     {
@@ -4482,7 +4482,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17780866099997183,
+      "elapsed_seconds": 0.20197879400006968,
       "audio_seconds": 2.269
     },
     {
@@ -4520,7 +4520,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1675436210002772,
+      "elapsed_seconds": 0.18999053399988952,
       "audio_seconds": 2.102
     },
     {
@@ -4558,7 +4558,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18295772800001942,
+      "elapsed_seconds": 0.21278202100006638,
       "audio_seconds": 2.469
     },
     {
@@ -4596,7 +4596,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2031165579996923,
+      "elapsed_seconds": 0.23811021300002722,
       "audio_seconds": 3.003
     },
     {
@@ -4634,7 +4634,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2357042440000896,
+      "elapsed_seconds": 0.26707370600001923,
       "audio_seconds": 3.704
     },
     {
@@ -4678,7 +4678,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1977840589997868,
+      "elapsed_seconds": 0.22297728699982144,
       "audio_seconds": 2.836
     },
     {
@@ -4722,7 +4722,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21737126300013188,
+      "elapsed_seconds": 0.23204347299997607,
       "audio_seconds": 3.303
     },
     {
@@ -4760,7 +4760,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.161793464000084,
+      "elapsed_seconds": 0.1764448099997935,
       "audio_seconds": 1.835
     },
     {
@@ -4798,7 +4798,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16970360799996342,
+      "elapsed_seconds": 0.18185227099957046,
       "audio_seconds": 2.102
     },
     {
@@ -4836,7 +4836,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18125780199989094,
+      "elapsed_seconds": 0.19930154500002573,
       "audio_seconds": 2.283
     },
     {
@@ -4874,7 +4874,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1992656579998311,
+      "elapsed_seconds": 0.2135287769997376,
       "audio_seconds": 2.836
     },
     {
@@ -4912,7 +4912,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21525512200014418,
+      "elapsed_seconds": 0.2382716340002844,
       "audio_seconds": 3.136
     },
     {
@@ -4950,7 +4950,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18542060000004312,
+      "elapsed_seconds": 0.19758487499984767,
       "audio_seconds": 2.469
     },
     {
@@ -4988,7 +4988,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21510282999952324,
+      "elapsed_seconds": 0.22853315099996507,
       "audio_seconds": 3.07
     },
     {
@@ -5026,7 +5026,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.15779000199995608,
+      "elapsed_seconds": 0.17733072900023217,
       "audio_seconds": 1.835
     },
     {
@@ -5064,7 +5064,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1747566649999044,
+      "elapsed_seconds": 0.19368694600029812,
       "audio_seconds": 2.069
     },
     {
@@ -5102,7 +5102,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1907447040000534,
+      "elapsed_seconds": 0.21101088100022025,
       "audio_seconds": 2.536
     },
     {
@@ -5140,7 +5140,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2180649080000876,
+      "elapsed_seconds": 0.22871485199993913,
       "audio_seconds": 3.203
     },
     {
@@ -5178,7 +5178,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1821097980000559,
+      "elapsed_seconds": 0.1843233029997009,
       "audio_seconds": 2.236
     },
     {
@@ -5222,7 +5222,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16833935599970573,
+      "elapsed_seconds": 0.17178023699966616,
       "audio_seconds": 2.102
     },
     {
@@ -5266,7 +5266,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20965009699989423,
+      "elapsed_seconds": 0.21174292599971523,
       "audio_seconds": 3.136
     },
     {
@@ -5304,7 +5304,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1839622759998747,
+      "elapsed_seconds": 0.18818554299991774,
       "audio_seconds": 2.536
     },
     {
@@ -5342,7 +5342,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.15879733600013424,
+      "elapsed_seconds": 0.1576380959998005,
       "audio_seconds": 1.735
     },
     {
@@ -5380,7 +5380,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.22220084200034762,
+      "elapsed_seconds": 0.22116922999998678,
       "audio_seconds": 3.27
     },
     {
@@ -5418,7 +5418,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18172007300017867,
+      "elapsed_seconds": 0.1785681150001892,
       "audio_seconds": 2.276
     },
     {
@@ -5456,7 +5456,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2023462859999654,
+      "elapsed_seconds": 0.19950142000038795,
       "audio_seconds": 2.87
     },
     {
@@ -5494,7 +5494,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17434044000015092,
+      "elapsed_seconds": 0.17319643900009396,
       "audio_seconds": 2.202
     },
     {
@@ -5538,7 +5538,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18271624500016515,
+      "elapsed_seconds": 0.18197266300012416,
       "audio_seconds": 2.402
     },
     {
@@ -5576,7 +5576,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18043095600023662,
+      "elapsed_seconds": 0.18036595500007024,
       "audio_seconds": 2.302
     },
     {
@@ -5614,7 +5614,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1705440529997304,
+      "elapsed_seconds": 0.16745631599997068,
       "audio_seconds": 1.969
     },
     {
@@ -5652,7 +5652,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1677386269998351,
+      "elapsed_seconds": 0.1662062339996737,
       "audio_seconds": 1.935
     },
     {
@@ -5690,7 +5690,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21521781399997053,
+      "elapsed_seconds": 0.21538064000014856,
       "audio_seconds": 3.27
     },
     {
@@ -5728,7 +5728,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.23042558400015878,
+      "elapsed_seconds": 0.22972070599985273,
       "audio_seconds": 3.437
     },
     {
@@ -5766,7 +5766,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18736616499995762,
+      "elapsed_seconds": 0.1865427360000922,
       "audio_seconds": 2.502
     },
     {
@@ -5810,7 +5810,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18326441099998192,
+      "elapsed_seconds": 0.1854720849999012,
       "audio_seconds": 2.436
     },
     {
@@ -5848,7 +5848,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1603117749998546,
+      "elapsed_seconds": 0.16096211399985805,
       "audio_seconds": 1.768
     },
     {
@@ -5886,7 +5886,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1788864800000738,
+      "elapsed_seconds": 0.1778467320002619,
       "audio_seconds": 2.135
     },
     {
@@ -5924,7 +5924,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17945444300039526,
+      "elapsed_seconds": 0.17815877599946361,
       "audio_seconds": 2.169
     },
     {
@@ -5962,7 +5962,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16701519700018252,
+      "elapsed_seconds": 0.16406227600032253,
       "audio_seconds": 1.868
     },
     {
@@ -6000,7 +6000,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20155426100018303,
+      "elapsed_seconds": 0.20234294300007605,
       "audio_seconds": 2.87
     },
     {
@@ -6044,7 +6044,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.15445084300017697,
+      "elapsed_seconds": 0.15225532500016925,
       "audio_seconds": 1.568
     },
     {
@@ -6082,7 +6082,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17172281800026212,
+      "elapsed_seconds": 0.17179657300039253,
       "audio_seconds": 2.135
     },
     {
@@ -6124,7 +6124,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.4716074880002452,
+      "elapsed_seconds": 0.4718651449998106,
       "audio_seconds": 8.452
     },
     {
@@ -6172,7 +6172,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20627480200005266,
+      "elapsed_seconds": 0.2071455259999766,
       "audio_seconds": 2.879
     },
     {
@@ -6216,7 +6216,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.27017826200017225,
+      "elapsed_seconds": 0.26783919699983016,
       "audio_seconds": 4.458
     },
     {
@@ -6260,7 +6260,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2580931899999541,
+      "elapsed_seconds": 0.25692588399965643,
       "audio_seconds": 4.18
     },
     {
@@ -6307,7 +6307,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3566734179996729,
+      "elapsed_seconds": 0.3578369439999278,
       "audio_seconds": 6.594
     },
     {
@@ -6353,7 +6353,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.27507699200009483,
+      "elapsed_seconds": 0.2765248780001457,
       "audio_seconds": 4.693
     },
     {
@@ -6399,7 +6399,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.24319684200031588,
+      "elapsed_seconds": 0.24341430699996636,
       "audio_seconds": 3.925
     },
     {
@@ -6446,7 +6446,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20155908600008843,
+      "elapsed_seconds": 0.20283172899985402,
       "audio_seconds": 2.731
     },
     {
@@ -6490,7 +6490,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20100802299998577,
+      "elapsed_seconds": 0.20283569900016118,
       "audio_seconds": 2.816
     },
     {
@@ -6537,7 +6537,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19636202299989236,
+      "elapsed_seconds": 0.20077951999974175,
       "audio_seconds": 2.816
     },
     {
@@ -6575,7 +6575,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.23991660099977707,
+      "elapsed_seconds": 0.24489430999983597,
       "audio_seconds": 3.755
     },
     {
@@ -6621,7 +6621,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2708604800000103,
+      "elapsed_seconds": 0.26746677699998145,
       "audio_seconds": 4.693
     },
     {
@@ -6668,7 +6668,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3216295289998925,
+      "elapsed_seconds": 0.3221759320003912,
       "audio_seconds": 5.888
     },
     {
@@ -6714,7 +6714,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.260803438000039,
+      "elapsed_seconds": 0.2629093779999039,
       "audio_seconds": 4.352
     },
     {
@@ -6761,7 +6761,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2584895890001917,
+      "elapsed_seconds": 0.25558403700028975,
       "audio_seconds": 4.267
     },
     {
@@ -6808,7 +6808,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17159826900001462,
+      "elapsed_seconds": 0.16850801300006424,
       "audio_seconds": 2.048
     },
     {
@@ -6852,7 +6852,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18225620599991998,
+      "elapsed_seconds": 0.17792569199991703,
       "audio_seconds": 2.219
     },
     {
@@ -6899,7 +6899,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19988165100016886,
+      "elapsed_seconds": 0.19452571400029228,
       "audio_seconds": 2.816
     },
     {
@@ -6945,7 +6945,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16549783799996476,
+      "elapsed_seconds": 0.16047350300004837,
       "audio_seconds": 2.048
     },
     {
@@ -6992,7 +6992,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16505263499993816,
+      "elapsed_seconds": 0.16390626600014002,
       "audio_seconds": 2.048
     },
     {
@@ -7038,7 +7038,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20007859600013944,
+      "elapsed_seconds": 0.19723513400026604,
       "audio_seconds": 2.879
     },
     {
@@ -7082,7 +7082,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17268359600006988,
+      "elapsed_seconds": 0.17026647099987713,
       "audio_seconds": 2.136
     },
     {
@@ -7120,7 +7120,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18399358800024856,
+      "elapsed_seconds": 0.1793266190002214,
       "audio_seconds": 2.322
     },
     {
@@ -7158,7 +7158,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17307776500001637,
+      "elapsed_seconds": 0.1672996859997511,
       "audio_seconds": 2.043
     },
     {
@@ -7205,7 +7205,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.24972424099996715,
+      "elapsed_seconds": 0.1718426359998375,
       "audio_seconds": 2.229
     },
     {
@@ -7249,7 +7249,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.24042843399979574,
+      "elapsed_seconds": 0.23257189200012363,
       "audio_seconds": 3.584
     },
     {
@@ -7295,7 +7295,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3281470039996748,
+      "elapsed_seconds": 0.3258093169995391,
       "audio_seconds": 5.973
     },
     {
@@ -7342,7 +7342,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2625350769999386,
+      "elapsed_seconds": 0.26205817499999284,
       "audio_seconds": 4.437
     },
     {
@@ -7388,7 +7388,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.22361345700005586,
+      "elapsed_seconds": 0.2248904580001181,
       "audio_seconds": 3.413
     },
     {
@@ -7435,7 +7435,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.24495649799951025,
+      "elapsed_seconds": 0.24055841700010205,
       "audio_seconds": 4.011
     },
     {
@@ -7481,7 +7481,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.22735251799986145,
+      "elapsed_seconds": 0.22728715900007046,
       "audio_seconds": 3.499
     },
     {
@@ -7527,7 +7527,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.195259938999925,
+      "elapsed_seconds": 0.19521960800034321,
       "audio_seconds": 2.645
     },
     {
@@ -7574,7 +7574,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.23882432899995365,
+      "elapsed_seconds": 0.236652094999954,
       "audio_seconds": 4.011
     },
     {
@@ -7620,7 +7620,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.24379909799972665,
+      "elapsed_seconds": 0.24030483099977573,
       "audio_seconds": 3.84
     },
     {
@@ -7662,7 +7662,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.22371499000018957,
+      "elapsed_seconds": 0.21990326499985713,
       "audio_seconds": 3.499
     },
     {
@@ -7708,7 +7708,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2696462830001565,
+      "elapsed_seconds": 0.26410255599989796,
       "audio_seconds": 4.551
     },
     {
@@ -7758,7 +7758,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2093959520000226,
+      "elapsed_seconds": 0.2065696609997758,
       "audio_seconds": 2.972
     },
     {
@@ -7802,7 +7802,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17737566600021637,
+      "elapsed_seconds": 0.17726221700013411,
       "audio_seconds": 2.322
     },
     {
@@ -7844,7 +7844,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1911073700000543,
+      "elapsed_seconds": 0.18649881499982257,
       "audio_seconds": 2.508
     },
     {
@@ -7891,7 +7891,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2514347919998272,
+      "elapsed_seconds": 0.24710513000013634,
       "audio_seconds": 4.272
     },
     {
@@ -7937,7 +7937,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.23898803200040675,
+      "elapsed_seconds": 0.2351131179998447,
       "audio_seconds": 3.622
     },
     {
@@ -7983,7 +7983,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20062234900001386,
+      "elapsed_seconds": 0.1971530969997275,
       "audio_seconds": 2.694
     },
     {
@@ -8025,7 +8025,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21736718900024243,
+      "elapsed_seconds": 0.2113043380002182,
       "audio_seconds": 3.065
     },
     {
@@ -8071,7 +8071,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21081992199992783,
+      "elapsed_seconds": 0.20637639599999602,
       "audio_seconds": 3.065
     },
     {
@@ -8113,7 +8113,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.23336761600012323,
+      "elapsed_seconds": 0.22613388999980089,
       "audio_seconds": 3.622
     },
     {
@@ -8159,7 +8159,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.47933011400004943,
+      "elapsed_seconds": 0.46929537400023946,
       "audio_seconds": 8.619
     },
     {
@@ -8207,7 +8207,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.34447033299989016,
+      "elapsed_seconds": 0.3365899269997499,
       "audio_seconds": 6.315
     },
     {
@@ -8251,7 +8251,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.35179668299974765,
+      "elapsed_seconds": 0.34642247900023904,
       "audio_seconds": 6.571
     },
     {
@@ -8295,7 +8295,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.317868395999767,
+      "elapsed_seconds": 0.31426161500007765,
       "audio_seconds": 5.973
     },
     {
@@ -8342,7 +8342,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.5581845780000094,
+      "elapsed_seconds": 0.5412918550000541,
       "audio_seconds": 10.325
     },
     {
@@ -8388,7 +8388,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20695533000025534,
+      "elapsed_seconds": 0.20530299500001092,
       "audio_seconds": 2.901
     },
     {
@@ -8434,7 +8434,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.30412765899995975,
+      "elapsed_seconds": 0.29753395600027943,
       "audio_seconds": 5.376
     },
     {
@@ -8476,7 +8476,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.29107830499992815,
+      "elapsed_seconds": 0.284300728000062,
       "audio_seconds": 4.949
     },
     {
@@ -8522,7 +8522,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21277845600002365,
+      "elapsed_seconds": 0.20871794100003171,
       "audio_seconds": 3.072
     },
     {
@@ -8564,7 +8564,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18393917999969744,
+      "elapsed_seconds": 0.18139668800040454,
       "audio_seconds": 2.304
     },
     {
@@ -8610,7 +8610,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.5002488349998657,
+      "elapsed_seconds": 0.49226818599981925,
       "audio_seconds": 9.045
     },
     {
@@ -8656,7 +8656,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.22644134200004373,
+      "elapsed_seconds": 0.21997669600000336,
       "audio_seconds": 3.499
     },
     {
@@ -8703,7 +8703,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.210667379999677,
+      "elapsed_seconds": 0.21864049000032537,
       "audio_seconds": 2.987
     },
     {
@@ -8747,7 +8747,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3795792740002071,
+      "elapsed_seconds": 0.3719892260000961,
       "audio_seconds": 6.997
     },
     {
@@ -8789,7 +8789,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.22667061999982252,
+      "elapsed_seconds": 0.22400535799965837,
       "audio_seconds": 3.328
     },
     {
@@ -8835,7 +8835,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3116550159995768,
+      "elapsed_seconds": 0.3039191729999402,
       "audio_seconds": 5.632
     },
     {
@@ -8881,7 +8881,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.30845134999981383,
+      "elapsed_seconds": 0.30264283900010014,
       "audio_seconds": 5.461
     },
     {
@@ -8923,7 +8923,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.220227566000176,
+      "elapsed_seconds": 0.22033774899978198,
       "audio_seconds": 3.328
     },
     {
@@ -8961,7 +8961,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20077198799981488,
+      "elapsed_seconds": 0.2020041529997343,
       "audio_seconds": 2.731
     },
     {
@@ -9007,7 +9007,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16471647399976064,
+      "elapsed_seconds": 0.1675173830001313,
       "audio_seconds": 1.877
     },
     {
@@ -9053,7 +9053,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3310998459996881,
+      "elapsed_seconds": 0.3288218820000566,
       "audio_seconds": 6.144
     },
     {
@@ -9099,7 +9099,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.31282968000004985,
+      "elapsed_seconds": 0.30985148700005993,
       "audio_seconds": 5.547
     },
     {
@@ -9146,7 +9146,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.5064802400002009,
+      "elapsed_seconds": 0.477983278000238,
       "audio_seconds": 8.96
     },
     {
@@ -9192,7 +9192,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.28456339700028366,
+      "elapsed_seconds": 0.28097216999981356,
       "audio_seconds": 4.864
     },
     {
@@ -9239,7 +9239,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.26812119600003825,
+      "elapsed_seconds": 0.2640373759998056,
       "audio_seconds": 4.523
     },
     {
@@ -9281,7 +9281,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1747453250000035,
+      "elapsed_seconds": 0.1738257449997036,
       "audio_seconds": 2.133
     },
     {
@@ -9327,7 +9327,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17441960099995413,
+      "elapsed_seconds": 0.16978495300008944,
       "audio_seconds": 2.048
     },
     {
@@ -9374,7 +9374,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18655830499983495,
+      "elapsed_seconds": 0.1865882999995847,
       "audio_seconds": 2.389
     },
     {
@@ -9418,7 +9418,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16527063599983194,
+      "elapsed_seconds": 0.16634751100014,
       "audio_seconds": 2.048
     },
     {
@@ -9465,7 +9465,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19812292100004925,
+      "elapsed_seconds": 0.19596925999985615,
       "audio_seconds": 2.56
     },
     {
@@ -9507,7 +9507,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.4382610160000695,
+      "elapsed_seconds": 0.4221185819999391,
       "audio_seconds": 7.765
     },
     {
@@ -9553,7 +9553,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2020669989997259,
+      "elapsed_seconds": 0.20016257599968412,
       "audio_seconds": 2.816
     },
     {
@@ -9597,7 +9597,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21734490000017104,
+      "elapsed_seconds": 0.21553134400028284,
       "audio_seconds": 3.157
     },
     {
@@ -9641,7 +9641,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19138536400009798,
+      "elapsed_seconds": 0.18962325500001498,
       "audio_seconds": 2.645
     },
     {
@@ -9688,7 +9688,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.25298752499998045,
+      "elapsed_seconds": 0.2528271449998556,
       "audio_seconds": 4.267
     },
     {
@@ -9726,7 +9726,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2065268180001567,
+      "elapsed_seconds": 0.20441891799987388,
       "audio_seconds": 2.87
     },
     {
@@ -9764,7 +9764,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2298938389999421,
+      "elapsed_seconds": 0.227534986000137,
       "audio_seconds": 3.403
     },
     {
@@ -9802,7 +9802,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21537973299996338,
+      "elapsed_seconds": 0.21314702199993008,
       "audio_seconds": 3.036
     },
     {
@@ -9840,7 +9840,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20426791299996694,
+      "elapsed_seconds": 0.20343582399982552,
       "audio_seconds": 2.769
     },
     {
@@ -9878,7 +9878,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20028120199981458,
+      "elapsed_seconds": 0.20472009100012656,
       "audio_seconds": 2.736
     },
     {
@@ -9916,7 +9916,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18378102700035015,
+      "elapsed_seconds": 0.181259996000108,
       "audio_seconds": 2.269
     },
     {
@@ -9954,7 +9954,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17867241399972045,
+      "elapsed_seconds": 0.17898571999990054,
       "audio_seconds": 2.169
     },
     {
@@ -9992,7 +9992,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.22564303900003324,
+      "elapsed_seconds": 0.22778488299991295,
       "audio_seconds": 3.303
     },
     {
@@ -10030,7 +10030,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21249363699985224,
+      "elapsed_seconds": 0.21204967499988925,
       "audio_seconds": 3.07
     },
     {
@@ -10068,7 +10068,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17608111600020493,
+      "elapsed_seconds": 0.17581126799996127,
       "audio_seconds": 2.135
     },
     {
@@ -10106,7 +10106,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20193964899999628,
+      "elapsed_seconds": 0.20059880599978896,
       "audio_seconds": 2.87
     },
     {
@@ -10144,7 +10144,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1981206310001653,
+      "elapsed_seconds": 0.1984508050002205,
       "audio_seconds": 2.769
     },
     {
@@ -10182,7 +10182,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20995452800025305,
+      "elapsed_seconds": 0.2088334960001248,
       "audio_seconds": 2.936
     },
     {
@@ -10220,7 +10220,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21938573599982192,
+      "elapsed_seconds": 0.21373474199981501,
       "audio_seconds": 3.103
     },
     {
@@ -10258,7 +10258,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.15849483700003475,
+      "elapsed_seconds": 0.15472287299962773,
       "audio_seconds": 1.635
     },
     {
@@ -10296,7 +10296,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1967197590001888,
+      "elapsed_seconds": 0.19138286699990203,
       "audio_seconds": 2.736
     },
     {
@@ -10334,7 +10334,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20119852099992386,
+      "elapsed_seconds": 0.19737680999969598,
       "audio_seconds": 2.87
     },
     {
@@ -10372,7 +10372,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19319516099972134,
+      "elapsed_seconds": 0.1925207320005029,
       "audio_seconds": 2.502
     },
     {
@@ -10410,7 +10410,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19503104400018856,
+      "elapsed_seconds": 0.189536950000047,
       "audio_seconds": 2.569
     },
     {
@@ -10448,7 +10448,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19147611399989728,
+      "elapsed_seconds": 0.19294700299997203,
       "audio_seconds": 2.569
     },
     {
@@ -10486,7 +10486,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18235693500037087,
+      "elapsed_seconds": 0.17889803599996412,
       "audio_seconds": 2.302
     },
     {
@@ -10524,7 +10524,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20213613700002497,
+      "elapsed_seconds": 0.196825728000249,
       "audio_seconds": 2.703
     },
     {
@@ -10562,7 +10562,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2212723069999356,
+      "elapsed_seconds": 0.22236651499997606,
       "audio_seconds": 3.203
     },
     {
@@ -10600,7 +10600,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18577814200011744,
+      "elapsed_seconds": 0.18124587600004816,
       "audio_seconds": 2.336
     },
     {
@@ -10638,7 +10638,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17701896600010514,
+      "elapsed_seconds": 0.1742071250000663,
       "audio_seconds": 2.102
     },
     {
@@ -10676,7 +10676,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18981881799982148,
+      "elapsed_seconds": 0.18924983299984888,
       "audio_seconds": 2.569
     },
     {
@@ -10714,7 +10714,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19513425400032247,
+      "elapsed_seconds": 0.19140401700019538,
       "audio_seconds": 2.703
     },
     {
@@ -10752,7 +10752,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19972428900018713,
+      "elapsed_seconds": 0.19419709000021612,
       "audio_seconds": 2.603
     },
     {
@@ -10790,7 +10790,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2086072970000714,
+      "elapsed_seconds": 0.20359550399962245,
       "audio_seconds": 3.036
     },
     {
@@ -10828,7 +10828,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16920864000007896,
+      "elapsed_seconds": 0.1677657879997696,
       "audio_seconds": 2.102
     },
     {
@@ -10866,7 +10866,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2380633219995616,
+      "elapsed_seconds": 0.23390122300020266,
       "audio_seconds": 3.67
     },
     {
@@ -10904,7 +10904,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.22386654400020234,
+      "elapsed_seconds": 0.21939175300008174,
       "audio_seconds": 3.403
     },
     {
@@ -10942,7 +10942,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20817668500012587,
+      "elapsed_seconds": 0.2076977130002433,
       "audio_seconds": 3.103
     },
     {
@@ -10980,7 +10980,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2181634880000729,
+      "elapsed_seconds": 0.21265141999970183,
       "audio_seconds": 3.136
     },
     {
@@ -11018,7 +11018,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1690141130000029,
+      "elapsed_seconds": 0.17156826199993702,
       "audio_seconds": 2.102
     },
     {
@@ -11056,7 +11056,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17588286499994865,
+      "elapsed_seconds": 0.1751480469999933,
       "audio_seconds": 2.302
     },
     {
@@ -11094,7 +11094,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17240992899974117,
+      "elapsed_seconds": 0.1686603749999449,
       "audio_seconds": 2.035
     },
     {
@@ -11132,7 +11132,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1884565510001721,
+      "elapsed_seconds": 0.18659501200022532,
       "audio_seconds": 2.569
     },
     {
@@ -11170,7 +11170,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17388745399989602,
+      "elapsed_seconds": 0.17371405800031425,
       "audio_seconds": 2.169
     },
     {
@@ -11208,7 +11208,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1840985940000337,
+      "elapsed_seconds": 0.20270572800018272,
       "audio_seconds": 2.502
     },
     {
@@ -11246,7 +11246,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2386135330000343,
+      "elapsed_seconds": 0.26928513500001827,
       "audio_seconds": 3.57
     },
     {
@@ -11284,7 +11284,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20439945199996146,
+      "elapsed_seconds": 0.23359820699988632,
       "audio_seconds": 2.836
     },
     {
@@ -11322,7 +11322,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.24739259100010713,
+      "elapsed_seconds": 0.28141822200018396,
       "audio_seconds": 3.871
     },
     {
@@ -11360,7 +11360,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2268775509999159,
+      "elapsed_seconds": 0.25336136499981876,
       "audio_seconds": 3.37
     },
     {
@@ -11398,7 +11398,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1814473149997866,
+      "elapsed_seconds": 0.1910374370002046,
       "audio_seconds": 2.336
     },
     {
@@ -11436,7 +11436,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1895998770000915,
+      "elapsed_seconds": 0.19232233999991877,
       "audio_seconds": 2.569
     },
     {
@@ -11474,7 +11474,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16197481900030652,
+      "elapsed_seconds": 0.16643685800022467,
       "audio_seconds": 1.835
     },
     {
@@ -11512,7 +11512,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17106365900008313,
+      "elapsed_seconds": 0.17650204700021277,
       "audio_seconds": 2.169
     },
     {
@@ -11550,7 +11550,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.20318731599968487,
+      "elapsed_seconds": 0.2088651590001973,
       "audio_seconds": 2.936
     },
     {
@@ -11588,7 +11588,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17729544399981023,
+      "elapsed_seconds": 0.1813644720002685,
       "audio_seconds": 2.302
     },
     {
@@ -11626,7 +11626,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18549594099999922,
+      "elapsed_seconds": 0.1907461109999531,
       "audio_seconds": 2.502
     },
     {
@@ -11664,7 +11664,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17132453700014594,
+      "elapsed_seconds": 0.17761543100004928,
       "audio_seconds": 2.002
     },
     {
@@ -11702,7 +11702,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16475098800037813,
+      "elapsed_seconds": 0.17607038200003444,
       "audio_seconds": 2.002
     },
     {
@@ -11740,7 +11740,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.14983302199993886,
+      "elapsed_seconds": 0.15534922499955428,
       "audio_seconds": 1.635
     },
     {
@@ -11778,7 +11778,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16846162999991066,
+      "elapsed_seconds": 0.17789790200004063,
       "audio_seconds": 2.102
     },
     {
@@ -11816,7 +11816,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17632548100004897,
+      "elapsed_seconds": 0.17410175899999558,
       "audio_seconds": 2.069
     },
     {
@@ -11854,7 +11854,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1687850000000708,
+      "elapsed_seconds": 0.16712599300012698,
       "audio_seconds": 1.902
     },
     {
@@ -11892,7 +11892,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17835446900016905,
+      "elapsed_seconds": 0.17697238999971887,
       "audio_seconds": 2.336
     },
     {
@@ -11930,7 +11930,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1662565359997643,
+      "elapsed_seconds": 0.1645592340003077,
       "audio_seconds": 1.935
     },
     {
@@ -11968,7 +11968,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.1647332570000799,
+      "elapsed_seconds": 0.16285535799988793,
       "audio_seconds": 2.002
     },
     {
@@ -12012,7 +12012,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3297246500003439,
+      "elapsed_seconds": 0.3222741260001385,
       "audio_seconds": 5.794
     },
     {
@@ -12056,7 +12056,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.24081484699968314,
+      "elapsed_seconds": 0.24204044299995076,
       "audio_seconds": 3.776
     },
     {
@@ -12100,7 +12100,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2162614300000314,
+      "elapsed_seconds": 0.218267749000006,
       "audio_seconds": 3.163
     },
     {
@@ -12144,7 +12144,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.33820660199990016,
+      "elapsed_seconds": 0.3399281790000259,
       "audio_seconds": 6.13
     },
     {
@@ -12188,7 +12188,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.3180112430000008,
+      "elapsed_seconds": 1.3025657460000275,
       "audio_seconds": 20.542
     },
     {
@@ -12232,7 +12232,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.5474242180002875,
+      "elapsed_seconds": 0.5338483959999394,
       "audio_seconds": 10.128
     },
     {
@@ -12276,7 +12276,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.6432697800000824,
+      "elapsed_seconds": 1.583334227000023,
       "audio_seconds": 23.275
     },
     {
@@ -12320,7 +12320,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2060860770002364,
+      "elapsed_seconds": 0.20218700600003103,
       "audio_seconds": 2.846
     },
     {
@@ -12364,7 +12364,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17145097899992834,
+      "elapsed_seconds": 0.1693688289997226,
       "audio_seconds": 1.978
     },
     {
@@ -12408,7 +12408,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 2.3357637669998894,
+      "elapsed_seconds": 2.278195181000001,
       "audio_seconds": 29.935
     },
     {
@@ -12452,7 +12452,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.7688052530002096,
+      "elapsed_seconds": 0.748267874000021,
       "audio_seconds": 13.828
     },
     {
@@ -12496,7 +12496,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.361651472999938,
+      "elapsed_seconds": 1.3092911169997024,
       "audio_seconds": 21.184
     },
     {
@@ -12540,7 +12540,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.13666357300007803,
+      "elapsed_seconds": 0.13551922999999988,
       "audio_seconds": 1.077
     },
     {
@@ -12584,7 +12584,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.12515641499976482,
+      "elapsed_seconds": 0.12403056800030754,
       "audio_seconds": 0.832
     },
     {
@@ -12628,7 +12628,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.8334692419998646,
+      "elapsed_seconds": 0.8241479759999493,
       "audio_seconds": 15.441
     },
     {
@@ -12672,7 +12672,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.0810619130002124,
+      "elapsed_seconds": 1.058338699999922,
       "audio_seconds": 18.438
     },
     {
@@ -12716,7 +12716,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2315779279997514,
+      "elapsed_seconds": 0.22795676599980652,
       "audio_seconds": 3.499
     },
     {
@@ -12760,7 +12760,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.22654691399998228,
+      "elapsed_seconds": 0.22338020500046696,
       "audio_seconds": 3.373
     },
     {
@@ -12804,7 +12804,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3292295829999148,
+      "elapsed_seconds": 0.3106065659997057,
       "audio_seconds": 5.625
     },
     {
@@ -12850,7 +12850,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.9699616030000016,
+      "elapsed_seconds": 1.9406874770002105,
       "audio_seconds": 26.436
     },
     {
@@ -12896,7 +12896,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.6484455379998053,
+      "elapsed_seconds": 0.6393943980001495,
       "audio_seconds": 12.147
     },
     {
@@ -12940,7 +12940,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16006065000010494,
+      "elapsed_seconds": 0.1580746160000217,
       "audio_seconds": 1.757
     },
     {
@@ -12984,7 +12984,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.7056912979999197,
+      "elapsed_seconds": 1.675527394000028,
       "audio_seconds": 24.156
     },
     {
@@ -13028,7 +13028,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.4589917949995197,
+      "elapsed_seconds": 0.4441564969999945,
       "audio_seconds": 8.148
     },
     {
@@ -13072,7 +13072,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.0686222469998938,
+      "elapsed_seconds": 1.0281345469998087,
       "audio_seconds": 18.005
     },
     {
@@ -13116,7 +13116,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.28869084699999803,
+      "elapsed_seconds": 0.3509914360001858,
       "audio_seconds": 4.986
     },
     {
@@ -13160,7 +13160,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.278667626999777,
+      "elapsed_seconds": 0.27323933200000283,
       "audio_seconds": 4.751
     },
     {
@@ -13204,7 +13204,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.8618282340003134,
+      "elapsed_seconds": 0.8386038499997994,
       "audio_seconds": 15.627
     },
     {
@@ -13242,7 +13242,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.6692823490002411,
+      "elapsed_seconds": 0.6526109299998097,
       "audio_seconds": 12.562
     },
     {
@@ -13286,7 +13286,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.8971301560002303,
+      "elapsed_seconds": 1.8084232710000379,
       "audio_seconds": 26.0
     },
     {
@@ -13330,7 +13330,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3511277869999958,
+      "elapsed_seconds": 0.3452923060001467,
       "audio_seconds": 6.531
     },
     {
@@ -13374,7 +13374,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.7153241419998722,
+      "elapsed_seconds": 0.6931042159999379,
       "audio_seconds": 13.263
     },
     {
@@ -13412,7 +13412,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.44784934899985274,
+      "elapsed_seconds": 0.42691645299987613,
       "audio_seconds": 8.0
     },
     {
@@ -13450,7 +13450,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21323529600022084,
+      "elapsed_seconds": 0.2070320969999102,
       "audio_seconds": 3.0
     },
     {
@@ -13494,7 +13494,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.16453377600032582,
+      "elapsed_seconds": 0.16024826200009556,
       "audio_seconds": 2.0
     },
     {
@@ -13538,7 +13538,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3081371189998663,
+      "elapsed_seconds": 0.30069679799976257,
       "audio_seconds": 5.5
     },
     {
@@ -13582,7 +13582,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2278606709999167,
+      "elapsed_seconds": 0.2262455580000733,
       "audio_seconds": 3.5
     },
     {
@@ -13626,7 +13626,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2684989110002789,
+      "elapsed_seconds": 0.26333934300032524,
       "audio_seconds": 4.5
     },
     {
@@ -13670,7 +13670,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.14853813599984278,
+      "elapsed_seconds": 0.14638105900030496,
       "audio_seconds": 1.5
     },
     {
@@ -13718,7 +13718,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19688108300010754,
+      "elapsed_seconds": 0.19326364499988813,
       "audio_seconds": 2.625
     },
     {
@@ -13762,7 +13762,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.662062657000206,
+      "elapsed_seconds": 0.6399367030001031,
       "audio_seconds": 12.347
     },
     {
@@ -13806,7 +13806,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.6334155879999344,
+      "elapsed_seconds": 0.6094775869999012,
       "audio_seconds": 11.819
     },
     {
@@ -13850,7 +13850,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17405170000006365,
+      "elapsed_seconds": 0.16887455200003387,
       "audio_seconds": 2.06
     },
     {
@@ -13894,7 +13894,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3928909849996671,
+      "elapsed_seconds": 0.38735111300002245,
       "audio_seconds": 7.323
     },
     {
@@ -13938,7 +13938,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.1992021419998764,
+      "elapsed_seconds": 1.1729824779995397,
       "audio_seconds": 19.549
     },
     {
@@ -13982,7 +13982,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.27679809200026284,
+      "elapsed_seconds": 0.27455955000004906,
       "audio_seconds": 4.734
     },
     {
@@ -14026,7 +14026,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.24306684899966058,
+      "elapsed_seconds": 0.24054525499991541,
       "audio_seconds": 3.94
     },
     {
@@ -14070,7 +14070,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2441110709996792,
+      "elapsed_seconds": 0.23843254700022953,
       "audio_seconds": 3.901
     },
     {
@@ -14114,7 +14114,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.24806958399994983,
+      "elapsed_seconds": 0.24318190199960554,
       "audio_seconds": 4.046
     },
     {
@@ -14158,7 +14158,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3066500600002655,
+      "elapsed_seconds": 0.30464365800025917,
       "audio_seconds": 5.533
     },
     {
@@ -14202,7 +14202,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2636492599999656,
+      "elapsed_seconds": 0.2591749919999984,
       "audio_seconds": 4.347
     },
     {
@@ -14246,7 +14246,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2562879070001145,
+      "elapsed_seconds": 0.25137201000006826,
       "audio_seconds": 4.17
     },
     {
@@ -14292,7 +14292,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21910534499988898,
+      "elapsed_seconds": 0.2147747640003672,
       "audio_seconds": 3.155
     },
     {
@@ -14338,7 +14338,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.32289509600013844,
+      "elapsed_seconds": 0.3172345820003102,
       "audio_seconds": 5.889
     },
     {
@@ -14384,7 +14384,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.4593453289996887,
+      "elapsed_seconds": 0.4633032879999064,
       "audio_seconds": 8.307
     },
     {
@@ -14430,7 +14430,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.613309758999776,
+      "elapsed_seconds": 0.6139448489996084,
       "audio_seconds": 11.462
     },
     {
@@ -14474,7 +14474,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3003389909999896,
+      "elapsed_seconds": 0.301644215999886,
       "audio_seconds": 5.415
     },
     {
@@ -14518,7 +14518,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.29994540400002734,
+      "elapsed_seconds": 0.2973490600002151,
       "audio_seconds": 5.317
     },
     {
@@ -14562,7 +14562,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2980157780002628,
+      "elapsed_seconds": 0.293892593999999,
       "audio_seconds": 5.273
     },
     {
@@ -14606,7 +14606,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.25266488900001605,
+      "elapsed_seconds": 0.2511761339999339,
       "audio_seconds": 4.135
     },
     {
@@ -14650,7 +14650,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.15501226800006407,
+      "elapsed_seconds": 0.1549658679998629,
       "audio_seconds": 1.59
     },
     {
@@ -14694,7 +14694,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2437329670001418,
+      "elapsed_seconds": 0.24082269600012296,
       "audio_seconds": 3.958
     },
     {
@@ -14738,7 +14738,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.36978928700000324,
+      "elapsed_seconds": 0.3658025870004167,
       "audio_seconds": 6.891
     },
     {
@@ -14782,7 +14782,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.4738929669999834,
+      "elapsed_seconds": 0.46288087199991423,
       "audio_seconds": 8.587
     },
     {
@@ -14829,7 +14829,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.15370196199978636,
+      "elapsed_seconds": 0.1525816000003033,
       "audio_seconds": 1.576
     },
     {
@@ -14875,7 +14875,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.3390092460001597,
+      "elapsed_seconds": 0.3438183890000346,
       "audio_seconds": 6.268
     },
     {
@@ -14919,7 +14919,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.38500020700007553,
+      "elapsed_seconds": 0.3828274850000071,
       "audio_seconds": 7.153
     },
     {
@@ -14967,7 +14967,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.8648134160000609,
+      "elapsed_seconds": 0.848682886999768,
       "audio_seconds": 15.484
     },
     {
@@ -15011,7 +15011,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.25678679400016335,
+      "elapsed_seconds": 0.2575208979999388,
       "audio_seconds": 4.203
     },
     {
@@ -15055,7 +15055,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21592390399996475,
+      "elapsed_seconds": 0.2159338190001563,
       "audio_seconds": 3.135
     },
     {
@@ -15101,7 +15101,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.27638760399986495,
+      "elapsed_seconds": 0.27187032500000896,
       "audio_seconds": 4.737
     },
     {
@@ -15145,7 +15145,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.0317275830000199,
+      "elapsed_seconds": 0.9901649250000446,
       "audio_seconds": 17.594
     },
     {
@@ -15192,7 +15192,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18542326400029197,
+      "elapsed_seconds": 0.18103299299968967,
       "audio_seconds": 2.32
     },
     {
@@ -15236,7 +15236,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.15787584400004562,
+      "elapsed_seconds": 0.15601757399986127,
       "audio_seconds": 1.645
     },
     {
@@ -15280,7 +15280,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.224931344000197,
+      "elapsed_seconds": 0.21887660499965023,
       "audio_seconds": 3.268
     },
     {
@@ -15324,7 +15324,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.270083404999923,
+      "elapsed_seconds": 0.26324054500014427,
       "audio_seconds": 4.436
     },
     {
@@ -15371,7 +15371,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.5797955049999928,
+      "elapsed_seconds": 1.5420333019999362,
       "audio_seconds": 23.275
     },
     {
@@ -15417,7 +15417,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 1.6594913720000477,
+      "elapsed_seconds": 1.6610342679998666,
       "audio_seconds": 24.033
     },
     {
@@ -15461,7 +15461,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.8615801360001569,
+      "elapsed_seconds": 0.9074762820002888,
       "audio_seconds": 15.535
     },
     {
@@ -15505,7 +15505,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.13895405800030858,
+      "elapsed_seconds": 0.144465830000172,
       "audio_seconds": 1.196
     },
     {
@@ -15549,7 +15549,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.43618278500002816,
+      "elapsed_seconds": 0.4552450140004112,
       "audio_seconds": 7.902
     },
     {
@@ -15593,7 +15593,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.13698075600018456,
+      "elapsed_seconds": 0.1454711070000485,
       "audio_seconds": 1.089
     },
     {
@@ -15637,7 +15637,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.14059159600037674,
+      "elapsed_seconds": 0.14710807899996325,
       "audio_seconds": 1.254
     },
     {
@@ -15681,7 +15681,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.19862620500020967,
+      "elapsed_seconds": 0.20925375700016957,
       "audio_seconds": 2.673
     },
     {
@@ -15725,7 +15725,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.7927874009999414,
+      "elapsed_seconds": 0.8082223990002149,
       "audio_seconds": 14.904
     },
     {
@@ -15773,7 +15773,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.24393411300025036,
+      "elapsed_seconds": 0.24251034400003846,
       "audio_seconds": 3.964
     },
     {
@@ -15819,7 +15819,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.23843471700001828,
+      "elapsed_seconds": 0.2360364730004676,
       "audio_seconds": 3.746
     },
     {
@@ -15863,7 +15863,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.26361758500001997,
+      "elapsed_seconds": 0.27157780300012746,
       "audio_seconds": 4.498
     },
     {
@@ -15907,7 +15907,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.21242200599999705,
+      "elapsed_seconds": 0.20946590799985643,
       "audio_seconds": 3.0
     },
     {
@@ -15949,7 +15949,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.2449799300002269,
+      "elapsed_seconds": 0.24140383200006,
       "audio_seconds": 3.875
     },
     {
@@ -15993,7 +15993,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.17274983700008306,
+      "elapsed_seconds": 0.1695647470003223,
       "audio_seconds": 2.0
     },
     {
@@ -16037,7 +16037,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.18331263499999295,
+      "elapsed_seconds": 0.17982668200011176,
       "audio_seconds": 2.375
     },
     {
@@ -16081,7 +16081,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.43840721999958987,
+      "elapsed_seconds": 0.44230161700011195,
       "audio_seconds": 8.125
     },
     {
@@ -16125,7 +16125,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.7440543320001325,
+      "elapsed_seconds": 0.7375180309995812,
       "audio_seconds": 14.141
     },
     {
@@ -16169,7 +16169,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.7347618990004321,
+      "elapsed_seconds": 0.7219838000003165,
       "audio_seconds": 14.141
     },
     {
@@ -16213,7 +16213,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.7343631430001096,
+      "elapsed_seconds": 0.7349544520002382,
       "audio_seconds": 14.141
     },
     {
@@ -16257,7 +16257,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.7424315059997753,
+      "elapsed_seconds": 0.7425260200000139,
       "audio_seconds": 14.141
     },
     {
@@ -16306,7 +16306,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.12517094899976655,
+      "elapsed_seconds": 0.1272180200001003,
       "audio_seconds": 0.82
     },
     {
@@ -16350,7 +16350,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 0.11731525899995177,
+      "elapsed_seconds": 0.11936307800010582,
       "audio_seconds": 0.734
     },
     {
@@ -16394,7 +16394,7 @@
       "xml_deterministic": true,
       "utterance_timestamps_only": true,
       "structured_channels_separate": true,
-      "elapsed_seconds": 2.022106939999958,
+      "elapsed_seconds": 1.9496289559997422,
       "audio_seconds": 27.2
     }
   ]

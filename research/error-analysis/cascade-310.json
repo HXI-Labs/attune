@@ -189,26 +189,26 @@
     "combined": {
       "clips": 310,
       "audio_seconds": 1488.748,
-      "elapsed_seconds": 102.00502504800261,
-      "real_time_factor": 0.06851732129816639
+      "elapsed_seconds": 102.05018694700357,
+      "real_time_factor": 0.06854765678745064
     },
     "CREMA-D": {
       "clips": 130,
       "audio_seconds": 334.513,
-      "elapsed_seconds": 29.652923621002174,
-      "real_time_factor": 0.08864505600978789
+      "elapsed_seconds": 30.82911976800233,
+      "real_time_factor": 0.09216120081432509
     },
     "FSD50K": {
       "clips": 100,
       "audio_seconds": 830.187,
-      "elapsed_seconds": 51.92355493400191,
-      "real_time_factor": 0.06254440858987423
+      "elapsed_seconds": 51.12299407200226,
+      "real_time_factor": 0.06158009469192153
     },
     "VocalSound": {
       "clips": 80,
       "audio_seconds": 324.048,
-      "elapsed_seconds": 20.42854649299852,
-      "real_time_factor": 0.06304172990729312
+      "elapsed_seconds": 20.09807310699898,
+      "real_time_factor": 0.062021901406578595
     }
   }
 }

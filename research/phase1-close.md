@@ -71,7 +71,7 @@ and 0.0305. The domains differ and Ghana lacks speaker IDs, so the table is not
 an accent or population ranking. Ghana audio is NC research-only and cannot be
 repurposed for commercial training.
 
-The final 310-clip cascade processes 1,488.748 seconds of audio in 102.005
+The final 310-clip cascade processes 1,488.748 seconds of audio in 102.050
 seconds on CPU (RTF 0.0685). This is offline batch throughput, not streaming
 latency.
 

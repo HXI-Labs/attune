@@ -641,8 +641,8 @@ Cross-source residual OOD errors are asymmetric:
 | FSD50K | VocalSound | 2/80 |
 
 On this CPU rerun the full 310-clip cascade processes 1,488.748 seconds of audio
-in 102.005 seconds, RTF 0.0685. By source, RTF is 0.0886 for CREMA-D, 0.0630
-for VocalSound, and 0.0625 for FSD50K. This is offline batch timing on one VM,
+in 102.050 seconds, RTF 0.0685. By source, RTF is 0.0922 for CREMA-D, 0.0620
+for VocalSound, and 0.0616 for FSD50K. This is offline batch timing on one VM,
 not a streaming latency claim.
 
 Separate ASR runs provide context. Ghanaian-English broadcast audio has
