@@ -56,7 +56,17 @@ _AFFECT_LABELS = {
     "surprise": AffectCategory.SURPRISE,
     "disgusted": AffectCategory.OTHER,
 }
-_STRUCTURED_EVENT_KEYS = ("events", "event", "aed", "audio_events", "audio_event")
+_STRUCTURED_ANNOTATION_KEYS = (
+    "events",
+    "event",
+    "aed",
+    "audio_events",
+    "audio_event",
+    "emotion",
+    "emotions",
+    "ser",
+    "affect",
+)
 
 
 @dataclass(frozen=True)
@@ -92,7 +102,9 @@ def parse_sensevoice_output(result: Any) -> SenseVoiceOutput:
     elif isinstance(row, dict):
         rich_text = str(row.get("text", ""))
         structured_values = [
-            row[key] for key in _STRUCTURED_EVENT_KEYS if key in row and row[key] is not None
+            row[key]
+            for key in _STRUCTURED_ANNOTATION_KEYS
+            if key in row and row[key] is not None
         ]
     else:
         raise RuntimeError("SenseVoice returned an unsupported result shape")
@@ -134,6 +146,49 @@ def parse_sensevoice_output(result: Any) -> SenseVoiceOutput:
             for label, confidence in affect.items()
         ),
     )
+
+
+def sensevoice_affect_trace(result: Any) -> list[dict[str, str | float | None]]:
+    """Return each raw SenseVoice SER label and its explicit schema mapping."""
+    row = _result_row(result)
+    if isinstance(row, str):
+        rich_text = row
+        structured_values: list[Any] = []
+    elif isinstance(row, dict):
+        rich_text = str(row.get("text", ""))
+        structured_values = [
+            row[key]
+            for key in _STRUCTURED_ANNOTATION_KEYS
+            if key in row and row[key] is not None
+        ]
+    else:
+        raise RuntimeError("SenseVoice returned an unsupported result shape")
+
+    candidates: list[tuple[str, float, str]] = [
+        (tag, UNKNOWN_CONFIDENCE, "rich_transcription_tag")
+        for tag in _TAG_PATTERN.findall(rich_text)
+    ]
+    for value in structured_values:
+        candidates.extend(
+            (label, confidence, "structured_output")
+            for label, confidence in _structured_annotations(value)
+        )
+
+    trace: list[dict[str, str | float | None]] = []
+    for raw_label, confidence, source in candidates:
+        normalized = _normalize_label(raw_label)
+        mapped = _AFFECT_LABELS.get(normalized)
+        if mapped is not None or normalized == "emo_unknown":
+            trace.append(
+                {
+                    "raw_label": str(raw_label),
+                    "normalized_label": normalized,
+                    "schema_label": mapped.value if mapped is not None else None,
+                    "confidence": confidence,
+                    "source": source,
+                }
+            )
+    return trace
 
 
 def build_utterance_spans(

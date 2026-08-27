@@ -1,0 +1,220 @@
+{
+  "report_version": "1",
+  "generated_at_utc": "2026-08-27T00:41:05.478914Z",
+  "task": "FSD50K source-labelled shout/whisper/sob/scream four-way diagnostic",
+  "gate_decision": "closed",
+  "encoder_frozen": true,
+  "fine_tuning_performed": false,
+  "head": {
+    "type": "linear",
+    "trainable_parameters": 20484,
+    "checkpoint_committed": false
+  },
+  "embedding": {
+    "name": "sensevoice-small-encoder-v2",
+    "model": "SenseVoiceSmall by FunASR/FunAudioLLM",
+    "revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
+    "model_file_sha256": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea",
+    "trainable_parameters": 0,
+    "total_parameters": 233999167,
+    "query_frames_excluded": 4,
+    "frontend_dither": 0.0,
+    "extraction_route": "direct_frontend_and_frozen_encoder",
+    "pooling": "8 temporal means plus acoustic-frame mean/std",
+    "output_size": 5120,
+    "cache_hits": 0,
+    "cache_misses": 420
+  },
+  "data_contract": {
+    "probe_manifest": "data/manifests/fsd50k-frozen-probe.jsonl",
+    "probe_manifest_sha256": "731bd38735ad1f3083938a4d5c74641249a0715f9012279c4a1171c945954698",
+    "inspection_manifest": "data/manifests/licence-clean-inspection.jsonl",
+    "inspection_manifest_sha256": "422c9b7b33b56a5f97d27945c717c769ddbd138f262577f504259a9536d39859",
+    "split": "Clip-disjoint train/validation/100-row inspection test. FSD50K does not provide speaker IDs; uploader metadata is not a speaker identity.",
+    "inspection_rows_excluded_from_training": 100,
+    "licences": "clip-level CC0 or CC BY only",
+    "cross_target_clips": 0,
+    "full_audio_archive_downloaded": false
+  },
+  "partitions": {
+    "train": {
+      "clips": 256,
+      "label_counts": {
+        "scream": 64,
+        "shout": 64,
+        "sob": 64,
+        "whisper": 64
+      }
+    },
+    "validation": {
+      "clips": 64,
+      "label_counts": {
+        "scream": 16,
+        "shout": 16,
+        "sob": 16,
+        "whisper": 16
+      }
+    },
+    "inspection_test": {
+      "clips": 100,
+      "label_counts": {
+        "scream": 25,
+        "shout": 25,
+        "sob": 25,
+        "whisper": 25
+      }
+    }
+  },
+  "seed": 0,
+  "epochs_completed": 9,
+  "early_stopping_patience": 5,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 5.495884358882904,
+      "validation_loss": 5.856156349182129
+    },
+    {
+      "epoch": 2,
+      "train_loss": 2.7707286551594734,
+      "validation_loss": 2.188218116760254
+    },
+    {
+      "epoch": 3,
+      "train_loss": 1.6821294873952866,
+      "validation_loss": 1.880807876586914
+    },
+    {
+      "epoch": 4,
+      "train_loss": 1.0801874734461308,
+      "validation_loss": 1.6466974020004272
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.7359816476237029,
+      "validation_loss": 2.0036044120788574
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.4236589586435002,
+      "validation_loss": 2.667705774307251
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.3306911335557743,
+      "validation_loss": 2.430755853652954
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.17566384432847038,
+      "validation_loss": 2.173638105392456
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.02117805901217551,
+      "validation_loss": 1.8300654888153076
+    }
+  ],
+  "validation_metrics": {
+    "accuracy": 0.921875,
+    "macro_f1": 0.9218597262952102,
+    "per_class": {
+      "shout": {
+        "precision": 0.875,
+        "recall": 0.875,
+        "f1": 0.875,
+        "support": 16
+      },
+      "whisper": {
+        "precision": 0.9411764705882353,
+        "recall": 1.0,
+        "f1": 0.9696969696969697,
+        "support": 16
+      },
+      "sob": {
+        "precision": 1.0,
+        "recall": 0.9375,
+        "f1": 0.967741935483871,
+        "support": 16
+      },
+      "scream": {
+        "precision": 0.875,
+        "recall": 0.875,
+        "f1": 0.875,
+        "support": 16
+      }
+    }
+  },
+  "inspection_test_metrics": {
+    "accuracy": 0.74,
+    "macro_f1": 0.7410326086956522,
+    "per_class": {
+      "shout": {
+        "precision": 0.8095238095238095,
+        "recall": 0.68,
+        "f1": 0.7391304347826089,
+        "support": 25
+      },
+      "whisper": {
+        "precision": 0.9130434782608695,
+        "recall": 0.84,
+        "f1": 0.8749999999999999,
+        "support": 25
+      },
+      "sob": {
+        "precision": 0.6774193548387096,
+        "recall": 0.84,
+        "f1": 0.75,
+        "support": 25
+      },
+      "scream": {
+        "precision": 0.6,
+        "recall": 0.6,
+        "f1": 0.6,
+        "support": 25
+      }
+    }
+  },
+  "comparison": {
+    "shout": {
+      "frozen_encoder_probe_f1": 0.7391304347826089,
+      "off_the_shelf_aed_weak_label_detection_rate": 0.0,
+      "off_the_shelf_aed_one_vs_rest_f1": 0.0
+    },
+    "whisper": {
+      "frozen_encoder_probe_f1": 0.8749999999999999,
+      "off_the_shelf_aed_weak_label_detection_rate": 0.0,
+      "off_the_shelf_aed_one_vs_rest_f1": 0.0
+    },
+    "sob": {
+      "frozen_encoder_probe_f1": 0.75,
+      "off_the_shelf_aed_weak_label_detection_rate": 0.32,
+      "off_the_shelf_aed_one_vs_rest_f1": 0.48484848484848486
+    },
+    "scream": {
+      "frozen_encoder_probe_f1": 0.6,
+      "off_the_shelf_aed_weak_label_detection_rate": 0.0,
+      "off_the_shelf_aed_one_vs_rest_f1": 0.0
+    }
+  },
+  "comparator_note": "The previously reported AED values 0/0/0.32/0 are weak-label detection rates, not F1. With eight sob true positives, no sob false positives, and 17 sob false negatives in the committed raw outputs, sob one-vs-rest F1 is 0.484848; both metrics are named explicitly.",
+  "ontology_boundaries": {
+    "scream": "Separate source/probe class; never mapped to Attune shouting.",
+    "sob": "FSD50K Crying_and_sobbing maps to sob, never crying_speech.",
+    "intensity": "CREMA-D intensity is not used by this probe."
+  },
+  "runtime": {
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130",
+    "device": "cpu"
+  },
+  "attribution": {
+    "SenseVoiceSmall": "FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1",
+    "FSD50K": "Fonseca et al.; annotations CC BY 4.0; individual clips retain their recorded CC0 or CC BY licences."
+  },
+  "limitations": [
+    "FSD50K source labels are weak labels, not reviewed Attune gold.",
+    "Standalone Freesound clips do not establish speech-embedded style coverage.",
+    "No localization, calibration, abstention, or OOD threshold was evaluated."
+  ]
+}

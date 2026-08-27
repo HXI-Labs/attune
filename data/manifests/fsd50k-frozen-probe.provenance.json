@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "manifest": "data/manifests/fsd50k-frozen-probe.jsonl",
+  "manifest_sha256": "731bd38735ad1f3083938a4d5c74641249a0715f9012279c4a1171c945954698",
+  "row_count": 320,
+  "partition_counts": {
+    "train": 256,
+    "validation": 64
+  },
+  "class_counts": {
+    "scream": 80,
+    "shout": 80,
+    "sob": 80,
+    "whisper": 80
+  },
+  "clip_licence_counts": {
+    "CC-BY-3.0": 190,
+    "CC0-1.0": 130
+  },
+  "selection_rule": "From official FSD50K metadata, retain clips with CC0 or CC BY audio and exactly one target class; exclude all 100 inspection IDs; take the first 80 numeric IDs per class, assigning 64 to train and 16 to validation.",
+  "split_boundary": "Clip-disjoint. FSD50K has no speaker identity; uploader is not treated as speaker.",
+  "audio_fetch": "Individual pinned transport URLs only; no full audio archive was downloaded."
+}

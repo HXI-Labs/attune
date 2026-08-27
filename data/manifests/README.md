@@ -159,6 +159,14 @@ uv run python scripts/prepare_licence_clean_inspection.py --download
 
 # Offline hash and audio-contract verification.
 uv run python scripts/prepare_licence_clean_inspection.py
+
+# Fetch the three reviewed, pinned baselines into a gitignored cache, then run.
+uv run python scripts/fetch_inspection_models.py
+ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python \
+  scripts/evaluate_licence_clean_inspection.py \
+  --whisper-path data/raw/model-cache/whisper-small \
+  --sensevoice-path data/raw/model-cache/sensevoice-small \
+  --emotion2vec-path data/raw/model-cache/emotion2vec-plus
 ```
 
 All output audio is mono 16 kHz PCM16 under ignored
@@ -167,3 +175,32 @@ per-file mirror because original Freesound downloads require OAuth; official
 FSD50K metadata remains the licence and attribution authority.
 `licence-clean-inspection.provenance.json` records the manifest hash, class and
 licence counts, revisions, and selection rules.
+
+## FSD50K frozen-probe pool
+
+`fsd50k-frozen-probe.jsonl` contains 320 additional individually fetched
+FSD50K clips for the four-way `shout`, `whisper`, `sob`, and `scream` linear
+probe. Each class has 64 training and 16 validation clips. All 100 rows in the
+licence-clean FSD50K inspection set are excluded before selection and remain
+the immutable test set. Screaming remains its own source/probe class, and
+`Crying_and_sobbing` maps only to `sob`.
+
+FSD50K does not publish speaker IDs. The split is therefore clip-disjoint;
+uploader metadata is retained for attribution but is not asserted to identify
+the recorded speaker. The same clip-level CC0/CC BY, single-target, pinned
+individual-fetch rules apply. No NC or Sampling+ clips, cross-target clips, or
+full audio archive are used.
+
+```bash
+# Fetch and verify only the bounded 320-clip train/validation pool.
+uv run python scripts/prepare_fsd50k_probe.py --download
+uv run python scripts/prepare_fsd50k_probe.py
+
+# Train only a new linear head; the SenseVoiceSmall encoder stays frozen.
+ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/train_fsd50k_probe.py \
+  --sensevoice-model /path/to/official/SenseVoiceSmall
+```
+
+Audio, direct-encoder embeddings, and the linear checkpoint remain under
+gitignored paths. The committed provenance file records the manifest hash,
+selection boundary, class/partition counts, and clip-licence counts.

@@ -67,4 +67,17 @@ class ModularCascade(BaselineAdapter):
                 audio_seconds=output.audio.duration_ms / 1000,
                 elapsed_seconds=elapsed,
             ),
+            diagnostics={
+                **(affect_prediction.diagnostics or {}),
+                "asr_component": {
+                    "name": self.asr.name,
+                },
+                "affect_component": {
+                    "name": self.affect.name,
+                },
+                "note": (
+                    "Cascade output uses the acoustic affect component; "
+                    "the ASR adapter's placeholder affect is replaced."
+                ),
+            },
         )
