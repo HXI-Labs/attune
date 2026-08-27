@@ -1,0 +1,83 @@
+{
+  "report_version": "1",
+  "generated_at_utc": "2026-08-27T08:10:18Z",
+  "gate_decision": "closed",
+  "encoder_frozen": true,
+  "pooled_head_phase1": {
+    "run_id": "phase1-dcase-temporal-negative",
+    "embedding": "sensevoice-small-encoder-v2",
+    "input": "eight pooled temporal means plus utterance mean/std",
+    "inspection_test_clips": 100,
+    "segment_f1": 0.19428571428571428,
+    "whole_clip_oracle_tag_segment_f1": 0.3182765809589993,
+    "collar_event_f1": 0.0,
+    "whole_clip_oracle_tag_collar_event_f1": 0.0,
+    "decision": "negative for the pooled head; not evidence against acoustic frames"
+  },
+  "frame_head_retry": {
+    "run_id": "timing-frame-dcase-v1-blocked",
+    "embedding": "sensevoice-small-encoder-frames-v1",
+    "input_shape": [
+      "T",
+      512
+    ],
+    "frame_hop_ms_approx": 60,
+    "query_frames_stripped": 4,
+    "head": "512->128->3 MLP with multi-label BCE",
+    "split": "development train/validation file-disjoint; public-test source-disjoint",
+    "threshold_selection": "development validation only",
+    "clear_segment_f1_margin_required": 0.05,
+    "status": "blocked",
+    "blockers": [
+      "data/raw/dcase2016-localization is absent in this VM"
+    ],
+    "local_weights_also_unavailable": true,
+    "segment_f1": null,
+    "whole_clip_oracle_tag_segment_f1": 0.3182765809589993,
+    "collar_event_f1": null,
+    "whole_clip_oracle_tag_collar_event_f1": 0.0,
+    "eligible_for_cascade_wiring": false,
+    "timestamps_wired": false,
+    "protocol_implementation": "scripts/train_temporal_localization.py",
+    "fixture_tests": true,
+    "checkpoint_committed": false
+  },
+  "cascade_timestamps": {
+    "event_style_policy": "utterance scope only",
+    "zero_to_duration_is_localization": false,
+    "changed_in_this_pr": false
+  },
+  "word_alignment": {
+    "sensevoice_small": {
+      "status": "official token timestamps and explicit word spans are parsed; otherwise honest empty",
+      "parser_fixture_tested": true,
+      "local_weight_run": false,
+      "fabrication": false
+    },
+    "whisper_small": {
+      "status": "official Transformers word-timestamp pipeline implemented",
+      "parser_fixture_tested": true,
+      "local_weight_run": false,
+      "fabrication": false
+    },
+    "cascade_passes_real_words_through": true
+  },
+  "starss23": {
+    "download_started": false,
+    "cached_hashed_slice_found": false,
+    "next_experiment": true,
+    "dataset": "MIT STARSS23",
+    "label_resolution_ms": 100,
+    "english_metadata_filter_available": false,
+    "natural_overlap": true,
+    "caveats": [
+      "licence review remains required for intended use",
+      "natural recordings require privacy and consent review"
+    ]
+  },
+  "claims": {
+    "dcase_labels": "synthetic strong labels; not Attune gold",
+    "gold_gate": "closed",
+    "phase3_joint_training_authorized": false
+  }
+}

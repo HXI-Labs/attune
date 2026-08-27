@@ -6,8 +6,9 @@ All runners implement `BaselineAdapter` and return a schema-valid
 - Whisper and transcript-only runners emit empty `styles` and `events`.
 - SenseVoice maps only recognized rich-transcription/AED tags onto the Attune
   ontology. Unmapped tags such as noise, music, or applause are dropped.
-- These runners emit utterance transcript text with an empty `words` list. They
-  do not fabricate word timing or alignment.
+- SenseVoice and Whisper emit words only when their runtime returns explicit
+  alignment. Missing, malformed, or out-of-bounds alignment remains an empty
+  `words` list; no runner fabricates word timing.
 - Unsupported affect dimensions use value `0.0` and confidence `0.0`.
 - Unknown quality probabilities are Phase 0 placeholders.
 - An explicitly configured `StubEventHead` emits no events. It exists only for
@@ -94,8 +95,8 @@ In particular, `scream` never maps to `shouting`, `sob` never maps to
 
 All event, style, and affect spans cover the full utterance. Probe softmax
 values and abstention scores are retained as diagnostics, not gold confidence
-or frame localization. Word timestamps are absent. Every annotation is
-provisional. The research gate remains closed unless the combined inspection
+or frame localization. Genuine ASR word timestamps may coexist with those
+utterance-scoped annotations. Every annotation is provisional. The research gate remains closed unless the combined inspection
 shows that abstention reduces OOD false positives without collapsing in-domain
 target F1, and this implementation never passes the gate automatically.
 
@@ -124,8 +125,12 @@ object; multiple inputs print JSON Lines. With multiple inputs, `--output` and
 `--xml-output` name directories. To send XML to stdout, first direct JSON to a
 file: `--output sample.attune.json --xml-output -`. XML is rendered only from a
 validated `AttuneOutput`; metadata is never concatenated into transcript text.
-The current SenseVoice runner exposes utterance text but no reviewed word
-alignment, so `transcript.words` remains an honest empty list.
+SenseVoice accepts only explicit token/word spans returned by FunASR, including
+the official model's token-plus-second-boundaries shape; this VM had no local
+weight run, so absence remains an honest empty list. Whisper uses the official Transformers
+`return_timestamps="word"` path when local weights are available. Both reject
+an incomplete alignment rather than filling gaps. The cascade passes valid
+words through unchanged.
 
 The CLI fails before inference when licence acknowledgement, either model, the
 calibration bundle, or either gitignored probe head is absent. `--fixture-mode`
@@ -144,9 +149,13 @@ uv run python scripts/infer.py /tmp/attune-fixture.wav --fixture-mode
 
 All cascade event/style bounds denote utterance scope only. A `0..duration`
 span with null word anchors is not frame localization. The failed DCASE
-temporal result remains authoritative; the CLI does not invent finer timing.
+eight-bin result remains authoritative for that pooled head. A separate
+frame-level retry protocol now consumes every frozen 512-dimensional acoustic
+frame, but this VM had no local DCASE cache and produced no new metric; it is
+not wired. See `research/timing-holes.md`.
 If timing work resumes, the bounded next candidate is a pre-existing,
 hash-verified STARSS23 slice only. STARSS23 is the MIT natural-spatial-audio
 dataset with 100 ms labels; its metadata does not permit filtering for English,
-and its licence and natural-recording/privacy terms require review for the
+it contains natural overlap, and its licence and natural-recording
+privacy/consent terms require review for the
 intended use. This Phase 2 package does not download it.

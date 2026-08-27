@@ -81,16 +81,20 @@ abstention invariants, and serialization while naming itself as a placeholder.
 It is not a model result. Exact real and fixture commands are in
 `docs/baseline-runners.md`.
 
-The current ASR adapter has utterance text but no reviewed alignment, so the
-authoritative `transcript.words` list is empty. Events and styles use
+The original Phase 2 ASR adapter had utterance text but no reviewed alignment,
+so the authoritative `transcript.words` list was empty. The timing follow-up
+now preserves only explicit model-returned SenseVoice/Whisper word alignment;
+it never fabricates missing spans. Events and styles still use
 provisional null-anchored `0..duration` bounds solely to encode utterance scope;
 those bounds are not presented as localization.
 
 ## Timing boundary
 
-The DCASE 2016 temporal MLP remains a negative result: segment F1 0.1943 versus
+The DCASE 2016 eight-bin temporal MLP remains a negative result: segment F1 0.1943 versus
 0.3183 for the whole-clip comparator, with 0 collar event F1 for both. It is not
-wired into cascade timestamps, and this PR does not rerun it.
+wired into cascade timestamps. A later frame-level retry protocol is documented
+in `research/timing-holes.md`; it was blocked by the absent local DCASE cache
+and likewise did not change cascade timestamps.
 
 No small pre-cached, hash-verified natural-audio timing slice was present.
 STARSS23 is therefore only the next Phase-2-adjacent candidate: it is the MIT

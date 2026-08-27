@@ -73,7 +73,9 @@ event/style, preserving AED-only output. Run the combined original-150 plus
 licence-clean-160 inspection with
 `scripts/evaluate_attune_cascade.py` after preparing the bounded datasets,
 reviewed local model paths, and gitignored heads. The encoder remains frozen,
-all annotations are utterance-level and provisional, and the gate is closed.
+all event/style annotations are utterance-level and provisional, and the gate
+is closed. The frame-level DCASE retry protocol and its blocked result are in
+`research/timing-holes.md`; `0..duration` is never localization.
 For one or more local WAV files, `scripts/infer.py` emits authoritative JSON
 and optional deterministic XML; exact offline commands are in
 `docs/baseline-runners.md`.
@@ -99,11 +101,15 @@ tested script entry points.
 
 ## Output contract
 
-The schema supports quality probabilities, language confidence, word timings,
+The schema supports quality probabilities, language confidence, genuine word timings,
 overlapping styles, between-word events, dimensional and categorical affect,
 abstention, and out-of-distribution uncertainty. Affect categories always form
 a complete probability distribution. If `affect.abstain` is `true`,
 `affect.top_label` **must be `null`**.
+
+SenseVoice and Whisper adapters populate `transcript.words` only from explicit
+model-returned alignment. Missing or invalid alignment remains `[]`; Attune
+never interpolates words across an utterance.
 
 See `docs/ontology.md` and `docs/annotation-guide.md` before creating labels.
 The required framing is “How does the speaker sound?”, never “What is the
