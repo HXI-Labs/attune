@@ -403,7 +403,9 @@ def run_row(cascade: AttuneCascade, row: dict[str, Any]) -> dict[str, Any]:
         "reference_transcript": reference_transcript(row),
         "transcript": output.transcript.text,
         "reference_affect": row["intended_attune_labels"].get("affect", []),
-        "emotion2vec_affect": output.affect.top_label.value,
+        "emotion2vec_affect": (
+            output.affect.top_label.value if output.affect.top_label is not None else "abstain"
+        ),
         "lexicon_affect": lexical_label,
         "expected_annotations": expected_annotations(row),
         "aed_annotations": aed,
