@@ -1,7 +1,7 @@
 {
   "report_version": "1",
   "title": "Licence-clean FSD50K event and CREMA-D affect inspection",
-  "generated_at_utc": "2026-08-27T00:16:06.994517Z",
+  "generated_at_utc": "2026-08-27T00:45:24.075410Z",
   "scope": {
     "manifest": "data/manifests/licence-clean-inspection.jsonl",
     "clip_count": 160,
@@ -15,8 +15,8 @@
     "gate_decision": "closed"
   },
   "execution": {
-    "run_commit": "12b545ed8ca493e7dee102bfbb2828e7654400d0",
-    "wall_seconds": 59.260241985321045,
+    "run_commit": "f071e6f7f94d5ba918ba4c2b70d0ecb31258351c",
+    "wall_seconds": 142.56662607192993,
     "python": "3.12.3",
     "platform": "Linux-6.12.94+-x86_64-with-glibc2.39",
     "logical_cpu_count": 4,
@@ -29,6 +29,9 @@
     },
     "sensevoice-small": {
       "model.pt": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea"
+    },
+    "emotion2vec-plus": {
+      "model.pt": "60710b5aae1dbe69bdac8920028fb05882d4314fd09031922b4b61ee9e7aadbd"
     }
   },
   "crema_d_expansion": {
@@ -70,9 +73,119 @@
       },
       "runtime": {
         "audio_seconds": 155.25000000000003,
-        "elapsed_seconds": 48.454432851999854,
-        "real_time_factor": 0.3121058476779378,
+        "elapsed_seconds": 58.90250095199963,
+        "real_time_factor": 0.37940419292753375,
         "device": "cpu"
+      },
+      "affect_wiring_diagnostics": {
+        "affect_source_counts": {
+          "transcript_lexicon": 60
+        },
+        "raw_label_counts": {
+          "<not_emitted>": 60
+        },
+        "schema_label_counts": {
+          "neutral": 60
+        },
+        "raw_to_schema_examples": [
+          {
+            "clip_id": "crema-d-1008_ieo_ang_hi",
+            "source_emotion": "ANG",
+            "reference_schema_label": "anger",
+            "raw_affect_label": null,
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "transcript_lexicon",
+              "raw_model_output": {
+                "transcript": "It's 11 o'clock!"
+              },
+              "raw_affect_label": null,
+              "schema_affect_label": "neutral",
+              "note": "Whisper has no affect head; affect is a transcript-lexicon fallback."
+            }
+          },
+          {
+            "clip_id": "crema-d-1008_ieo_dis_hi",
+            "source_emotion": "DIS",
+            "reference_schema_label": "other",
+            "raw_affect_label": null,
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "transcript_lexicon",
+              "raw_model_output": {
+                "transcript": "It's 11 o'clock."
+              },
+              "raw_affect_label": null,
+              "schema_affect_label": "neutral",
+              "note": "Whisper has no affect head; affect is a transcript-lexicon fallback."
+            }
+          },
+          {
+            "clip_id": "crema-d-1008_ieo_fea_hi",
+            "source_emotion": "FEA",
+            "reference_schema_label": "fear",
+            "raw_affect_label": null,
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "transcript_lexicon",
+              "raw_model_output": {
+                "transcript": "It's 11 o'clock!"
+              },
+              "raw_affect_label": null,
+              "schema_affect_label": "neutral",
+              "note": "Whisper has no affect head; affect is a transcript-lexicon fallback."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_ang_hi",
+            "source_emotion": "ANG",
+            "reference_schema_label": "anger",
+            "raw_affect_label": null,
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "transcript_lexicon",
+              "raw_model_output": {
+                "transcript": "It's 11 o'clock!"
+              },
+              "raw_affect_label": null,
+              "schema_affect_label": "neutral",
+              "note": "Whisper has no affect head; affect is a transcript-lexicon fallback."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_dis_hi",
+            "source_emotion": "DIS",
+            "reference_schema_label": "other",
+            "raw_affect_label": null,
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "transcript_lexicon",
+              "raw_model_output": {
+                "transcript": "It's 11 o'clock."
+              },
+              "raw_affect_label": null,
+              "schema_affect_label": "neutral",
+              "note": "Whisper has no affect head; affect is a transcript-lexicon fallback."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_fea_hi",
+            "source_emotion": "FEA",
+            "reference_schema_label": "fear",
+            "raw_affect_label": null,
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "transcript_lexicon",
+              "raw_model_output": {
+                "transcript": "It's 11 o'clock!"
+              },
+              "raw_affect_label": null,
+              "schema_affect_label": "neutral",
+              "note": "Whisper has no affect head; affect is a transcript-lexicon fallback."
+            }
+          }
+        ],
+        "disgust_mapping": "CREMA-D DIS remains Attune `other`. It is not remapped to distress; a runner that never emits `other` has structurally zero DIS/other recall."
       },
       "failures": []
     },
@@ -115,9 +228,1172 @@
       },
       "runtime": {
         "audio_seconds": 155.25000000000003,
-        "elapsed_seconds": 8.114535213000636,
-        "real_time_factor": 0.05226753760386882,
+        "elapsed_seconds": 9.930058327000324,
+        "real_time_factor": 0.06396172835426939,
         "device": "cpu"
+      },
+      "affect_wiring_diagnostics": {
+        "affect_source_counts": {
+          "sensevoice_ser": 2,
+          "sensevoice_unmapped_ser_with_transcript_lexicon_fallback": 58
+        },
+        "raw_label_counts": {
+          "EMO_UNKNOWN": 58,
+          "SAD": 2
+        },
+        "schema_label_counts": {
+          "distress": 2,
+          "neutral": 58
+        },
+        "raw_to_schema_examples": [
+          {
+            "clip_id": "crema-d-1008_ieo_ang_hi",
+            "source_emotion": "ANG",
+            "reference_schema_label": "anger",
+            "raw_affect_label": "EMO_UNKNOWN",
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "sensevoice_unmapped_ser_with_transcript_lexicon_fallback",
+              "raw_model_output": [
+                {
+                  "key": "1008_IEO_ANG_HI",
+                  "text": "<|en|><|EMO_UNKNOWN|><|Speech|><|woitn|>it's 11 o'clock"
+                }
+              ],
+              "raw_affect_label": "EMO_UNKNOWN",
+              "schema_affect_label": "neutral",
+              "affect_mapping": [
+                {
+                  "raw_label": "EMO_UNKNOWN",
+                  "normalized_label": "emo_unknown",
+                  "schema_label": null,
+                  "confidence": 0.0,
+                  "source": "rich_transcription_tag"
+                }
+              ],
+              "note": "SenseVoice emitted an unmapped SER label; transcript lexicon was used."
+            }
+          },
+          {
+            "clip_id": "crema-d-1008_ieo_dis_hi",
+            "source_emotion": "DIS",
+            "reference_schema_label": "other",
+            "raw_affect_label": "EMO_UNKNOWN",
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "sensevoice_unmapped_ser_with_transcript_lexicon_fallback",
+              "raw_model_output": [
+                {
+                  "key": "1008_IEO_DIS_HI",
+                  "text": "<|en|><|EMO_UNKNOWN|><|Speech|><|woitn|>it's  eleven1 o'clock"
+                }
+              ],
+              "raw_affect_label": "EMO_UNKNOWN",
+              "schema_affect_label": "neutral",
+              "affect_mapping": [
+                {
+                  "raw_label": "EMO_UNKNOWN",
+                  "normalized_label": "emo_unknown",
+                  "schema_label": null,
+                  "confidence": 0.0,
+                  "source": "rich_transcription_tag"
+                }
+              ],
+              "note": "SenseVoice emitted an unmapped SER label; transcript lexicon was used."
+            }
+          },
+          {
+            "clip_id": "crema-d-1008_ieo_fea_hi",
+            "source_emotion": "FEA",
+            "reference_schema_label": "fear",
+            "raw_affect_label": "EMO_UNKNOWN",
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "sensevoice_unmapped_ser_with_transcript_lexicon_fallback",
+              "raw_model_output": [
+                {
+                  "key": "1008_IEO_FEA_HI",
+                  "text": "<|en|><|EMO_UNKNOWN|><|Speech|><|woitn|>it's 11 o'clock"
+                }
+              ],
+              "raw_affect_label": "EMO_UNKNOWN",
+              "schema_affect_label": "neutral",
+              "affect_mapping": [
+                {
+                  "raw_label": "EMO_UNKNOWN",
+                  "normalized_label": "emo_unknown",
+                  "schema_label": null,
+                  "confidence": 0.0,
+                  "source": "rich_transcription_tag"
+                }
+              ],
+              "note": "SenseVoice emitted an unmapped SER label; transcript lexicon was used."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_ang_hi",
+            "source_emotion": "ANG",
+            "reference_schema_label": "anger",
+            "raw_affect_label": "EMO_UNKNOWN",
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "sensevoice_unmapped_ser_with_transcript_lexicon_fallback",
+              "raw_model_output": [
+                {
+                  "key": "1009_IEO_ANG_HI",
+                  "text": "<|en|><|EMO_UNKNOWN|><|Speech|><|woitn|>it's a 11 o'clock"
+                }
+              ],
+              "raw_affect_label": "EMO_UNKNOWN",
+              "schema_affect_label": "neutral",
+              "affect_mapping": [
+                {
+                  "raw_label": "EMO_UNKNOWN",
+                  "normalized_label": "emo_unknown",
+                  "schema_label": null,
+                  "confidence": 0.0,
+                  "source": "rich_transcription_tag"
+                }
+              ],
+              "note": "SenseVoice emitted an unmapped SER label; transcript lexicon was used."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_dis_hi",
+            "source_emotion": "DIS",
+            "reference_schema_label": "other",
+            "raw_affect_label": "EMO_UNKNOWN",
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "sensevoice_unmapped_ser_with_transcript_lexicon_fallback",
+              "raw_model_output": [
+                {
+                  "key": "1009_IEO_DIS_HI",
+                  "text": "<|en|><|EMO_UNKNOWN|><|Speech|><|woitn|>it's 11 o'clock"
+                }
+              ],
+              "raw_affect_label": "EMO_UNKNOWN",
+              "schema_affect_label": "neutral",
+              "affect_mapping": [
+                {
+                  "raw_label": "EMO_UNKNOWN",
+                  "normalized_label": "emo_unknown",
+                  "schema_label": null,
+                  "confidence": 0.0,
+                  "source": "rich_transcription_tag"
+                }
+              ],
+              "note": "SenseVoice emitted an unmapped SER label; transcript lexicon was used."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_fea_hi",
+            "source_emotion": "FEA",
+            "reference_schema_label": "fear",
+            "raw_affect_label": "EMO_UNKNOWN",
+            "mapped_schema_label": "neutral",
+            "diagnostics": {
+              "affect_source": "sensevoice_unmapped_ser_with_transcript_lexicon_fallback",
+              "raw_model_output": [
+                {
+                  "key": "1009_IEO_FEA_HI",
+                  "text": "<|en|><|EMO_UNKNOWN|><|Speech|><|woitn|>it's 11 o'clock"
+                }
+              ],
+              "raw_affect_label": "EMO_UNKNOWN",
+              "schema_affect_label": "neutral",
+              "affect_mapping": [
+                {
+                  "raw_label": "EMO_UNKNOWN",
+                  "normalized_label": "emo_unknown",
+                  "schema_label": null,
+                  "confidence": 0.0,
+                  "source": "rich_transcription_tag"
+                }
+              ],
+              "note": "SenseVoice emitted an unmapped SER label; transcript lexicon was used."
+            }
+          }
+        ],
+        "disgust_mapping": "CREMA-D DIS remains Attune `other`. It is not remapped to distress; a runner that never emits `other` has structurally zero DIS/other recall."
+      },
+      "failures": []
+    },
+    "emotion2vec-plus": {
+      "status": "completed",
+      "evaluated_clips": 60,
+      "failed_clips": 0,
+      "asr": {
+        "wer": null,
+        "cer": null,
+        "note": "Not applicable: this runner is an acoustic affect-only model."
+      },
+      "categorical_affect": {
+        "accuracy": 0.85,
+        "macro_f1": 0.8679206566347469,
+        "per_class": {
+          "anger": {
+            "support": 20,
+            "precision": 0.8695652173913043,
+            "recall": 1.0,
+            "f1": 0.9302325581395349
+          },
+          "fear": {
+            "support": 20,
+            "precision": 1.0,
+            "recall": 0.7,
+            "f1": 0.8235294117647058
+          },
+          "other": {
+            "support": 20,
+            "precision": 0.85,
+            "recall": 0.85,
+            "f1": 0.85
+          }
+        },
+        "prediction_counts": {
+          "anger": 23,
+          "distress": 2,
+          "fear": 14,
+          "joy": 1,
+          "other": 20
+        }
+      },
+      "runtime": {
+        "audio_seconds": 155.25000000000003,
+        "elapsed_seconds": 6.941339213999981,
+        "real_time_factor": 0.0447107195748791,
+        "device": "cpu"
+      },
+      "affect_wiring_diagnostics": {
+        "affect_source_counts": {
+          "emotion2vec_plus_ser": 60
+        },
+        "raw_label_counts": {
+          "\u538c\u6076/disgusted": 20,
+          "\u5f00\u5fc3/happy": 1,
+          "\u6050\u60e7/fearful": 14,
+          "\u751f\u6c14/angry": 23,
+          "\u96be\u8fc7/sad": 2
+        },
+        "schema_label_counts": {
+          "anger": 23,
+          "distress": 2,
+          "fear": 14,
+          "joy": 1,
+          "other": 20
+        },
+        "raw_to_schema_examples": [
+          {
+            "clip_id": "crema-d-1008_ieo_ang_hi",
+            "source_emotion": "ANG",
+            "reference_schema_label": "anger",
+            "raw_affect_label": "\u751f\u6c14/angry",
+            "mapped_schema_label": "anger",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  1.0,
+                  4.800165598339845e-09,
+                  4.514551232848163e-10,
+                  1.0447993581408355e-08,
+                  8.177072907677996e-10,
+                  1.8366148879511712e-10,
+                  2.0196214145506985e-10,
+                  9.480307650022723e-10,
+                  2.870151382186603e-12
+                ]
+              },
+              "raw_affect_label": "\u751f\u6c14/angry",
+              "raw_affect_score": 1.0,
+              "schema_affect_label": "anger",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other"
+            }
+          },
+          {
+            "clip_id": "crema-d-1008_ieo_dis_hi",
+            "source_emotion": "DIS",
+            "reference_schema_label": "other",
+            "raw_affect_label": "\u538c\u6076/disgusted",
+            "mapped_schema_label": "other",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  5.299343186493388e-08,
+                  0.9999996423721313,
+                  1.0211751089173049e-07,
+                  1.6901639199318197e-08,
+                  1.2796604664799816e-08,
+                  8.67129212878126e-09,
+                  1.7998299028931797e-07,
+                  7.907056343015029e-09,
+                  4.181228974164952e-10
+                ]
+              },
+              "raw_affect_label": "\u538c\u6076/disgusted",
+              "raw_affect_score": 0.9999996423721313,
+              "schema_affect_label": "other",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other"
+            }
+          },
+          {
+            "clip_id": "crema-d-1008_ieo_fea_hi",
+            "source_emotion": "FEA",
+            "reference_schema_label": "fear",
+            "raw_affect_label": "\u538c\u6076/disgusted",
+            "mapped_schema_label": "other",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.0082966024056077,
+                  0.9106137156486511,
+                  0.050470996648073196,
+                  0.0047419629991054535,
+                  7.384106720564887e-05,
+                  1.162740863946965e-05,
+                  0.02571490965783596,
+                  4.931815783493221e-05,
+                  2.6999674446415156e-05
+                ]
+              },
+              "raw_affect_label": "\u538c\u6076/disgusted",
+              "raw_affect_score": 0.9106137156486511,
+              "schema_affect_label": "other",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other"
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_ang_hi",
+            "source_emotion": "ANG",
+            "reference_schema_label": "anger",
+            "raw_affect_label": "\u751f\u6c14/angry",
+            "mapped_schema_label": "anger",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.9809375405311584,
+                  0.00036631905823014677,
+                  0.0008639023290015757,
+                  0.017515743151307106,
+                  1.0857836969080381e-05,
+                  1.2065293049090542e-05,
+                  1.9136356058879755e-05,
+                  0.00025290544726885855,
+                  2.1374957213993184e-05
+                ]
+              },
+              "raw_affect_label": "\u751f\u6c14/angry",
+              "raw_affect_score": 0.9809375405311584,
+              "schema_affect_label": "anger",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other"
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_dis_hi",
+            "source_emotion": "DIS",
+            "reference_schema_label": "other",
+            "raw_affect_label": "\u751f\u6c14/angry",
+            "mapped_schema_label": "anger",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.9999959468841553,
+                  3.5620789731183322e-06,
+                  3.2144409800594076e-08,
+                  4.0453255678585265e-07,
+                  7.032390669792221e-08,
+                  4.821222532314096e-09,
+                  3.896208511378063e-08,
+                  5.213123710490208e-09,
+                  4.686043220125669e-10
+                ]
+              },
+              "raw_affect_label": "\u751f\u6c14/angry",
+              "raw_affect_score": 0.9999959468841553,
+              "schema_affect_label": "anger",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other"
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_fea_hi",
+            "source_emotion": "FEA",
+            "reference_schema_label": "fear",
+            "raw_affect_label": "\u6050\u60e7/fearful",
+            "mapped_schema_label": "fear",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.022383274510502815,
+                  4.289609569241293e-05,
+                  0.9774412512779236,
+                  0.00012660965148825198,
+                  1.7623427766011446e-06,
+                  1.9194348510609416e-07,
+                  3.4894621876446763e-06,
+                  3.067649174681719e-07,
+                  1.1264088328744037e-07
+                ]
+              },
+              "raw_affect_label": "\u6050\u60e7/fearful",
+              "raw_affect_score": 0.9774412512779236,
+              "schema_affect_label": "fear",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other"
+            }
+          }
+        ],
+        "disgust_mapping": "CREMA-D DIS remains Attune `other`. It is not remapped to distress; a runner that never emits `other` has structurally zero DIS/other recall."
+      },
+      "failures": []
+    },
+    "cascade:whisper-small+emotion2vec-plus+asr-event-output": {
+      "status": "completed",
+      "evaluated_clips": 60,
+      "failed_clips": 0,
+      "asr": {
+        "wer": 0.19666666666666666,
+        "cer": 0.28771929824561404,
+        "normalization": "lowercase alphanumeric tokens; punctuation removed"
+      },
+      "categorical_affect": {
+        "accuracy": 0.85,
+        "macro_f1": 0.8679206566347469,
+        "per_class": {
+          "anger": {
+            "support": 20,
+            "precision": 0.8695652173913043,
+            "recall": 1.0,
+            "f1": 0.9302325581395349
+          },
+          "fear": {
+            "support": 20,
+            "precision": 1.0,
+            "recall": 0.7,
+            "f1": 0.8235294117647058
+          },
+          "other": {
+            "support": 20,
+            "precision": 0.85,
+            "recall": 0.85,
+            "f1": 0.85
+          }
+        },
+        "prediction_counts": {
+          "anger": 23,
+          "distress": 2,
+          "fear": 14,
+          "joy": 1,
+          "other": 20
+        }
+      },
+      "runtime": {
+        "audio_seconds": 155.25000000000003,
+        "elapsed_seconds": 51.29415869400009,
+        "real_time_factor": 0.3303971574492759,
+        "device": "cpu"
+      },
+      "affect_wiring_diagnostics": {
+        "affect_source_counts": {
+          "emotion2vec_plus_ser": 60
+        },
+        "raw_label_counts": {
+          "\u538c\u6076/disgusted": 20,
+          "\u5f00\u5fc3/happy": 1,
+          "\u6050\u60e7/fearful": 14,
+          "\u751f\u6c14/angry": 23,
+          "\u96be\u8fc7/sad": 2
+        },
+        "schema_label_counts": {
+          "anger": 23,
+          "distress": 2,
+          "fear": 14,
+          "joy": 1,
+          "other": 20
+        },
+        "raw_to_schema_examples": [
+          {
+            "clip_id": "crema-d-1008_ieo_ang_hi",
+            "source_emotion": "ANG",
+            "reference_schema_label": "anger",
+            "raw_affect_label": "\u751f\u6c14/angry",
+            "mapped_schema_label": "anger",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  1.0,
+                  4.800165598339845e-09,
+                  4.514551232848163e-10,
+                  1.0447993581408355e-08,
+                  8.177072907677996e-10,
+                  1.8366148879511712e-10,
+                  2.0196214145506985e-10,
+                  9.480307650022723e-10,
+                  2.870151382186603e-12
+                ]
+              },
+              "raw_affect_label": "\u751f\u6c14/angry",
+              "raw_affect_score": 1.0,
+              "schema_affect_label": "anger",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "whisper-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          },
+          {
+            "clip_id": "crema-d-1008_ieo_dis_hi",
+            "source_emotion": "DIS",
+            "reference_schema_label": "other",
+            "raw_affect_label": "\u538c\u6076/disgusted",
+            "mapped_schema_label": "other",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  5.299343186493388e-08,
+                  0.9999996423721313,
+                  1.0211751089173049e-07,
+                  1.6901639199318197e-08,
+                  1.2796604664799816e-08,
+                  8.67129212878126e-09,
+                  1.7998299028931797e-07,
+                  7.907056343015029e-09,
+                  4.181228974164952e-10
+                ]
+              },
+              "raw_affect_label": "\u538c\u6076/disgusted",
+              "raw_affect_score": 0.9999996423721313,
+              "schema_affect_label": "other",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "whisper-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          },
+          {
+            "clip_id": "crema-d-1008_ieo_fea_hi",
+            "source_emotion": "FEA",
+            "reference_schema_label": "fear",
+            "raw_affect_label": "\u538c\u6076/disgusted",
+            "mapped_schema_label": "other",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.0082966024056077,
+                  0.9106137156486511,
+                  0.050470996648073196,
+                  0.0047419629991054535,
+                  7.384106720564887e-05,
+                  1.162740863946965e-05,
+                  0.02571490965783596,
+                  4.931815783493221e-05,
+                  2.6999674446415156e-05
+                ]
+              },
+              "raw_affect_label": "\u538c\u6076/disgusted",
+              "raw_affect_score": 0.9106137156486511,
+              "schema_affect_label": "other",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "whisper-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_ang_hi",
+            "source_emotion": "ANG",
+            "reference_schema_label": "anger",
+            "raw_affect_label": "\u751f\u6c14/angry",
+            "mapped_schema_label": "anger",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.9809375405311584,
+                  0.00036631905823014677,
+                  0.0008639023290015757,
+                  0.017515743151307106,
+                  1.0857836969080381e-05,
+                  1.2065293049090542e-05,
+                  1.9136356058879755e-05,
+                  0.00025290544726885855,
+                  2.1374957213993184e-05
+                ]
+              },
+              "raw_affect_label": "\u751f\u6c14/angry",
+              "raw_affect_score": 0.9809375405311584,
+              "schema_affect_label": "anger",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "whisper-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_dis_hi",
+            "source_emotion": "DIS",
+            "reference_schema_label": "other",
+            "raw_affect_label": "\u751f\u6c14/angry",
+            "mapped_schema_label": "anger",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.9999959468841553,
+                  3.5620789731183322e-06,
+                  3.2144409800594076e-08,
+                  4.0453255678585265e-07,
+                  7.032390669792221e-08,
+                  4.821222532314096e-09,
+                  3.896208511378063e-08,
+                  5.213123710490208e-09,
+                  4.686043220125669e-10
+                ]
+              },
+              "raw_affect_label": "\u751f\u6c14/angry",
+              "raw_affect_score": 0.9999959468841553,
+              "schema_affect_label": "anger",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "whisper-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_fea_hi",
+            "source_emotion": "FEA",
+            "reference_schema_label": "fear",
+            "raw_affect_label": "\u6050\u60e7/fearful",
+            "mapped_schema_label": "fear",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.022383274510502815,
+                  4.289609569241293e-05,
+                  0.9774412512779236,
+                  0.00012660965148825198,
+                  1.7623427766011446e-06,
+                  1.9194348510609416e-07,
+                  3.4894621876446763e-06,
+                  3.067649174681719e-07,
+                  1.1264088328744037e-07
+                ]
+              },
+              "raw_affect_label": "\u6050\u60e7/fearful",
+              "raw_affect_score": 0.9774412512779236,
+              "schema_affect_label": "fear",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "whisper-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          }
+        ],
+        "disgust_mapping": "CREMA-D DIS remains Attune `other`. It is not remapped to distress; a runner that never emits `other` has structurally zero DIS/other recall."
+      },
+      "failures": []
+    },
+    "cascade:sensevoice-small+emotion2vec-plus+asr-event-output": {
+      "status": "completed",
+      "evaluated_clips": 60,
+      "failed_clips": 0,
+      "asr": {
+        "wer": 0.19,
+        "cer": 0.256140350877193,
+        "normalization": "lowercase alphanumeric tokens; punctuation removed"
+      },
+      "categorical_affect": {
+        "accuracy": 0.85,
+        "macro_f1": 0.8679206566347469,
+        "per_class": {
+          "anger": {
+            "support": 20,
+            "precision": 0.8695652173913043,
+            "recall": 1.0,
+            "f1": 0.9302325581395349
+          },
+          "fear": {
+            "support": 20,
+            "precision": 1.0,
+            "recall": 0.7,
+            "f1": 0.8235294117647058
+          },
+          "other": {
+            "support": 20,
+            "precision": 0.85,
+            "recall": 0.85,
+            "f1": 0.85
+          }
+        },
+        "prediction_counts": {
+          "anger": 23,
+          "distress": 2,
+          "fear": 14,
+          "joy": 1,
+          "other": 20
+        }
+      },
+      "runtime": {
+        "audio_seconds": 155.25000000000003,
+        "elapsed_seconds": 12.041356634003023,
+        "real_time_factor": 0.07756107332691156,
+        "device": "cpu"
+      },
+      "affect_wiring_diagnostics": {
+        "affect_source_counts": {
+          "emotion2vec_plus_ser": 60
+        },
+        "raw_label_counts": {
+          "\u538c\u6076/disgusted": 20,
+          "\u5f00\u5fc3/happy": 1,
+          "\u6050\u60e7/fearful": 14,
+          "\u751f\u6c14/angry": 23,
+          "\u96be\u8fc7/sad": 2
+        },
+        "schema_label_counts": {
+          "anger": 23,
+          "distress": 2,
+          "fear": 14,
+          "joy": 1,
+          "other": 20
+        },
+        "raw_to_schema_examples": [
+          {
+            "clip_id": "crema-d-1008_ieo_ang_hi",
+            "source_emotion": "ANG",
+            "reference_schema_label": "anger",
+            "raw_affect_label": "\u751f\u6c14/angry",
+            "mapped_schema_label": "anger",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  1.0,
+                  4.800165598339845e-09,
+                  4.514551232848163e-10,
+                  1.0447993581408355e-08,
+                  8.177072907677996e-10,
+                  1.8366148879511712e-10,
+                  2.0196214145506985e-10,
+                  9.480307650022723e-10,
+                  2.870151382186603e-12
+                ]
+              },
+              "raw_affect_label": "\u751f\u6c14/angry",
+              "raw_affect_score": 1.0,
+              "schema_affect_label": "anger",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "sensevoice-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          },
+          {
+            "clip_id": "crema-d-1008_ieo_dis_hi",
+            "source_emotion": "DIS",
+            "reference_schema_label": "other",
+            "raw_affect_label": "\u538c\u6076/disgusted",
+            "mapped_schema_label": "other",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  5.299343186493388e-08,
+                  0.9999996423721313,
+                  1.0211751089173049e-07,
+                  1.6901639199318197e-08,
+                  1.2796604664799816e-08,
+                  8.67129212878126e-09,
+                  1.7998299028931797e-07,
+                  7.907056343015029e-09,
+                  4.181228974164952e-10
+                ]
+              },
+              "raw_affect_label": "\u538c\u6076/disgusted",
+              "raw_affect_score": 0.9999996423721313,
+              "schema_affect_label": "other",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "sensevoice-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          },
+          {
+            "clip_id": "crema-d-1008_ieo_fea_hi",
+            "source_emotion": "FEA",
+            "reference_schema_label": "fear",
+            "raw_affect_label": "\u538c\u6076/disgusted",
+            "mapped_schema_label": "other",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.0082966024056077,
+                  0.9106137156486511,
+                  0.050470996648073196,
+                  0.0047419629991054535,
+                  7.384106720564887e-05,
+                  1.162740863946965e-05,
+                  0.02571490965783596,
+                  4.931815783493221e-05,
+                  2.6999674446415156e-05
+                ]
+              },
+              "raw_affect_label": "\u538c\u6076/disgusted",
+              "raw_affect_score": 0.9106137156486511,
+              "schema_affect_label": "other",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "sensevoice-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_ang_hi",
+            "source_emotion": "ANG",
+            "reference_schema_label": "anger",
+            "raw_affect_label": "\u751f\u6c14/angry",
+            "mapped_schema_label": "anger",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.9809375405311584,
+                  0.00036631905823014677,
+                  0.0008639023290015757,
+                  0.017515743151307106,
+                  1.0857836969080381e-05,
+                  1.2065293049090542e-05,
+                  1.9136356058879755e-05,
+                  0.00025290544726885855,
+                  2.1374957213993184e-05
+                ]
+              },
+              "raw_affect_label": "\u751f\u6c14/angry",
+              "raw_affect_score": 0.9809375405311584,
+              "schema_affect_label": "anger",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "sensevoice-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_dis_hi",
+            "source_emotion": "DIS",
+            "reference_schema_label": "other",
+            "raw_affect_label": "\u751f\u6c14/angry",
+            "mapped_schema_label": "anger",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.9999959468841553,
+                  3.5620789731183322e-06,
+                  3.2144409800594076e-08,
+                  4.0453255678585265e-07,
+                  7.032390669792221e-08,
+                  4.821222532314096e-09,
+                  3.896208511378063e-08,
+                  5.213123710490208e-09,
+                  4.686043220125669e-10
+                ]
+              },
+              "raw_affect_label": "\u751f\u6c14/angry",
+              "raw_affect_score": 0.9999959468841553,
+              "schema_affect_label": "anger",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "sensevoice-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          },
+          {
+            "clip_id": "crema-d-1009_ieo_fea_hi",
+            "source_emotion": "FEA",
+            "reference_schema_label": "fear",
+            "raw_affect_label": "\u6050\u60e7/fearful",
+            "mapped_schema_label": "fear",
+            "diagnostics": {
+              "affect_source": "emotion2vec_plus_ser",
+              "raw_model_output": {
+                "labels": [
+                  "\u751f\u6c14/angry",
+                  "\u538c\u6076/disgusted",
+                  "\u6050\u60e7/fearful",
+                  "\u5f00\u5fc3/happy",
+                  "\u4e2d\u7acb/neutral",
+                  "\u5176\u4ed6/other",
+                  "\u96be\u8fc7/sad",
+                  "\u5403\u60ca/surprised",
+                  "<unk>"
+                ],
+                "scores": [
+                  0.022383274510502815,
+                  4.289609569241293e-05,
+                  0.9774412512779236,
+                  0.00012660965148825198,
+                  1.7623427766011446e-06,
+                  1.9194348510609416e-07,
+                  3.4894621876446763e-06,
+                  3.067649174681719e-07,
+                  1.1264088328744037e-07
+                ]
+              },
+              "raw_affect_label": "\u6050\u60e7/fearful",
+              "raw_affect_score": 0.9774412512779236,
+              "schema_affect_label": "fear",
+              "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+              "asr_component": {
+                "name": "sensevoice-small"
+              },
+              "affect_component": {
+                "name": "emotion2vec-plus"
+              },
+              "note": "Cascade output uses the acoustic affect component; the ASR adapter's placeholder affect is replaced."
+            }
+          }
+        ],
+        "disgust_mapping": "CREMA-D DIS remains Attune `other`. It is not remapped to distress; a runner that never emits `other` has structurally zero DIS/other recall."
       },
       "failures": []
     }
@@ -129,8 +1405,8 @@
     "by_source_class": {
       "Crying_and_sobbing": {
         "clips": 25,
-        "matched": 8,
-        "weak_label_detection_rate": 0.32
+        "matched": 9,
+        "weak_label_detection_rate": 0.36
       },
       "Screaming": {
         "clips": 25,
@@ -620,9 +1896,11 @@
       {
         "clip_id": "fsd50k-46964",
         "source_class": "Crying_and_sobbing",
-        "events": [],
+        "events": [
+          "sob"
+        ],
         "styles": [],
-        "matched_mapped_weak_label": false
+        "matched_mapped_weak_label": true
       },
       {
         "clip_id": "fsd50k-47929",
@@ -877,9 +2155,229 @@
     ],
     "failures": []
   },
-  "frozen_event_probe": {
-    "status": "blocked_missing_existing_checkpoint",
-    "reason": "The trained frozen event-probe head is intentionally gitignored and was not available on this VM. Retraining is forbidden for this run.",
+  "fsd50k_frozen_probe": {
+    "report_version": "1",
+    "generated_at_utc": "2026-08-27T00:41:05.478914Z",
+    "task": "FSD50K source-labelled shout/whisper/sob/scream four-way diagnostic",
+    "gate_decision": "closed",
+    "encoder_frozen": true,
+    "fine_tuning_performed": false,
+    "head": {
+      "type": "linear",
+      "trainable_parameters": 20484,
+      "checkpoint_committed": false
+    },
+    "embedding": {
+      "name": "sensevoice-small-encoder-v2",
+      "model": "SenseVoiceSmall by FunASR/FunAudioLLM",
+      "revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
+      "model_file_sha256": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea",
+      "trainable_parameters": 0,
+      "total_parameters": 233999167,
+      "query_frames_excluded": 4,
+      "frontend_dither": 0.0,
+      "extraction_route": "direct_frontend_and_frozen_encoder",
+      "pooling": "8 temporal means plus acoustic-frame mean/std",
+      "output_size": 5120,
+      "cache_hits": 0,
+      "cache_misses": 420
+    },
+    "data_contract": {
+      "probe_manifest": "data/manifests/fsd50k-frozen-probe.jsonl",
+      "probe_manifest_sha256": "731bd38735ad1f3083938a4d5c74641249a0715f9012279c4a1171c945954698",
+      "inspection_manifest": "data/manifests/licence-clean-inspection.jsonl",
+      "inspection_manifest_sha256": "422c9b7b33b56a5f97d27945c717c769ddbd138f262577f504259a9536d39859",
+      "split": "Clip-disjoint train/validation/100-row inspection test. FSD50K does not provide speaker IDs; uploader metadata is not a speaker identity.",
+      "inspection_rows_excluded_from_training": 100,
+      "licences": "clip-level CC0 or CC BY only",
+      "cross_target_clips": 0,
+      "full_audio_archive_downloaded": false
+    },
+    "partitions": {
+      "train": {
+        "clips": 256,
+        "label_counts": {
+          "scream": 64,
+          "shout": 64,
+          "sob": 64,
+          "whisper": 64
+        }
+      },
+      "validation": {
+        "clips": 64,
+        "label_counts": {
+          "scream": 16,
+          "shout": 16,
+          "sob": 16,
+          "whisper": 16
+        }
+      },
+      "inspection_test": {
+        "clips": 100,
+        "label_counts": {
+          "scream": 25,
+          "shout": 25,
+          "sob": 25,
+          "whisper": 25
+        }
+      }
+    },
+    "seed": 0,
+    "epochs_completed": 9,
+    "early_stopping_patience": 5,
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 5.495884358882904,
+        "validation_loss": 5.856156349182129
+      },
+      {
+        "epoch": 2,
+        "train_loss": 2.7707286551594734,
+        "validation_loss": 2.188218116760254
+      },
+      {
+        "epoch": 3,
+        "train_loss": 1.6821294873952866,
+        "validation_loss": 1.880807876586914
+      },
+      {
+        "epoch": 4,
+        "train_loss": 1.0801874734461308,
+        "validation_loss": 1.6466974020004272
+      },
+      {
+        "epoch": 5,
+        "train_loss": 0.7359816476237029,
+        "validation_loss": 2.0036044120788574
+      },
+      {
+        "epoch": 6,
+        "train_loss": 0.4236589586435002,
+        "validation_loss": 2.667705774307251
+      },
+      {
+        "epoch": 7,
+        "train_loss": 0.3306911335557743,
+        "validation_loss": 2.430755853652954
+      },
+      {
+        "epoch": 8,
+        "train_loss": 0.17566384432847038,
+        "validation_loss": 2.173638105392456
+      },
+      {
+        "epoch": 9,
+        "train_loss": 0.02117805901217551,
+        "validation_loss": 1.8300654888153076
+      }
+    ],
+    "validation_metrics": {
+      "accuracy": 0.921875,
+      "macro_f1": 0.9218597262952102,
+      "per_class": {
+        "shout": {
+          "precision": 0.875,
+          "recall": 0.875,
+          "f1": 0.875,
+          "support": 16
+        },
+        "whisper": {
+          "precision": 0.9411764705882353,
+          "recall": 1.0,
+          "f1": 0.9696969696969697,
+          "support": 16
+        },
+        "sob": {
+          "precision": 1.0,
+          "recall": 0.9375,
+          "f1": 0.967741935483871,
+          "support": 16
+        },
+        "scream": {
+          "precision": 0.875,
+          "recall": 0.875,
+          "f1": 0.875,
+          "support": 16
+        }
+      }
+    },
+    "inspection_test_metrics": {
+      "accuracy": 0.74,
+      "macro_f1": 0.7410326086956522,
+      "per_class": {
+        "shout": {
+          "precision": 0.8095238095238095,
+          "recall": 0.68,
+          "f1": 0.7391304347826089,
+          "support": 25
+        },
+        "whisper": {
+          "precision": 0.9130434782608695,
+          "recall": 0.84,
+          "f1": 0.8749999999999999,
+          "support": 25
+        },
+        "sob": {
+          "precision": 0.6774193548387096,
+          "recall": 0.84,
+          "f1": 0.75,
+          "support": 25
+        },
+        "scream": {
+          "precision": 0.6,
+          "recall": 0.6,
+          "f1": 0.6,
+          "support": 25
+        }
+      }
+    },
+    "comparison": {
+      "shout": {
+        "frozen_encoder_probe_f1": 0.7391304347826089,
+        "off_the_shelf_aed_weak_label_detection_rate": 0.0,
+        "off_the_shelf_aed_one_vs_rest_f1": 0.0
+      },
+      "whisper": {
+        "frozen_encoder_probe_f1": 0.8749999999999999,
+        "off_the_shelf_aed_weak_label_detection_rate": 0.0,
+        "off_the_shelf_aed_one_vs_rest_f1": 0.0
+      },
+      "sob": {
+        "frozen_encoder_probe_f1": 0.75,
+        "off_the_shelf_aed_weak_label_detection_rate": 0.32,
+        "off_the_shelf_aed_one_vs_rest_f1": 0.48484848484848486
+      },
+      "scream": {
+        "frozen_encoder_probe_f1": 0.6,
+        "off_the_shelf_aed_weak_label_detection_rate": 0.0,
+        "off_the_shelf_aed_one_vs_rest_f1": 0.0
+      }
+    },
+    "comparator_note": "The previously reported AED values 0/0/0.32/0 are weak-label detection rates, not F1. With eight sob true positives, no sob false positives, and 17 sob false negatives in the committed raw outputs, sob one-vs-rest F1 is 0.484848; both metrics are named explicitly.",
+    "ontology_boundaries": {
+      "scream": "Separate source/probe class; never mapped to Attune shouting.",
+      "sob": "FSD50K Crying_and_sobbing maps to sob, never crying_speech.",
+      "intensity": "CREMA-D intensity is not used by this probe."
+    },
+    "runtime": {
+      "python": "3.12.3",
+      "torch": "2.13.0+cu130",
+      "device": "cpu"
+    },
+    "attribution": {
+      "SenseVoiceSmall": "FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1",
+      "FSD50K": "Fonseca et al.; annotations CC BY 4.0; individual clips retain their recorded CC0 or CC BY licences."
+    },
+    "limitations": [
+      "FSD50K source labels are weak labels, not reviewed Attune gold.",
+      "Standalone Freesound clips do not establish speech-embedded style coverage.",
+      "No localization, calibration, abstention, or OOD threshold was evaluated."
+    ]
+  },
+  "legacy_vocalsound_probe_transfer": {
+    "status": "not_run_missing_optional_legacy_checkpoint",
+    "reason": "The legacy VocalSound head is intentionally gitignored and unavailable. This does not block the newly authorised FSD50K linear probe.",
     "encoder_frozen": true,
     "training_performed": false
   },
@@ -891,6 +2389,10 @@
     "sensevoice-small": {
       "revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
       "attribution": "SenseVoiceSmall by FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1."
+    },
+    "emotion2vec-plus": {
+      "revision": "b318240bfe67db81a8c572ecb37ce9c3759b81c9",
+      "attribution": "emotion2vec+ base by emotion2vec and FunASR/FunAudioLLM; FunASR Model Open Source License Agreement."
     }
   },
   "limitations": [
@@ -899,6 +2401,7 @@
     "Crying_and_sobbing maps to sob, not crying_speech without clip-level speech review.",
     "CREMA-D intensity is metadata only and is not mapped to shouting or whispering.",
     "CREMA-D contains no surprise source category.",
+    "CREMA-D DIS maps to Attune other, never distress. Models without an other/disgust output therefore have structurally zero DIS recall.",
     "No calibration, localization, abstention, OOD threshold, or gold review is completed."
   ]
 }

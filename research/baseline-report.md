@@ -564,6 +564,8 @@ are not silently reused.
 
 All 233,999,167 SenseVoiceSmall parameters had gradients disabled and zero
 encoder parameters entered the optimizer. Only the linear head trained. The
+fresh run had 420 cache misses; a second run had 420 cache hits and reproduced
+the full loss history and every validation/test metric exactly. The
 inspection result was 0.7400 accuracy and 0.7410 four-way macro-F1:
 
 | Source/probe class | Frozen encoder probe F1 | AED detection rate | AED one-vs-rest F1 |

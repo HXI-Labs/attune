@@ -8,8 +8,8 @@ variants:
     checkpoint_hash: null
   - name: base
     source_url: https://huggingface.co/emotion2vec/emotion2vec_plus_base
-    revision: null
-    checkpoint_hash: null
+    revision: b318240bfe67db81a8c572ecb37ce9c3759b81c9
+    checkpoint_hash: 60710b5aae1dbe69bdac8920028fb05882d4314fd09031922b4b61ee9e7aadbd
   - name: large
     source_url: https://huggingface.co/emotion2vec/emotion2vec_plus_large
     revision: null
@@ -26,7 +26,7 @@ licence:
   reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
   reviewed_at: "2026-08-26"
 redistribution_status: not_authorised_by_this_review
-downloaded_at: null
+downloaded_at: "2026-08-27 (base variant only; local gitignored cache)"
 notes:
   - This review permits downloading the official seed, base, and large weights for internal baseline runs only.
   - It does not authorise fine-tuning or public redistribution of weights.

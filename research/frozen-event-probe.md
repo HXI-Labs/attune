@@ -70,6 +70,22 @@ a `generate()` forward hook; FunASR resets the wrapper frontend before
 generation, which also reset its configured dither. Version 1 checkpoints and
 embedding caches are therefore not accepted as version 2 artifacts.
 
+## FSD50K shout/whisper/sob/scream follow-up
+
+The bounded FSD50K protocol uses 256 training, 64 validation, and 100 immutable
+inspection-test clips, balanced across four source/probe classes. FSD50K
+provides no speaker IDs, so the protocol is clip-disjoint. All test IDs are
+excluded before train/validation selection. Only individual CC0/CC BY,
+single-target files are fetched.
+
+The version-2 frozen SenseVoiceSmall representation plus a new linear head
+reached 0.7410 test macro-F1: shout 0.7391, whisper 0.8750, sob 0.7500, and
+scream 0.6000. The requested AED comparator values 0/0/0.32/0 are detection
+rates; proper one-vs-rest AED F1 is 0/0/0.4848/0. Full split, freeze,
+reproducibility, and metric evidence is in
+`research/fsd50k-frozen-probe-metrics.json`. The head and embedding cache remain
+gitignored.
+
 ## Interpretation boundary
 
 VocalSound contains crowdsourced standalone acted vocal sounds. Its source

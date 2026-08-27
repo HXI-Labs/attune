@@ -159,6 +159,14 @@ uv run python scripts/prepare_licence_clean_inspection.py --download
 
 # Offline hash and audio-contract verification.
 uv run python scripts/prepare_licence_clean_inspection.py
+
+# Fetch the three reviewed, pinned baselines into a gitignored cache, then run.
+uv run python scripts/fetch_inspection_models.py
+ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python \
+  scripts/evaluate_licence_clean_inspection.py \
+  --whisper-path data/raw/model-cache/whisper-small \
+  --sensevoice-path data/raw/model-cache/sensevoice-small \
+  --emotion2vec-path data/raw/model-cache/emotion2vec-plus
 ```
 
 All output audio is mono 16 kHz PCM16 under ignored
