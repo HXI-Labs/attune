@@ -21,7 +21,9 @@ def checkpoint_payload(*, gate_passed: bool) -> dict:
         "feature_mean": torch.zeros(512),
         "feature_scale": torch.ones(512),
         "labels": ("laugh", "cough", "throat_clear"),
+        "hidden_size": 128,
         "threshold": 0.5,
+        "dataset": "dcase2016_task2",
         "embedding": "sensevoice-small-encoder-frames-v1",
         "encoder_frozen": True,
         "gate": {

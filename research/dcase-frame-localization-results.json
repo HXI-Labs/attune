@@ -1,6 +1,6 @@
 {
   "report_version": "2",
-  "generated_at_utc": "2026-08-27T08:41:08.659870Z",
+  "generated_at_utc": "2026-08-27T08:51:54.830023Z",
   "gate_decision": "closed",
   "task": "DCASE 2016 Task 2 synthetic strong-label event localization",
   "labels": [
@@ -232,6 +232,27 @@
     },
     "temporal_head": {
       "segment_f1": {
+        "f1": 0.7058823529411765,
+        "true_positive": 168,
+        "false_positive": 79,
+        "false_negative": 61,
+        "segment_ms": 1000
+      },
+      "collar_event_metrics": {
+        "f1": 0.5278810408921933,
+        "true_positive": 71,
+        "false_positive": 68,
+        "false_negative": 59,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": 80.28169014084507,
+        "matched_offset_mae_ms": 94.78873239436619
+      }
+    },
+    "direct_threshold_before_decoder": {
+      "threshold": 0.95,
+      "segment_f1": {
         "f1": 0.7284768211920529,
         "true_positive": 165,
         "false_positive": 59,
@@ -249,6 +270,12 @@
         "matched_onset_mae_ms": 74.32835820895522,
         "matched_offset_mae_ms": 94.92537313432835
       }
+    },
+    "validation_selected_hysteresis_decoder": {
+      "high_threshold": 0.95,
+      "low_threshold": 0.855,
+      "max_gap_frames": 1,
+      "min_active_frames": 1
     },
     "whole_clip_oracle_tag_baseline": {
       "definition": "uses each clip's known label set but assigns every event 0..10000 ms; this is deliberately not localization",
@@ -276,7 +303,7 @@
   },
   "cascade_wiring": {
     "clear_segment_f1_margin_required": 0.05,
-    "margin_observed": 0.4102002402330536,
+    "margin_observed": 0.3876057719821772,
     "eligible_for_wiring": true,
     "timestamps_wired": true,
     "runtime_head": "attune.models.temporal_probe.FrozenTemporalProbeHead",

@@ -86,6 +86,31 @@ def test_frame_targets_use_strong_interval_overlap() -> None:
     ]
 
 
+def test_hysteresis_decoder_expands_seeds_and_bridges_short_gap() -> None:
+    script = load_training_script()
+    probabilities = [
+        [
+            [0.86, 0.0, 0.0],
+            [0.96, 0.0, 0.0],
+            [0.80, 0.0, 0.0],
+            [0.96, 0.0, 0.0],
+        ]
+    ]
+
+    spans = script.hysteresis_spans(
+        probabilities,
+        high_threshold=0.95,
+        low_threshold=0.855,
+        max_gap_frames=1,
+        min_active_frames=1,
+        first_frame_center_ms=30.0,
+        frame_hop_ms=60.0,
+        duration_ms=240,
+    )
+
+    assert spans == [[{"label": "laugh", "start_ms": 0, "end_ms": 240}]]
+
+
 def test_cascade_wiring_requires_clear_gain_over_whole_clip() -> None:
     script = load_training_script()
 

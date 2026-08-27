@@ -62,8 +62,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--temporal-head",
         type=Path,
-        default=_path_from_env("ATTUNE_TEMPORAL_HEAD_PATH"),
-        help="optional held-out-gated DCASE frame head for laugh/cough/throat-clear spans",
+        action="append",
+        default=(
+            [path] if (path := _path_from_env("ATTUNE_TEMPORAL_HEAD_PATH")) is not None else []
+        ),
+        help="repeatable held-out-gated frame head path",
     )
     parser.add_argument(
         "--fixture-mode",
@@ -149,7 +152,7 @@ def _build_cascade(arguments: argparse.Namespace) -> AttuneCascade:
         fsd50k_probe_checkpoint=arguments.fsd50k_probe,
         embedding_cache=arguments.embedding_cache,
         calibration_path=arguments.calibration,
-        temporal_head_checkpoint=arguments.temporal_head,
+        temporal_head_checkpoints=tuple(arguments.temporal_head),
     )
     available, reason = cascade.availability()
     if not available:

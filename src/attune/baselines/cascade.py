@@ -174,7 +174,7 @@ class AttuneCascade(ModularCascade):
         fsd50k_probe_checkpoint: Path,
         embedding_cache: Path,
         calibration_path: Path | None = None,
-        temporal_head_checkpoint: Path | None = None,
+        temporal_head_checkpoints: tuple[Path, ...] = (),
     ) -> None:
         vocalsound_calibration = (
             load_calibration(calibration_path, component="vocalsound_probe")
@@ -203,13 +203,16 @@ class AttuneCascade(ModularCascade):
                 calibration=fsd50k_calibration,
             ),
         )
-        if temporal_head_checkpoint is not None:
+        if temporal_head_checkpoints:
             heads = (
                 *heads,
-                FrozenTemporalProbeHead(
-                    checkpoint=temporal_head_checkpoint,
-                    sensevoice_checkpoint=sensevoice_checkpoint,
-                    frame_cache=embedding_cache,
+                *(
+                    FrozenTemporalProbeHead(
+                        checkpoint=checkpoint,
+                        sensevoice_checkpoint=sensevoice_checkpoint,
+                        frame_cache=embedding_cache,
+                    )
+                    for checkpoint in temporal_head_checkpoints
                 ),
             )
         super().__init__(
@@ -235,7 +238,11 @@ class AttuneCascade(ModularCascade):
             ),
             event_heads=heads,
         )
-        temporal_suffix = "+dcase-frame-temporal" if temporal_head_checkpoint is not None else ""
+        temporal_suffix = (
+            f"+{len(temporal_head_checkpoints)}-gated-frame-heads"
+            if temporal_head_checkpoints
+            else ""
+        )
         self.name = (
             "attune-cascade:sensevoice+emotion2vec+aed+vocalsound-probe+fsd50k-probe"
             f"{temporal_suffix}"

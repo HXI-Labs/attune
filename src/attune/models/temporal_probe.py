@@ -26,8 +26,6 @@ TEMPORAL_LABELS = {
 class FrozenTemporalProbeHead:
     """Decode event spans from frozen SenseVoice frames after a held-out gate."""
 
-    name = "dcase-frozen-frame-temporal-head"
-
     def __init__(
         self,
         *,
@@ -35,6 +33,7 @@ class FrozenTemporalProbeHead:
         sensevoice_checkpoint: Path,
         frame_cache: Path,
     ) -> None:
+        self.name = f"gated-frame-temporal:{checkpoint.parent.name}"
         self.checkpoint = checkpoint
         self.sensevoice_checkpoint = sensevoice_checkpoint
         self.frame_cache = frame_cache
@@ -66,6 +65,7 @@ class FrozenTemporalProbeHead:
             probabilities,
             labels=payload["labels"],
             threshold=float(payload["threshold"]),
+            decoder=payload.get("decoder"),
             first_frame_center_ms=extractor.first_frame_center_ms,
             frame_hop_ms=extractor.frame_hop_ms,
             duration_ms=duration_ms,
@@ -80,6 +80,8 @@ class FrozenTemporalProbeHead:
                 "span_scope": "frame",
                 "frame_hop_ms_approx": extractor.frame_hop_ms,
                 "threshold": float(payload["threshold"]),
+                "decoder": payload.get("decoder"),
+                "dataset": payload["dataset"],
                 "gate": payload["gate"],
             },
         )
@@ -95,7 +97,9 @@ class FrozenTemporalProbeHead:
             "feature_mean",
             "feature_scale",
             "labels",
+            "hidden_size",
             "threshold",
+            "dataset",
             "embedding",
             "encoder_frozen",
             "gate",
@@ -107,18 +111,24 @@ class FrozenTemporalProbeHead:
         if payload["encoder_frozen"] is not True:
             raise RuntimeError("temporal checkpoint does not attest a frozen encoder")
         labels = payload["labels"]
-        if tuple(labels) != tuple(TEMPORAL_LABELS):
-            raise RuntimeError("temporal checkpoint labels do not match the DCASE mapping")
+        expected_labels = {
+            "dcase2016_task2": ("laugh", "cough", "throat_clear"),
+            "starss23": ("laugh",),
+        }
+        dataset = payload["dataset"]
+        if dataset not in expected_labels or tuple(labels) != expected_labels[dataset]:
+            raise RuntimeError("temporal checkpoint labels do not match its dataset mapping")
         gate = payload["gate"]
         if not isinstance(gate, dict) or gate.get("passed") is not True:
             raise RuntimeError("temporal checkpoint did not pass the held-out wiring gate")
         if float(gate["margin_observed"]) < float(gate["margin_required"]):
             raise RuntimeError("temporal checkpoint margin is below its wiring requirement")
 
+        hidden_size = int(payload["hidden_size"])
         head = torch.nn.Sequential(
-            torch.nn.Linear(512, 128),
+            torch.nn.Linear(512, hidden_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(128, len(labels)),
+            torch.nn.Linear(hidden_size, len(labels)),
         )
         head.load_state_dict(payload["head_state_dict"])
         head.eval()
@@ -139,38 +149,74 @@ def _decode_annotations(
     *,
     labels: list[str] | tuple[str, ...],
     threshold: float,
+    decoder: dict[str, Any] | None = None,
     first_frame_center_ms: float,
     frame_hop_ms: float,
     duration_ms: int,
 ) -> list[ProbeAnnotation]:
     annotations = []
     for label_index, source_label in enumerate(labels):
-        active = probabilities[:, label_index] >= threshold
+        values = probabilities[:, label_index].tolist()
+        intervals = _active_intervals(values, threshold=threshold, decoder=decoder)
+        for start, end in intervals:
+            start_ms = max(
+                0,
+                round(first_frame_center_ms + start * frame_hop_ms - frame_hop_ms / 2),
+            )
+            end_ms = min(
+                duration_ms,
+                round(first_frame_center_ms + (end + 1) * frame_hop_ms - frame_hop_ms / 2),
+            )
+            confidence = float(probabilities[start : end + 1, label_index].max())
+            annotations.append(
+                ProbeAnnotation(
+                    channel="event",
+                    label=TEMPORAL_LABELS[source_label],
+                    confidence=confidence,
+                    start_ms=start_ms,
+                    end_ms=end_ms,
+                )
+            )
+    return annotations
+
+
+def _active_intervals(
+    values: list[float],
+    *,
+    threshold: float,
+    decoder: dict[str, Any] | None,
+) -> list[tuple[int, int]]:
+    if not decoder or decoder.get("type") != "hysteresis":
+        active = [value >= threshold for value in values]
+        intervals = []
         start = None
-        for index, enabled in enumerate([*active.tolist(), False]):
+        for index, enabled in enumerate([*active, False]):
             if enabled and start is None:
                 start = index
             elif not enabled and start is not None:
-                start_ms = max(
-                    0,
-                    round(first_frame_center_ms + start * frame_hop_ms - frame_hop_ms / 2),
-                )
-                end_ms = min(
-                    duration_ms,
-                    round(first_frame_center_ms + index * frame_hop_ms - frame_hop_ms / 2),
-                )
-                confidence = float(probabilities[start:index, label_index].max())
-                annotations.append(
-                    ProbeAnnotation(
-                        channel="event",
-                        label=TEMPORAL_LABELS[source_label],
-                        confidence=confidence,
-                        start_ms=start_ms,
-                        end_ms=end_ms,
-                    )
-                )
+                intervals.append((start, index - 1))
                 start = None
-    return annotations
+        return intervals
+
+    high = float(decoder["high_threshold"])
+    low = float(decoder["low_threshold"])
+    max_gap = int(decoder["max_gap_frames"])
+    minimum = int(decoder["min_active_frames"])
+    low_active = [value >= low for value in values]
+    intervals = []
+    for seed, value in enumerate(values):
+        if value < high:
+            continue
+        start = end = seed
+        while start > 0 and low_active[start - 1]:
+            start -= 1
+        while end + 1 < len(values) and low_active[end + 1]:
+            end += 1
+        if intervals and start - intervals[-1][1] - 1 <= max_gap:
+            intervals[-1] = (intervals[-1][0], max(intervals[-1][1], end))
+        elif not intervals or start > intervals[-1][1]:
+            intervals.append((start, end))
+    return [(start, end) for start, end in intervals if end - start + 1 >= minimum]
 
 
 def _duration_ms(path: Path) -> int:

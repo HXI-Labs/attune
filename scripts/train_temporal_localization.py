@@ -116,6 +116,101 @@ def frame_spans(
     return result
 
 
+def hysteresis_spans(
+    probabilities: list[Any],
+    *,
+    high_threshold: float,
+    low_threshold: float,
+    max_gap_frames: int,
+    min_active_frames: int,
+    first_frame_center_ms: float,
+    frame_hop_ms: float,
+    duration_ms: int = DURATION_MS,
+) -> list[list[dict[str, Any]]]:
+    """Decode high-confidence seeds with validation-selected temporal continuity."""
+    result = []
+    for clip_tensor in probabilities:
+        clip = clip_tensor.tolist() if hasattr(clip_tensor, "tolist") else clip_tensor
+        clip_spans = []
+        for label_index, label in enumerate(LABELS):
+            values = [row[label_index] for row in clip]
+            low_active = [value >= low_threshold for value in values]
+            seeds = [index for index, value in enumerate(values) if value >= high_threshold]
+            intervals = []
+            for seed in seeds:
+                start = end = seed
+                while start > 0 and low_active[start - 1]:
+                    start -= 1
+                while end + 1 < len(values) and low_active[end + 1]:
+                    end += 1
+                if intervals and start - intervals[-1][1] - 1 <= max_gap_frames:
+                    intervals[-1] = (intervals[-1][0], max(intervals[-1][1], end))
+                elif not intervals or start > intervals[-1][1]:
+                    intervals.append((start, end))
+            for start, end in intervals:
+                if end - start + 1 < min_active_frames:
+                    continue
+                clip_spans.append(
+                    {
+                        "label": label,
+                        "start_ms": max(
+                            0,
+                            round(first_frame_center_ms + start * frame_hop_ms - frame_hop_ms / 2),
+                        ),
+                        "end_ms": min(
+                            duration_ms,
+                            round(
+                                first_frame_center_ms + (end + 1) * frame_hop_ms - frame_hop_ms / 2
+                            ),
+                        ),
+                    }
+                )
+        result.append(clip_spans)
+    return result
+
+
+def select_hysteresis_decoder(
+    probabilities: list[Any],
+    references: list[list[dict[str, Any]]],
+    *,
+    first_frame_center_ms: float,
+    frame_hop_ms: float,
+) -> dict[str, float | int]:
+    """Select decoding only on development validation, prioritizing collar F1."""
+    candidates = []
+    for high_threshold in (0.5, 0.6, 0.7, 0.8, 0.9, 0.95):
+        for low_ratio in (0.5, 0.7, 0.9):
+            for max_gap_frames in (0, 1, 2):
+                for min_active_frames in (1, 2, 3):
+                    decoder = {
+                        "high_threshold": high_threshold,
+                        "low_threshold": high_threshold * low_ratio,
+                        "max_gap_frames": max_gap_frames,
+                        "min_active_frames": min_active_frames,
+                    }
+                    predictions = hysteresis_spans(
+                        probabilities,
+                        **decoder,
+                        first_frame_center_ms=first_frame_center_ms,
+                        frame_hop_ms=frame_hop_ms,
+                    )
+                    collar = collar_event_metrics(references, predictions)
+                    segment = segment_f1(
+                        references,
+                        predictions,
+                        duration_ms=DURATION_MS,
+                    )
+                    candidates.append(
+                        (
+                            float(collar["f1"]),
+                            float(segment["f1"]),
+                            -int(collar["false_positive"]),
+                            decoder,
+                        )
+                    )
+    return max(candidates, key=lambda candidate: candidate[:3])[3]
+
+
 def should_wire_timestamps(
     temporal_segment_f1: float,
     whole_clip_segment_f1: float,
@@ -304,8 +399,20 @@ def main() -> None:
         )["f1"],
     )
     references = [row["events"] for row in inspection_rows]
-    predictions = frame_spans(inspection_probabilities, threshold, **span_arguments)
+    direct_predictions = frame_spans(inspection_probabilities, threshold, **span_arguments)
+    decoder = select_hysteresis_decoder(
+        validation_probabilities,
+        validation_references,
+        **span_arguments,
+    )
+    predictions = hysteresis_spans(
+        inspection_probabilities,
+        **decoder,
+        **span_arguments,
+    )
     baseline = whole_clip_predictions(references, duration_ms=DURATION_MS)
+    direct_segment = segment_f1(references, direct_predictions, duration_ms=DURATION_MS)
+    direct_collar = collar_event_metrics(references, direct_predictions)
     temporal_segment = segment_f1(references, predictions, duration_ms=DURATION_MS)
     baseline_segment = segment_f1(references, baseline, duration_ms=DURATION_MS)
     temporal_collar = collar_event_metrics(references, predictions)
@@ -322,7 +429,10 @@ def main() -> None:
             "feature_mean": mean,
             "feature_scale": scale,
             "labels": LABELS,
+            "hidden_size": 128,
             "threshold": threshold,
+            "decoder": {"type": "hysteresis", **decoder},
+            "dataset": "dcase2016_task2",
             "embedding": SENSEVOICE_FRAME_EMBEDDING,
             "frame_hop_ms_approx": encoder.frame_hop_ms,
             "first_frame_center_ms_approx": encoder.first_frame_center_ms,
@@ -388,6 +498,12 @@ def main() -> None:
                 "segment_f1": temporal_segment,
                 "collar_event_metrics": temporal_collar,
             },
+            "direct_threshold_before_decoder": {
+                "threshold": threshold,
+                "segment_f1": direct_segment,
+                "collar_event_metrics": direct_collar,
+            },
+            "validation_selected_hysteresis_decoder": decoder,
             "whole_clip_oracle_tag_baseline": {
                 "definition": (
                     "uses each clip's known label set but assigns every event 0..10000 ms; "
