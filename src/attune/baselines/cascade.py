@@ -13,6 +13,7 @@ from attune.baselines.adapters import (
     Emotion2VecPlusAdapter,
     SenseVoiceSmallAdapter,
 )
+from attune.calibration import load_calibration
 from attune.evaluation.report import RuntimeMetrics
 from attune.models.probe_inference import (
     FSD50K_LABEL_MAPPING,
@@ -166,7 +167,18 @@ class AttuneCascade(ModularCascade):
         vocalsound_probe_checkpoint: Path,
         fsd50k_probe_checkpoint: Path,
         embedding_cache: Path,
+        calibration_path: Path | None = None,
     ) -> None:
+        vocalsound_calibration = (
+            load_calibration(calibration_path, component="vocalsound_probe")
+            if calibration_path is not None
+            else None
+        )
+        fsd50k_calibration = (
+            load_calibration(calibration_path, component="fsd50k_probe")
+            if calibration_path is not None
+            else None
+        )
         encoder = FrozenEncoderProvider(sensevoice_checkpoint, embedding_cache)
         heads = (
             FrozenLinearProbeHead(
@@ -174,17 +186,29 @@ class AttuneCascade(ModularCascade):
                 checkpoint=vocalsound_probe_checkpoint,
                 encoder=encoder,
                 label_mapping=VOCALSOUND_LABEL_MAPPING,
+                calibration=vocalsound_calibration,
             ),
             FrozenLinearProbeHead(
                 name="fsd50k-frozen-linear-probe",
                 checkpoint=fsd50k_probe_checkpoint,
                 encoder=encoder,
                 label_mapping=FSD50K_LABEL_MAPPING,
+                calibration=fsd50k_calibration,
             ),
         )
         super().__init__(
             asr=SenseVoiceSmallAdapter(checkpoint=sensevoice_checkpoint),
-            affect=Emotion2VecPlusAdapter(checkpoint=emotion2vec_checkpoint),
+            affect=Emotion2VecPlusAdapter(
+                checkpoint=emotion2vec_checkpoint,
+                calibration=(
+                    load_calibration(
+                        calibration_path,
+                        component="emotion2vec_plus_affect",
+                    )
+                    if calibration_path is not None
+                    else None
+                ),
+            ),
             event_heads=heads,
         )
         self.name = "attune-cascade:sensevoice+emotion2vec+aed+vocalsound-probe+fsd50k-probe"

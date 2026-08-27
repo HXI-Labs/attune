@@ -20,6 +20,7 @@ from attune.baselines.sensevoice import (
     parse_sensevoice_output,
     sensevoice_affect_trace,
 )
+from attune.calibration import TemperatureCalibration
 from attune.evaluation.report import RuntimeMetrics
 from attune.schema.output import AffectCategory, AttuneOutput
 
@@ -318,11 +319,16 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
 
     name = "emotion2vec-plus"
 
-    def __init__(self, checkpoint: Path | None = None) -> None:
+    def __init__(
+        self,
+        checkpoint: Path | None = None,
+        calibration: TemperatureCalibration | None = None,
+    ) -> None:
         self.checkpoint = checkpoint or _local_checkpoint(
             "ATTUNE_EMOTION2VEC_PLUS_PATH",
             "models--emotion2vec--emotion2vec_plus_base",
         )
+        self.calibration = calibration
         self._model: Any | None = None
 
     def availability(self) -> tuple[bool, str | None]:
@@ -352,8 +358,23 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
             result = self._model.generate(
                 input=str(item.audio_path), granularity="utterance"
             )
-        category, distribution = _map_emotion2vec_result(result)
-        emotion_diagnostics = _emotion2vec_diagnostics(result, category)
+        category, raw_distribution = _map_emotion2vec_result(result)
+        distribution = raw_distribution
+        if self.calibration is not None:
+            calibrated = self.calibration.scale_distribution(
+                {label.value: value for label, value in raw_distribution.items()}
+            )
+            distribution = {
+                AffectCategory(label): value for label, value in calibrated.items()
+            }
+            category = max(distribution, key=distribution.__getitem__)
+        emotion_diagnostics = _emotion2vec_diagnostics(
+            result,
+            category,
+            raw_distribution,
+            distribution,
+            self.calibration,
+        )
         output = build_partial_output(
             item,
             model_name=self.name,
@@ -496,7 +517,11 @@ def _map_emotion2vec_result(
 
 
 def _emotion2vec_diagnostics(
-    result: Any, category: AffectCategory
+    result: Any,
+    category: AffectCategory,
+    raw_distribution: dict[AffectCategory, float],
+    distribution: dict[AffectCategory, float],
+    calibration: TemperatureCalibration | None,
 ) -> dict[str, Any]:
     row = result[0]
     labels = row["labels"]
@@ -512,6 +537,19 @@ def _emotion2vec_diagnostics(
         "raw_affect_score": float(scores[raw_index]),
         "schema_affect_label": category.value,
         "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+        "uncalibrated_affect_probabilities": {
+            label.value: value for label, value in raw_distribution.items()
+        },
+        "affect_probabilities": {
+            label.value: value for label, value in distribution.items()
+        },
+        "calibration_method": (
+            "temperature_scaling" if calibration is not None else None
+        ),
+        "calibration_temperature": (
+            calibration.temperature if calibration is not None else None
+        ),
+        "calibration_fitted_on": calibration.fitted_on if calibration is not None else None,
     }
 
 
