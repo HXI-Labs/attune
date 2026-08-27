@@ -138,18 +138,21 @@ per pass. Details are in `research/starss23-scene-raster.md`.
 
 | STARSS23 60 s scene raster | 1 s segment F1 | 200 ms collar event F1 | TP/FP/FN |
 |---|---:|---:|---:|
-| Frozen frame MLP, 40 epochs | **0.4794** | **0.1074** | 8/93/40 |
-| Frozen frame MLP, 73 epochs + duration decoder | 0.3974 | 0.0303 | 1/17/47 |
+| Frozen frame MLP, 40 epochs, old decoder | 0.4794 | 0.1074 | 8/93/40 |
+| Frozen frame MLP, 73 epochs + 900 ms decoder | 0.3974 | 0.0303 | 1/17/47 |
+| Frozen frame MLP, 40 epochs + repaired decoder | **0.5124** | **0.1395** | 9/72/39 |
 | Whole-clip oracle tags | 0.1721 | 0.0000 | 0/20/48 |
 
-The 40-epoch segment margin is `+0.3073`; the longer pass is `+0.2253`. Both
-clear `+0.05`. Both fail collar F1 `>=0.25`. The longer decoder pass cut false
-positives 93→17, but those FPs were not short fragments (median 1080 ms versus
-gold p25 600 ms). True positives fell 8→1 and misses rose 40→47. Remaining
-error is misses, not fragments. STARSS23 laugh timestamps therefore remain
-**unwired**. The crop protocol was not a sufficient collar fix.
-Natural-scene event boundaries remain unsolved. No second architecture, seed,
-or DCASE rerun was attempted. DCASE wiring is unchanged.
+A validation-only decoder ablation (no retrain) picked the 40-epoch checkpoint
+under a repaired search: min-active `{1,2,3}` plus train-gold p10, capped at
+p25; p50 excluded; gaps `{0,2,4,8}`; median `{1,3}`; selection
+`(collar F1, recall, segment F1)`. Inspection was scored once. Segment margin
+is `+0.3403` (clears `+0.05`). Collar F1 `0.1395` still fails `>=0.25`.
+Of 39 misses, 24 overlap a prediction that fails the 200 ms collar (median
+onset error 200 ms) and 14 are events the head never fires. STARSS23 laugh
+timestamps therefore remain **unwired**. Natural-scene event boundaries remain
+unsolved. No second architecture, seed, or DCASE rerun was attempted. DCASE
+wiring is unchanged.
 
 STARSS23 metadata has no language field and its README states that speech spans
 multiple languages. Language is therefore `unverified`; no English claim or

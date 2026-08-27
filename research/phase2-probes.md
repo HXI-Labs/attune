@@ -107,10 +107,12 @@ no language metadata, and natural participant recordings retain privacy and
 consent caveats. A single temporal Conv1d follow-up scores 0.7113 segment and
 0.0282 collar F1. A later 60 s scene raster MLP scores 0.4794 versus 0.1721
 whole-clip and 0.1074 collar F1 on a 40-epoch pass, then 0.3974 / 0.0303 after
-one longer train-only-weight and gold-percentile decoder pass. Both fail the
-replacement collar >=0.25 plus segment-margin >=0.05 gate, so STARSS23
-timestamps are unwired and natural-scene boundaries remain unsolved. Remaining
-collar error on the longer pass is misses, not short fragments.
+one longer train-only-weight and gold-percentile decoder pass, then 0.5124 /
+0.1395 after a validation-only decoder-validity repair of the 40-epoch head.
+All fail the replacement collar >=0.25 plus segment-margin >=0.05 gate, so
+STARSS23 timestamps are unwired and natural-scene boundaries remain unsolved.
+Remaining collar error is mixed: 24/39 misses fail the 200 ms collar on a
+found event, and 14/39 are events the head never fires.
 
 ## What Phase 2 established
 

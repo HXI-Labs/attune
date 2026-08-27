@@ -3,6 +3,8 @@
 Machine-readable status is in `research/starss23-scene-raster-results.json`.
 Duration diagnostics are in
 `research/error-analysis/starss23-scene-raster-durations.json`.
+The validation decoder ablation is in
+`research/error-analysis/starss23-decoder-ablation.json`.
 The scientific gold gate remains **closed**. Language is unverified. The
 SenseVoiceSmall encoder stayed frozen. SenseVoiceSmall is by
 FunASR/FunAudioLLM under the FunASR Model Open Source License Agreement v1.1.
@@ -21,31 +23,50 @@ Development yielded 62 scenes and inspection 49 scenes. Room-disjoint
 validation used `sony-room21` and `tau-room6` (43/19). One frozen-frame MLP
 (`sensevoice-small-encoder-frames-v1`, dither 0) and one seed were trained.
 Hysteresis decoding was selected on validation only. Inspection was scored
-once per pass. No Conv/GRU head was added.
+once per pass. No Conv/GRU/CRNN head was added. The encoder stayed frozen.
+
+## Decoder-validity pass
+
+The previous 73-epoch pos-weight run selected min-active 15 (900 ms) because
+the grid used train-gold p50 and broke ties by minimizing FP. Gold inspection
+events have min 300 ms and p25 600 ms, so a 900 ms floor cannot recall short
+gold. This pass did **not** retrain. It repaired the decoder search on
+validation rooms only, then scored inspection once.
+
+Repaired grid: min-active `{1, 2, 3}` plus train-gold p10, capped at p25
+(8 frames); p50 (15 frames) excluded; gaps `{0, 2, 4, 8}`; median `{1, 3}`;
+thresholds unchanged. Selection key is `(collar F1, recall, segment F1)`.
+
+### Validation-only ablation (inspection unused)
+
+| Cell | collar F1 | recall | segment F1 | TP/FP/FN |
+|---|---:|---:|---:|---:|
+| 40-epoch + old decoder | 0.0769 | 0.143 | 0.3133 | 2/36/12 |
+| 40-epoch + repaired search | **0.1000** | 0.143 | 0.2899 | 2/24/12 |
+| 73-epoch pos-weight + old decoder | 0.0333 | 0.071 | 0.2889 | 1/45/13 |
+| 73-epoch pos-weight + repaired search | 0.0465 | 0.071 | 0.3099 | 1/28/13 |
+
+The 40-epoch checkpoint wins on validation collar F1 under the repaired
+search (0.1000 vs 0.0465). No retrain. Selected decoder: high `0.95`, low
+`0.855`, gap `0`, min-active `1` (60 ms), median window `3`. Gap 0 won on the
+selection key; `{2, 4, 8}` were in the grid.
 
 ## Held-out official test rooms
 
 | Pass | 1 s segment F1 | whole-clip segment F1 | 200 ms collar F1 | TP/FP/FN |
 |---|---:|---:|---:|---:|
-| Frozen frame MLP, 40 epochs | **0.4794** | 0.1721 | **0.1074** | 8/93/40 |
-| Frozen frame MLP, 73 epochs + gold-percentile decoder | 0.3974 | 0.1721 | 0.0303 | 1/17/47 |
+| Frozen frame MLP, 40 epochs, old decoder | 0.4794 | 0.1721 | 0.1074 | 8/93/40 |
+| Frozen frame MLP, 73 epochs + 900 ms decoder | 0.3974 | 0.1721 | 0.0303 | 1/17/47 |
+| Frozen frame MLP, 40 epochs + repaired decoder | **0.5124** | 0.1721 | **0.1395** | 9/72/39 |
 | Whole-clip oracle tags | 0.1721 | 0.1721 | 0.0000 | 0/20/48 |
 
-The 40-epoch segment margin is `+0.3073`. The longer pass is `+0.2253`. Both
-clear the predeclared `+0.05` requirement. Both **fail** collar F1 `>= 0.25`.
-STARSS23 laugh timestamps therefore remain **unwired**. DCASE wiring is
-unchanged. Whole-clip `0..60000` tags are not localization.
+This pass segment margin is `+0.3403` (clears `+0.05`). Collar F1 **fails**
+`>= 0.25`. STARSS23 laugh timestamps therefore remain **unwired**. DCASE
+wiring is unchanged. Whole-clip `0..60000` tags are not localization.
 
-The longer pass kept the same 32,897-parameter MLP. Class weight came from
-TRAIN frames only. Decoder min-duration candidates were train-gold length
-percentiles (3/8/15 frames). Gap-merge searched `{0,2,4,8,12}` and a median
-filter `{1,3,5}`. Validation selected high `0.95`, low `0.855`, gap `0`,
-min-active `15` (900 ms), median window `5`. That recipe cut false positives
-93→17, but those FPs were **not** short fragments (median 1080 ms versus gold
-p25 600 ms; 0/17 shorter than gold p25). True positives fell 8→1 and misses
-rose 40→47. Remaining error is misses, not fragments.
-
-The 10-second crop MLP scored 0.7381 / 0.1159 collar. Replacing crops with
-natural 60 s scenes, then training longer with a more conservative decoder,
-did not lift collar F1 above 0.25. Natural-scene event boundaries remain
-unsolved. No second architecture, seed, or DCASE rerun was attempted.
+Of 39 false negatives, 24 overlap a prediction that fails the 200 ms collar
+(median overlapping onset error 200 ms), 14 are gold events the head never
+fires, and 1 is decoder-suppressed. Remaining error is mixed: mostly onset
+error on found events, with a substantial never-fire remainder. False
+positives are now short fragments (median 540 ms versus gold p25 600 ms).
+No second architecture, seed, or DCASE rerun was attempted.

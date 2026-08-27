@@ -1,6 +1,6 @@
 {
   "report_version": "1",
-  "generated_at_utc": "2026-08-27T10:58:58.002030Z",
+  "generated_at_utc": "2026-08-27T11:14:07.634530Z",
   "gate_decision": "closed",
   "inspection_evaluations": 1,
   "protocol": "first_60s_scene_raster",
@@ -31,7 +31,7 @@
     "frontend_dither": 0.0,
     "extraction_route": "direct_frontend_and_frozen_encoder",
     "pooling": null,
-    "cache_hits": 111,
+    "cache_hits": 49,
     "cache_misses": 0,
     "output_shape": [
       "T",
@@ -47,7 +47,10 @@
     "trainable_parameters": 32897,
     "threshold": 0.95,
     "threshold_selected_on": "development validation rooms",
-    "checkpoint_committed": false
+    "checkpoint_committed": false,
+    "chosen_checkpoint": "40_epoch_unweighted",
+    "source_checkpoint": "artifacts/starss23-scene-raster/frame-head-40epoch.pt",
+    "retrained": false
   },
   "partitions": {
     "train_clips": 43,
@@ -66,390 +69,16 @@
     }
   },
   "training": {
-    "seed": 0,
-    "epochs_completed": 73,
-    "patience": 25,
-    "loss": "BCEWithLogitsLoss",
-    "positive_class_weight_source": "train_frames_only",
-    "train_positive_frames": 942,
-    "train_total_frames": 43000,
-    "train_positive_frame_prior": 0.021906976744186048,
-    "positive_class_weight": 44.647560119628906,
-    "history": [
-      {
-        "epoch": 1,
-        "train_loss": 1.3730355501174927,
-        "validation_loss": 1.026304841041565
-      },
-      {
-        "epoch": 2,
-        "train_loss": 1.2313791513442993,
-        "validation_loss": 0.990429699420929
-      },
-      {
-        "epoch": 3,
-        "train_loss": 1.1340885162353516,
-        "validation_loss": 0.9719880819320679
-      },
-      {
-        "epoch": 4,
-        "train_loss": 1.0647432804107666,
-        "validation_loss": 0.9559473395347595
-      },
-      {
-        "epoch": 5,
-        "train_loss": 1.0106121301651,
-        "validation_loss": 0.9361283183097839
-      },
-      {
-        "epoch": 6,
-        "train_loss": 0.9644927978515625,
-        "validation_loss": 0.9118754863739014
-      },
-      {
-        "epoch": 7,
-        "train_loss": 0.9235062003135681,
-        "validation_loss": 0.8844344019889832
-      },
-      {
-        "epoch": 8,
-        "train_loss": 0.8865466713905334,
-        "validation_loss": 0.8554651737213135
-      },
-      {
-        "epoch": 9,
-        "train_loss": 0.8529833555221558,
-        "validation_loss": 0.8266493678092957
-      },
-      {
-        "epoch": 10,
-        "train_loss": 0.822451651096344,
-        "validation_loss": 0.7993206977844238
-      },
-      {
-        "epoch": 11,
-        "train_loss": 0.7946358919143677,
-        "validation_loss": 0.7743809223175049
-      },
-      {
-        "epoch": 12,
-        "train_loss": 0.769321858882904,
-        "validation_loss": 0.7522193789482117
-      },
-      {
-        "epoch": 13,
-        "train_loss": 0.7462620139122009,
-        "validation_loss": 0.7330322265625
-      },
-      {
-        "epoch": 14,
-        "train_loss": 0.7251369953155518,
-        "validation_loss": 0.7168233394622803
-      },
-      {
-        "epoch": 15,
-        "train_loss": 0.7056315541267395,
-        "validation_loss": 0.7033814191818237
-      },
-      {
-        "epoch": 16,
-        "train_loss": 0.687454104423523,
-        "validation_loss": 0.6924251914024353
-      },
-      {
-        "epoch": 17,
-        "train_loss": 0.6703195571899414,
-        "validation_loss": 0.6836351752281189
-      },
-      {
-        "epoch": 18,
-        "train_loss": 0.6540164351463318,
-        "validation_loss": 0.6767109632492065
-      },
-      {
-        "epoch": 19,
-        "train_loss": 0.6384517550468445,
-        "validation_loss": 0.6713557839393616
-      },
-      {
-        "epoch": 20,
-        "train_loss": 0.6235799193382263,
-        "validation_loss": 0.667274534702301
-      },
-      {
-        "epoch": 21,
-        "train_loss": 0.6094096899032593,
-        "validation_loss": 0.6641587018966675
-      },
-      {
-        "epoch": 22,
-        "train_loss": 0.5958816409111023,
-        "validation_loss": 0.6617475152015686
-      },
-      {
-        "epoch": 23,
-        "train_loss": 0.5829147100448608,
-        "validation_loss": 0.6598500609397888
-      },
-      {
-        "epoch": 24,
-        "train_loss": 0.5704169869422913,
-        "validation_loss": 0.6582469940185547
-      },
-      {
-        "epoch": 25,
-        "train_loss": 0.5583462715148926,
-        "validation_loss": 0.656806468963623
-      },
-      {
-        "epoch": 26,
-        "train_loss": 0.5466567873954773,
-        "validation_loss": 0.6553909778594971
-      },
-      {
-        "epoch": 27,
-        "train_loss": 0.5352934002876282,
-        "validation_loss": 0.6539853811264038
-      },
-      {
-        "epoch": 28,
-        "train_loss": 0.5242894887924194,
-        "validation_loss": 0.6526137590408325
-      },
-      {
-        "epoch": 29,
-        "train_loss": 0.5136454701423645,
-        "validation_loss": 0.6512876152992249
-      },
-      {
-        "epoch": 30,
-        "train_loss": 0.5033532977104187,
-        "validation_loss": 0.6499866247177124
-      },
-      {
-        "epoch": 31,
-        "train_loss": 0.4934535026550293,
-        "validation_loss": 0.6487577557563782
-      },
-      {
-        "epoch": 32,
-        "train_loss": 0.48392924666404724,
-        "validation_loss": 0.6475698947906494
-      },
-      {
-        "epoch": 33,
-        "train_loss": 0.4747532606124878,
-        "validation_loss": 0.6463695764541626
-      },
-      {
-        "epoch": 34,
-        "train_loss": 0.4658662676811218,
-        "validation_loss": 0.6450797915458679
-      },
-      {
-        "epoch": 35,
-        "train_loss": 0.4571985900402069,
-        "validation_loss": 0.643755316734314
-      },
-      {
-        "epoch": 36,
-        "train_loss": 0.4487007260322571,
-        "validation_loss": 0.6424250602722168
-      },
-      {
-        "epoch": 37,
-        "train_loss": 0.44035881757736206,
-        "validation_loss": 0.6411762237548828
-      },
-      {
-        "epoch": 38,
-        "train_loss": 0.4321904182434082,
-        "validation_loss": 0.6401087045669556
-      },
-      {
-        "epoch": 39,
-        "train_loss": 0.42424431443214417,
-        "validation_loss": 0.6392714977264404
-      },
-      {
-        "epoch": 40,
-        "train_loss": 0.41654643416404724,
-        "validation_loss": 0.638698935508728
-      },
-      {
-        "epoch": 41,
-        "train_loss": 0.40910592675209045,
-        "validation_loss": 0.6383878588676453
-      },
-      {
-        "epoch": 42,
-        "train_loss": 0.4019043445587158,
-        "validation_loss": 0.6382764577865601
-      },
-      {
-        "epoch": 43,
-        "train_loss": 0.3949314057826996,
-        "validation_loss": 0.6382613182067871
-      },
-      {
-        "epoch": 44,
-        "train_loss": 0.38817283511161804,
-        "validation_loss": 0.6383081078529358
-      },
-      {
-        "epoch": 45,
-        "train_loss": 0.38158920407295227,
-        "validation_loss": 0.6383042335510254
-      },
-      {
-        "epoch": 46,
-        "train_loss": 0.37516868114471436,
-        "validation_loss": 0.6382635831832886
-      },
-      {
-        "epoch": 47,
-        "train_loss": 0.3689105808734894,
-        "validation_loss": 0.6382368803024292
-      },
-      {
-        "epoch": 48,
-        "train_loss": 0.3628145456314087,
-        "validation_loss": 0.6382284164428711
-      },
-      {
-        "epoch": 49,
-        "train_loss": 0.3568841218948364,
-        "validation_loss": 0.6382613778114319
-      },
-      {
-        "epoch": 50,
-        "train_loss": 0.35111701488494873,
-        "validation_loss": 0.6383762955665588
-      },
-      {
-        "epoch": 51,
-        "train_loss": 0.34551090002059937,
-        "validation_loss": 0.6386294364929199
-      },
-      {
-        "epoch": 52,
-        "train_loss": 0.3400554955005646,
-        "validation_loss": 0.6390351057052612
-      },
-      {
-        "epoch": 53,
-        "train_loss": 0.33473676443099976,
-        "validation_loss": 0.639586865901947
-      },
-      {
-        "epoch": 54,
-        "train_loss": 0.32954487204551697,
-        "validation_loss": 0.6402817368507385
-      },
-      {
-        "epoch": 55,
-        "train_loss": 0.32448869943618774,
-        "validation_loss": 0.6410648822784424
-      },
-      {
-        "epoch": 56,
-        "train_loss": 0.3195655345916748,
-        "validation_loss": 0.6419171690940857
-      },
-      {
-        "epoch": 57,
-        "train_loss": 0.3147723376750946,
-        "validation_loss": 0.642832338809967
-      },
-      {
-        "epoch": 58,
-        "train_loss": 0.31011027097702026,
-        "validation_loss": 0.6438135504722595
-      },
-      {
-        "epoch": 59,
-        "train_loss": 0.30556783080101013,
-        "validation_loss": 0.644882321357727
-      },
-      {
-        "epoch": 60,
-        "train_loss": 0.3011334538459778,
-        "validation_loss": 0.6460569500923157
-      },
-      {
-        "epoch": 61,
-        "train_loss": 0.29680243134498596,
-        "validation_loss": 0.6473439931869507
-      },
-      {
-        "epoch": 62,
-        "train_loss": 0.29258087277412415,
-        "validation_loss": 0.6487241983413696
-      },
-      {
-        "epoch": 63,
-        "train_loss": 0.2884646952152252,
-        "validation_loss": 0.6501879692077637
-      },
-      {
-        "epoch": 64,
-        "train_loss": 0.28445735573768616,
-        "validation_loss": 0.6517037153244019
-      },
-      {
-        "epoch": 65,
-        "train_loss": 0.2805492579936981,
-        "validation_loss": 0.6532484889030457
-      },
-      {
-        "epoch": 66,
-        "train_loss": 0.2767355442047119,
-        "validation_loss": 0.6548015475273132
-      },
-      {
-        "epoch": 67,
-        "train_loss": 0.27301332354545593,
-        "validation_loss": 0.656356155872345
-      },
-      {
-        "epoch": 68,
-        "train_loss": 0.26937344670295715,
-        "validation_loss": 0.6579084992408752
-      },
-      {
-        "epoch": 69,
-        "train_loss": 0.2658155858516693,
-        "validation_loss": 0.6594935655593872
-      },
-      {
-        "epoch": 70,
-        "train_loss": 0.26233434677124023,
-        "validation_loss": 0.6611586809158325
-      },
-      {
-        "epoch": 71,
-        "train_loss": 0.25892797112464905,
-        "validation_loss": 0.6629470586776733
-      },
-      {
-        "epoch": 72,
-        "train_loss": 0.2555912733078003,
-        "validation_loss": 0.6649175882339478
-      },
-      {
-        "epoch": 73,
-        "train_loss": 0.2523222267627716,
-        "validation_loss": 0.6670786142349243
-      }
-    ]
+    "retrained": false,
+    "chosen_checkpoint": "40_epoch_unweighted",
+    "source_checkpoint": "artifacts/starss23-scene-raster/frame-head-40epoch.pt",
+    "note": "decoder-validity pass; head weights were not updated"
   },
   "decoder_search": {
     "selected_on": "development validation rooms",
-    "min_duration_source": "train gold length percentiles; inspection unused",
+    "min_duration_source": "short floor 1/2/3 plus train-gold p10; capped at p25; p50 unused",
     "gold_duration_percentiles": [
-      10,
-      25,
-      50
+      10
     ],
     "train_gold_duration_ms": {
       "count": 51,
@@ -463,60 +92,190 @@
       "shorter_than_600ms": 13
     },
     "min_active_frames_candidates": [
-      3,
-      8,
-      15
+      1,
+      2,
+      3
     ],
     "max_gap_frames_candidates": [
       0,
       2,
       4,
-      8,
-      12
+      8
     ],
     "median_filter_frames_candidates": [
       1,
-      3,
-      5
+      3
     ],
-    "inspection_used": false
+    "selection_key": [
+      "collar_f1",
+      "recall",
+      "segment_f1"
+    ],
+    "inspection_used": false,
+    "ablation": "research/error-analysis/starss23-decoder-ablation.json"
+  },
+  "decoder_ablation": {
+    "path": "research/error-analysis/starss23-decoder-ablation.json",
+    "winner": {
+      "checkpoint_kind": "40_epoch_unweighted",
+      "checkpoint_path": "artifacts/starss23-scene-raster/frame-head-40epoch.pt",
+      "decoder_kind": "repaired",
+      "decoder": {
+        "high_threshold": 0.95,
+        "low_threshold": 0.855,
+        "max_gap_frames": 0,
+        "min_active_frames": 1,
+        "median_filter_frames": 3,
+        "min_duration_ms": 60,
+        "validation_collar_f1": 0.1,
+        "validation_recall": 0.14285714285714285,
+        "validation_segment_f1": 0.2898550724637681
+      },
+      "validation": {
+        "collar_f1": 0.1,
+        "recall": 0.14285714285714285,
+        "segment_f1": 0.2898550724637681,
+        "true_positive": 2,
+        "false_positive": 24,
+        "false_negative": 12
+      },
+      "reason": "40-epoch unweighted has strictly higher validation collar F1 under repaired search",
+      "repaired_validation_collar_f1": {
+        "40_epoch_unweighted": 0.1,
+        "posweight_73_epoch": 0.046511627906976744
+      }
+    },
+    "cells": [
+      {
+        "id": "40_epoch_unweighted_old_decoder",
+        "checkpoint_kind": "40_epoch_unweighted",
+        "checkpoint_path": "artifacts/starss23-scene-raster/frame-head-40epoch.pt",
+        "decoder_kind": "old",
+        "decoder": {
+          "high_threshold": 0.95,
+          "low_threshold": 0.855,
+          "max_gap_frames": 2,
+          "min_active_frames": 3,
+          "median_filter_frames": 1
+        },
+        "validation": {
+          "collar_f1": 0.07692307692307693,
+          "recall": 0.14285714285714285,
+          "segment_f1": 0.3132530120481928,
+          "true_positive": 2,
+          "false_positive": 36,
+          "false_negative": 12
+        }
+      },
+      {
+        "id": "40_epoch_unweighted_repaired_decoder",
+        "checkpoint_kind": "40_epoch_unweighted",
+        "checkpoint_path": "artifacts/starss23-scene-raster/frame-head-40epoch.pt",
+        "decoder_kind": "repaired",
+        "decoder": {
+          "high_threshold": 0.95,
+          "low_threshold": 0.855,
+          "max_gap_frames": 0,
+          "min_active_frames": 1,
+          "median_filter_frames": 3,
+          "min_duration_ms": 60,
+          "validation_collar_f1": 0.1,
+          "validation_recall": 0.14285714285714285,
+          "validation_segment_f1": 0.2898550724637681
+        },
+        "validation": {
+          "collar_f1": 0.1,
+          "recall": 0.14285714285714285,
+          "segment_f1": 0.2898550724637681,
+          "true_positive": 2,
+          "false_positive": 24,
+          "false_negative": 12
+        }
+      },
+      {
+        "id": "posweight_73_epoch_old_decoder",
+        "checkpoint_kind": "posweight_73_epoch",
+        "checkpoint_path": "artifacts/starss23-scene-raster/frame-head.pt",
+        "decoder_kind": "old",
+        "decoder": {
+          "high_threshold": 0.95,
+          "low_threshold": 0.855,
+          "max_gap_frames": 2,
+          "min_active_frames": 3,
+          "median_filter_frames": 1
+        },
+        "validation": {
+          "collar_f1": 0.03333333333333333,
+          "recall": 0.07142857142857142,
+          "segment_f1": 0.28888888888888886,
+          "true_positive": 1,
+          "false_positive": 45,
+          "false_negative": 13
+        }
+      },
+      {
+        "id": "posweight_73_epoch_repaired_decoder",
+        "checkpoint_kind": "posweight_73_epoch",
+        "checkpoint_path": "artifacts/starss23-scene-raster/frame-head.pt",
+        "decoder_kind": "repaired",
+        "decoder": {
+          "high_threshold": 0.95,
+          "low_threshold": 0.855,
+          "max_gap_frames": 0,
+          "min_active_frames": 3,
+          "median_filter_frames": 3,
+          "min_duration_ms": 180,
+          "validation_collar_f1": 0.046511627906976744,
+          "validation_recall": 0.07142857142857142,
+          "validation_segment_f1": 0.30985915492957744
+        },
+        "validation": {
+          "collar_f1": 0.046511627906976744,
+          "recall": 0.07142857142857142,
+          "segment_f1": 0.30985915492957744,
+          "true_positive": 1,
+          "false_positive": 28,
+          "false_negative": 13
+        }
+      }
+    ]
   },
   "inspection_test": {
     "designation": "official dev-test rooms; never used for fitting or threshold selection",
     "event_count": 48,
     "temporal_head": {
       "segment_f1": {
-        "f1": 0.3974358974358974,
-        "true_positive": 31,
-        "false_positive": 12,
-        "false_negative": 82,
+        "f1": 0.512396694214876,
+        "true_positive": 62,
+        "false_positive": 67,
+        "false_negative": 51,
         "segment_ms": 1000
       },
       "collar_event_metrics": {
-        "f1": 0.030303030303030304,
-        "true_positive": 1,
-        "false_positive": 17,
-        "false_negative": 47,
+        "f1": 0.13953488372093023,
+        "true_positive": 9,
+        "false_positive": 72,
+        "false_negative": 39,
         "onset_collar_ms": 200,
         "offset_collar_ms": 200,
         "offset_duration_ratio": 0.2,
-        "matched_onset_mae_ms": 60.0,
-        "matched_offset_mae_ms": 400.0
+        "matched_onset_mae_ms": 64.44444444444444,
+        "matched_offset_mae_ms": 160.0
       }
     },
     "direct_threshold_before_decoder": {
       "threshold": 0.95,
       "segment_f1": {
-        "f1": 0.45112781954887216,
-        "true_positive": 60,
-        "false_positive": 93,
-        "false_negative": 53,
+        "f1": 0.48221343873517786,
+        "true_positive": 61,
+        "false_positive": 79,
+        "false_negative": 52,
         "segment_ms": 1000
       },
       "collar_event_metrics": {
-        "f1": 0.042328042328042326,
+        "f1": 0.04819277108433735,
         "true_positive": 4,
-        "false_positive": 137,
+        "false_positive": 114,
         "false_negative": 44,
         "onset_collar_ms": 200,
         "offset_collar_ms": 200,
@@ -529,9 +288,12 @@
       "high_threshold": 0.95,
       "low_threshold": 0.855,
       "max_gap_frames": 0,
-      "min_active_frames": 15,
-      "median_filter_frames": 5,
-      "min_duration_ms": 900
+      "min_active_frames": 1,
+      "median_filter_frames": 3,
+      "min_duration_ms": 60,
+      "validation_collar_f1": 0.1,
+      "validation_recall": 0.14285714285714285,
+      "validation_segment_f1": 0.2898550724637681
     },
     "duration_error_table": {
       "matching": "DCASE-style 200 ms onset and duration-aware offset collar",
@@ -547,75 +309,146 @@
         "shorter_than_600ms": 12
       },
       "predicted": {
-        "count": 18,
-        "min_ms": 900,
-        "p25_ms": 1020,
-        "median_ms": 1080,
-        "p75_ms": 1380,
-        "max_ms": 1860,
-        "mean_ms": 1246.6666666666667,
-        "shorter_than_300ms": 0,
-        "shorter_than_600ms": 0
+        "count": 81,
+        "min_ms": 120,
+        "p25_ms": 360,
+        "median_ms": 540,
+        "p75_ms": 780,
+        "max_ms": 1920,
+        "mean_ms": 633.3333333333334,
+        "shorter_than_300ms": 11,
+        "shorter_than_600ms": 45
       },
       "true_positive": {
-        "count": 1,
-        "min_ms": 1860,
-        "p25_ms": 1860,
-        "median_ms": 1860,
-        "p75_ms": 1860,
-        "max_ms": 1860,
-        "mean_ms": 1860.0,
+        "count": 9,
+        "min_ms": 300,
+        "p25_ms": 360,
+        "median_ms": 540,
+        "p75_ms": 720,
+        "max_ms": 1920,
+        "mean_ms": 686.6666666666666,
         "shorter_than_300ms": 0,
-        "shorter_than_600ms": 0,
+        "shorter_than_600ms": 5,
         "gold_durations_ms": [
-          2200
+          2200,
+          500,
+          1000,
+          500,
+          700,
+          300,
+          500,
+          1000,
+          500
         ],
         "predicted_durations_ms": [
-          1860
+          1920,
+          720,
+          900,
+          300,
+          540,
+          420,
+          360,
+          660,
+          360
         ]
       },
       "false_positive": {
-        "count": 17,
-        "min_ms": 900,
-        "p25_ms": 1020,
-        "median_ms": 1080,
-        "p75_ms": 1260,
-        "max_ms": 1800,
-        "mean_ms": 1210.5882352941176,
-        "shorter_than_300ms": 0,
-        "shorter_than_600ms": 0,
+        "count": 72,
+        "min_ms": 120,
+        "p25_ms": 360,
+        "median_ms": 540,
+        "p75_ms": 780,
+        "max_ms": 1920,
+        "mean_ms": 626.6666666666666,
+        "shorter_than_300ms": 11,
+        "shorter_than_600ms": 40,
         "durations_ms": [
+          660,
+          600,
           900,
           1080,
+          420,
           1260,
+          240,
           1380,
+          420,
+          180,
+          420,
           900,
+          600,
+          600,
           1740,
           900,
+          360,
+          240,
+          300,
           1260,
-          1740,
+          240,
+          240,
+          300,
+          720,
+          480,
+          1920,
+          780,
           1260,
-          1080,
-          1200,
+          540,
+          1140,
+          360,
+          360,
+          360,
+          540,
+          360,
+          420,
+          480,
           1020,
-          1800,
+          540,
+          540,
+          120,
+          480,
+          660,
+          180,
+          240,
+          480,
+          780,
+          600,
+          480,
+          300,
+          660,
+          1380,
+          240,
+          240,
+          180,
           1080,
+          360,
+          600,
+          720,
+          660,
+          420,
           900,
-          1080
+          420,
+          360,
+          780,
+          420,
+          300,
+          600,
+          1860,
+          360,
+          420,
+          780
         ],
-        "shorter_than_gold_p25": 0,
+        "shorter_than_gold_p25": 40,
         "gold_p25_ms": 600
       },
       "false_negative": {
-        "count": 47,
+        "count": 39,
         "min_ms": 300,
-        "p25_ms": 600,
-        "median_ms": 1000,
-        "p75_ms": 1600,
+        "p25_ms": 800,
+        "median_ms": 1300,
+        "p75_ms": 1900,
         "max_ms": 8100,
-        "mean_ms": 1448.936170212766,
+        "mean_ms": 1617.948717948718,
         "shorter_than_300ms": 0,
-        "shorter_than_600ms": 12,
+        "shorter_than_600ms": 7,
         "durations_ms": [
           1200,
           800,
@@ -636,18 +469,13 @@
           600,
           400,
           1500,
-          500,
           400,
-          1000,
-          500,
           500,
           700,
           1300,
-          700,
           1300,
           1600,
           1500,
-          300,
           2700,
           8100,
           400,
@@ -656,17 +484,23 @@
           1200,
           300,
           2100,
-          500,
           1000,
           1000,
-          1000,
-          500,
           2000,
           1000,
           1000
         ]
       },
-      "false_positives_are_short_fragments": false
+      "false_positives_are_short_fragments": true
+    },
+    "miss_mechanism": {
+      "false_negative": 39,
+      "head_never_fires": 14,
+      "decoder_suppressed": 1,
+      "predicted_but_collar_failed": 24,
+      "median_onset_error_ms_on_overlapping_misses": 200,
+      "dominant_miss": "predicted_but_collar_failed",
+      "interpretation": "most missed gold events were predicted but failed the 200 ms collar"
     },
     "whole_clip_oracle_tag_baseline": {
       "definition": "uses each scene's known laughter presence but assigns 0..60000 ms; this is deliberately not localization",
@@ -706,17 +540,34 @@
       "min_active_frames": 3
     }
   },
+  "prior_posweight_decoder_pass": {
+    "epochs_completed": 73,
+    "segment_f1": 0.3974358974358974,
+    "whole_clip_segment_f1": 0.17212490479817213,
+    "collar_event_f1": 0.030303030303030304,
+    "collar_true_positive": 1,
+    "collar_false_positive": 17,
+    "collar_false_negative": 47,
+    "reference_event_count": 48,
+    "decoder": {
+      "high_threshold": 0.95,
+      "low_threshold": 0.855,
+      "max_gap_frames": 0,
+      "min_active_frames": 15,
+      "median_filter_frames": 5
+    }
+  },
   "cascade_wiring": {
     "passed": false,
     "segment_margin_required": 0.05,
-    "segment_margin_observed": 0.22531099263772528,
+    "segment_margin_observed": 0.3402717894167039,
     "collar_f1_required": 0.25,
-    "collar_f1_observed": 0.030303030303030304,
-    "temporal_segment_f1": 0.3974358974358974,
+    "collar_f1_observed": 0.13953488372093023,
+    "temporal_segment_f1": 0.512396694214876,
     "whole_clip_segment_f1": 0.17212490479817213,
     "timestamps_wired": false,
     "policy": "wire STARSS23 laugh timestamps only if collar F1 >= 0.25 and segment margin >= 0.05",
-    "decision": "leave STARSS23 unwired; 60s scene raster did not clear the collar gate"
+    "decision": "leave STARSS23 unwired; repaired decoder did not clear the collar gate"
   },
   "runtime": {
     "device": "cpu",

@@ -160,10 +160,12 @@ failed DCASE eight-bin result remains authoritative for that pooled head. See
 The separate STARSS23 checkpoint maps only laughter to `laugh`. Ten-second
 crops score 0.7381 segment F1 versus 0.4894 whole-clip, with collar F1 0.1159.
 A first-60s scene raster MLP scores 0.4794 versus 0.1721 whole-clip and 0.1074
-collar F1 at 40 epochs, then 0.3974 / 0.0303 after one longer decoder pass.
+collar F1 at 40 epochs, 0.3974 / 0.0303 after a longer decoder pass, then
+0.5124 / 0.1395 after a validation-only decoder repair of the 40-epoch head.
 Segment margin clears +0.05, but collar F1 fails >= 0.25, so STARSS23 timing
-stays unwired; DCASE timing is unchanged. Remaining collar error is misses,
-not short fragments. Language remains unverified. STARSS23 is the MIT natural-spatial-audio dataset with 100 ms
+stays unwired; DCASE timing is unchanged. Remaining collar error is mixed
+onset-collar failure on found events and gold events the head never fires.
+Language remains unverified. STARSS23 is the MIT natural-spatial-audio dataset with 100 ms
 labels; its metadata does not permit filtering for English, it contains natural
 overlap, and its licence and natural-recording privacy/consent terms require
 review for the intended use.

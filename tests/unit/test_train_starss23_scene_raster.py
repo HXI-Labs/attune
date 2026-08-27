@@ -102,8 +102,10 @@ def test_positive_class_weight_uses_train_frames_only() -> None:
 
 def test_min_active_frames_come_from_train_gold_not_inspection() -> None:
     script = load_script()
-    train_rows = [{"events": [{"start_ms": 0, "end_ms": duration}]} for duration in (200, 500, 900)]
-    inspection_rows = [{"events": [{"start_ms": 0, "end_ms": 9000}]}]
+    train_rows = [
+        {"events": [{"start_ms": 0, "end_ms": duration}]} for duration in (600, 600, 900, 900, 1200)
+    ]
+    inspection_rows = [{"events": [{"start_ms": 0, "end_ms": 100}]}]
     train_frames = script.min_active_frames_from_gold(
         script.gold_event_durations_ms(train_rows),
         frame_hop_ms=60.0,
@@ -114,9 +116,10 @@ def test_min_active_frames_come_from_train_gold_not_inspection() -> None:
         frame_hop_ms=60.0,
         percentiles=(10, 25, 50),
     )
-    assert train_frames == (3, 8)
+    assert 1 in train_frames and 2 in train_frames and 3 in train_frames
     assert leaked_frames != train_frames
-    assert max(leaked_frames) > max(train_frames)
+    assert 10 in train_frames
+    assert 10 not in leaked_frames
 
 
 def test_duration_error_table_flags_short_false_positives() -> None:
@@ -212,3 +215,49 @@ def test_main_keeps_inspection_out_of_pos_weight_and_decoder_search() -> None:
     assert script.PRIOR_40_EPOCH_PASS["collar_false_positive"] == 93
     assert script.PRIOR_40_EPOCH_PASS["collar_false_negative"] == 40
 
+
+def test_min_active_is_capped_below_train_gold_p50() -> None:
+    script = load_script()
+    durations_ms = [500] * 13 + [900] * 26 + [1800] * 12
+    frames = script.min_active_frames_from_gold(durations_ms, frame_hop_ms=60.0)
+    p25_frames = max(1, round(script.duration_percentile_ms(durations_ms, 25) / 60.0))
+    p50_frames = max(1, round(script.duration_percentile_ms(durations_ms, 50) / 60.0))
+    assert p50_frames > p25_frames
+    assert p50_frames == 15
+    assert p25_frames == 8
+    assert max(frames) <= p25_frames
+    assert p50_frames not in frames
+    assert 1 in frames and 2 in frames and 3 in frames
+    assert 5 not in script.DECODER_MEDIAN_WINDOWS
+    assert {2, 4, 8}.issubset(script.DECODER_GAP_FRAMES)
+    assert script.DECODER_GAP_FRAMES != (0,)
+    assert 50 not in script.GOLD_DURATION_PERCENTILES
+
+
+def test_decoder_selection_prefers_recall_over_fewer_false_positives() -> None:
+    script = load_script()
+    high_fp_high_recall = {
+        "f1": 0.5,
+        "true_positive": 2,
+        "false_positive": 2,
+        "false_negative": 2,
+    }
+    low_fp_low_recall = {
+        "f1": 0.5,
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 4,
+    }
+    segment = {"f1": 0.4}
+    assert script.decoder_selection_key(
+        high_fp_high_recall, segment
+    ) > script.decoder_selection_key(
+        low_fp_low_recall,
+        segment,
+    )
+    source = inspect.getsource(script.select_hysteresis_decoder)
+    assert "decoder_selection_key" in source
+    assert '-int(collar["false_positive"])' not in source
+    assert script.choose_checkpoint_from_ablation(0.12, 0.12) == script.CHECKPOINT_UNWEIGHTED
+    assert script.choose_checkpoint_from_ablation(0.12, 0.13) == script.CHECKPOINT_POSWEIGHT
+    assert script.choose_checkpoint_from_ablation(0.14, 0.13) == script.CHECKPOINT_UNWEIGHTED

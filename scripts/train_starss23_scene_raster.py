@@ -44,11 +44,21 @@ PRIOR_40_EPOCH_PASS = {
         "min_active_frames": 3,
     },
 }
-GOLD_DURATION_PERCENTILES = (10, 25, 50)
+GOLD_DURATION_PERCENTILES = (10,)
+SHORT_FLOOR_MIN_ACTIVE_FRAMES = (1, 2, 3)
 DECODER_HIGH_THRESHOLDS = (0.5, 0.6, 0.7, 0.8, 0.9, 0.95)
 DECODER_LOW_RATIOS = (0.5, 0.7, 0.9)
-DECODER_GAP_FRAMES = (0, 2, 4, 8, 12)
-DECODER_MEDIAN_WINDOWS = (1, 3, 5)
+DECODER_GAP_FRAMES = (0, 2, 4, 8)
+DECODER_MEDIAN_WINDOWS = (1, 3)
+OLD_DECODER = {
+    "high_threshold": 0.95,
+    "low_threshold": 0.855,
+    "max_gap_frames": 2,
+    "min_active_frames": 3,
+    "median_filter_frames": 1,
+}
+CHECKPOINT_UNWEIGHTED = "40_epoch_unweighted"
+CHECKPOINT_POSWEIGHT = "posweight_73_epoch"
 
 
 def should_wire_starss23_timestamps(
@@ -116,12 +126,24 @@ def min_active_frames_from_gold(
     frame_hop_ms: float,
     percentiles: tuple[int, ...] = GOLD_DURATION_PERCENTILES,
 ) -> tuple[int, ...]:
-    """Map TRAIN gold length percentiles to decoder minimum-duration candidates."""
-    frames = [
-        max(1, round(duration_percentile_ms(durations_ms, percentile) / frame_hop_ms))
-        for percentile in percentiles
+    """Short-floor min-duration plus train-gold p10, capped at train-gold p25.
+
+    Train-gold p50 is never a minimum-duration candidate. Inspection unused.
+    The percentiles argument is accepted for call-site compatibility; only p10
+    is gold-derived, and p25 is a cap, not a searched floor.
+    """
+    del percentiles
+    p10_frames = max(1, round(duration_percentile_ms(durations_ms, 10) / frame_hop_ms))
+    p25_cap = max(1, round(duration_percentile_ms(durations_ms, 25) / frame_hop_ms))
+    candidates = [
+        value for value in (*SHORT_FLOOR_MIN_ACTIVE_FRAMES, p10_frames) if 1 <= value <= p25_cap
     ]
-    return tuple(sorted(set(frames)))
+    unique = tuple(sorted(set(candidates)))
+    if not unique:
+        unique = (min(p25_cap, min(SHORT_FLOOR_MIN_ACTIVE_FRAMES)),)
+    if max(unique) > p25_cap:
+        raise RuntimeError("min_active candidates exceeded train-gold p25")
+    return unique
 
 
 def duration_summary(durations_ms: list[int]) -> dict[str, float | int | None]:
@@ -354,6 +376,31 @@ def decoder_span_kwargs(decoder: dict[str, float | int]) -> dict[str, float | in
     }
 
 
+def collar_recall(collar: dict[str, Any]) -> float:
+    true_positive = int(collar["true_positive"])
+    false_negative = int(collar["false_negative"])
+    denominator = true_positive + false_negative
+    return true_positive / denominator if denominator else 0.0
+
+
+def decoder_selection_key(
+    collar: dict[str, Any],
+    segment: dict[str, Any],
+) -> tuple[float, float, float]:
+    """Prefer collar F1, then recall, then segment F1. Never minimize FP."""
+    return (float(collar["f1"]), collar_recall(collar), float(segment["f1"]))
+
+
+def choose_checkpoint_from_ablation(
+    unweighted_repaired_collar_f1: float,
+    posweight_repaired_collar_f1: float,
+) -> str:
+    """Pick the repaired-search validation winner; ties keep the 40-epoch head."""
+    if posweight_repaired_collar_f1 > unweighted_repaired_collar_f1:
+        return CHECKPOINT_POSWEIGHT
+    return CHECKPOINT_UNWEIGHTED
+
+
 def select_hysteresis_decoder(
     probabilities: list[Any],
     references: list[list[dict[str, Any]]],
@@ -363,6 +410,8 @@ def select_hysteresis_decoder(
     frame_hop_ms: float,
 ) -> dict[str, float | int]:
     """Select decoding on validation rooms only. Min-duration candidates come from train gold."""
+    if not min_active_frames:
+        raise ValueError("min_active_frames must not be empty")
     candidates = []
     for high_threshold in DECODER_HIGH_THRESHOLDS:
         for low_ratio in DECODER_LOW_RATIOS:
@@ -389,16 +438,589 @@ def select_hysteresis_decoder(
                             duration_ms=DURATION_MS,
                         )
                         candidates.append(
-                            (
-                                float(collar["f1"]),
-                                float(segment["f1"]),
-                                -int(collar["false_positive"]),
-                                decoder,
-                            )
+                            (decoder_selection_key(collar, segment), decoder, collar, segment)
                         )
-    selected = max(candidates, key=lambda candidate: candidate[:3])[3]
-    selected["min_duration_ms"] = round(int(selected["min_active_frames"]) * frame_hop_ms)
-    return selected
+    selected = max(candidates, key=lambda candidate: candidate[0])
+    decoder = selected[1]
+    decoder["min_duration_ms"] = round(int(decoder["min_active_frames"]) * frame_hop_ms)
+    decoder["validation_collar_f1"] = float(selected[2]["f1"])
+    decoder["validation_recall"] = selected[0][1]
+    decoder["validation_segment_f1"] = float(selected[3]["f1"])
+    return decoder
+
+
+def load_mlp_checkpoint(path: Path, torch: Any) -> tuple[Any, Any, Any, dict[str, Any]]:
+    """Load a frozen two-layer laugh MLP without changing its weights."""
+    payload = torch.load(path, map_location="cpu", weights_only=False)
+    hidden_size = int(payload.get("hidden_size", 64))
+    head = torch.nn.Sequential(
+        torch.nn.Linear(512, hidden_size),
+        torch.nn.ReLU(),
+        torch.nn.Linear(hidden_size, 1),
+    )
+    head.load_state_dict(payload["head_state_dict"])
+    head.eval()
+    return head, payload["feature_mean"], payload["feature_scale"], payload
+
+
+def clip_probabilities(
+    head: Any,
+    clips: list[Any],
+    mean: Any,
+    scale: Any,
+    torch: Any,
+) -> list[Any]:
+    lengths = [len(clip) for clip in clips]
+    matrix = (torch.cat(clips) - mean) / scale
+    with torch.inference_mode():
+        flat = torch.sigmoid(head(matrix))
+    return list(flat.split(lengths))
+
+
+def metrics_from_predictions(
+    references: list[list[dict[str, Any]]],
+    predictions: list[list[dict[str, Any]]],
+) -> dict[str, Any]:
+    collar = collar_event_metrics(references, predictions)
+    segment = segment_f1(references, predictions, duration_ms=DURATION_MS)
+    return {
+        "collar_f1": float(collar["f1"]),
+        "recall": collar_recall(collar),
+        "segment_f1": float(segment["f1"]),
+        "true_positive": int(collar["true_positive"]),
+        "false_positive": int(collar["false_positive"]),
+        "false_negative": int(collar["false_negative"]),
+        "collar_event_metrics": collar,
+        "segment": segment,
+    }
+
+
+def evaluate_decoder(
+    probabilities: list[Any],
+    references: list[list[dict[str, Any]]],
+    decoder: dict[str, float | int],
+    *,
+    first_frame_center_ms: float,
+    frame_hop_ms: float,
+) -> dict[str, Any]:
+    predictions = hysteresis_spans(
+        probabilities,
+        **decoder_span_kwargs(decoder),
+        first_frame_center_ms=first_frame_center_ms,
+        frame_hop_ms=frame_hop_ms,
+    )
+    metrics = metrics_from_predictions(references, predictions)
+    return {"decoder": dict(decoder), "predictions": predictions, **metrics}
+
+
+def json_safe_decoder(decoder: dict[str, float | int]) -> dict[str, float | int]:
+    skip = {"predictions"}
+    return {key: value for key, value in decoder.items() if key not in skip}
+
+
+def miss_mechanism(
+    references: list[list[dict[str, Any]]],
+    predictions: list[list[dict[str, Any]]],
+    probabilities: list[Any],
+    *,
+    high_threshold: float,
+    first_frame_center_ms: float,
+    frame_hop_ms: float,
+) -> dict[str, Any]:
+    """Separate inspection misses the head never fires from collar/onset failures."""
+    never_fired = 0
+    decoder_suppressed = 0
+    predicted_but_collar_failed = 0
+    onset_errors_ms: list[int] = []
+    for reference, prediction, clip_tensor in zip(
+        references, predictions, probabilities, strict=True
+    ):
+        values = clip_tensor[:, 0].tolist()
+        unmatched = set(range(len(reference)))
+        for candidate in prediction:
+            eligible = []
+            for index in unmatched:
+                target = reference[index]
+                duration = target["end_ms"] - target["start_ms"]
+                offset_collar = max(200, round(duration * 0.2))
+                onset_error = abs(candidate["start_ms"] - target["start_ms"])
+                offset_error = abs(candidate["end_ms"] - target["end_ms"])
+                if (
+                    candidate["label"] == target["label"]
+                    and onset_error <= 200
+                    and offset_error <= offset_collar
+                ):
+                    eligible.append((onset_error + offset_error, index))
+            if eligible:
+                unmatched.remove(min(eligible)[1])
+        for index in unmatched:
+            event = reference[index]
+            overlapping = [
+                pred
+                for pred in prediction
+                if pred["label"] == event["label"]
+                and pred["end_ms"] > event["start_ms"]
+                and pred["start_ms"] < event["end_ms"]
+            ]
+            max_prob = 0.0
+            for frame_index, value in enumerate(values):
+                center = first_frame_center_ms + frame_index * frame_hop_ms
+                start = max(0.0, center - frame_hop_ms / 2)
+                end = min(float(DURATION_MS), center + frame_hop_ms / 2)
+                if event["end_ms"] > start and event["start_ms"] < end:
+                    max_prob = max(max_prob, float(value))
+            if overlapping:
+                predicted_but_collar_failed += 1
+                onset_errors_ms.append(
+                    min(abs(pred["start_ms"] - event["start_ms"]) for pred in overlapping)
+                )
+            elif max_prob >= high_threshold:
+                decoder_suppressed += 1
+            else:
+                never_fired += 1
+    false_negative = never_fired + decoder_suppressed + predicted_but_collar_failed
+    ordered = sorted(onset_errors_ms)
+    median_onset = None if not ordered else ordered[len(ordered) // 2]
+    counts = {
+        "head_never_fires": never_fired,
+        "decoder_suppressed": decoder_suppressed,
+        "predicted_but_collar_failed": predicted_but_collar_failed,
+    }
+    dominant = max(counts, key=lambda name: counts[name]) if false_negative else None
+    return {
+        "false_negative": false_negative,
+        **counts,
+        "median_onset_error_ms_on_overlapping_misses": median_onset,
+        "dominant_miss": dominant,
+        "interpretation": (
+            "most missed gold events have no head fire inside the gold span"
+            if dominant == "head_never_fires"
+            else "most missed gold events were predicted but failed the 200 ms collar"
+            if dominant == "predicted_but_collar_failed"
+            else "most missed gold events were suppressed by the decoder after the head fired"
+            if dominant == "decoder_suppressed"
+            else "no false negatives"
+        ),
+    }
+
+
+def run_validation_ablation(
+    *,
+    train_rows: list[dict[str, Any]],
+    validation_rows: list[dict[str, Any]],
+    encoder: Any,
+    torch: Any,
+    arguments: Any,
+) -> dict[str, Any]:
+    """Four-cell validation decoder ablation. Inspection is not scored."""
+    span_arguments = {
+        "first_frame_center_ms": encoder.first_frame_center_ms,
+        "frame_hop_ms": encoder.frame_hop_ms,
+    }
+    train_gold_durations = gold_event_durations_ms(train_rows)
+    min_active_frames = min_active_frames_from_gold(
+        train_gold_durations,
+        frame_hop_ms=encoder.frame_hop_ms,
+    )
+    p25_cap = max(1, round(duration_percentile_ms(train_gold_durations, 25) / encoder.frame_hop_ms))
+    p50_frames = max(
+        1, round(duration_percentile_ms(train_gold_durations, 50) / encoder.frame_hop_ms)
+    )
+    if max(min_active_frames) > p25_cap:
+        raise RuntimeError("repaired min_active grid exceeds train-gold p25")
+    if p50_frames in min_active_frames and p50_frames > p25_cap:
+        raise RuntimeError("train-gold p50 leaked into min_active")
+    references_validation = [row["events"] for row in validation_rows]
+    validation_x = [encoder(row["_audio"]) for row in validation_rows]
+    checkpoints = {
+        CHECKPOINT_UNWEIGHTED: arguments.checkpoint_unweighted,
+        CHECKPOINT_POSWEIGHT: arguments.checkpoint_posweight,
+    }
+    cells = []
+    repaired_by_checkpoint: dict[str, dict[str, Any]] = {}
+    for kind, checkpoint_path in checkpoints.items():
+        if not checkpoint_path.is_file():
+            raise RuntimeError(f"missing ablation checkpoint: {checkpoint_path}")
+        head, mean, scale, _payload = load_mlp_checkpoint(checkpoint_path, torch)
+        probabilities = clip_probabilities(head, validation_x, mean, scale, torch)
+        old = evaluate_decoder(
+            probabilities,
+            references_validation,
+            dict(OLD_DECODER),
+            **span_arguments,
+        )
+        cells.append(
+            {
+                "id": f"{kind}_old_decoder",
+                "checkpoint_kind": kind,
+                "checkpoint_path": str(checkpoint_path),
+                "decoder_kind": "old",
+                "decoder": json_safe_decoder(old["decoder"]),
+                "validation": {
+                    "collar_f1": old["collar_f1"],
+                    "recall": old["recall"],
+                    "segment_f1": old["segment_f1"],
+                    "true_positive": old["true_positive"],
+                    "false_positive": old["false_positive"],
+                    "false_negative": old["false_negative"],
+                },
+            }
+        )
+        repaired_decoder = select_hysteresis_decoder(
+            probabilities,
+            references_validation,
+            min_active_frames=min_active_frames,
+            **span_arguments,
+        )
+        repaired = evaluate_decoder(
+            probabilities,
+            references_validation,
+            repaired_decoder,
+            **span_arguments,
+        )
+        repaired_by_checkpoint[kind] = repaired
+        cells.append(
+            {
+                "id": f"{kind}_repaired_decoder",
+                "checkpoint_kind": kind,
+                "checkpoint_path": str(checkpoint_path),
+                "decoder_kind": "repaired",
+                "decoder": json_safe_decoder(repaired["decoder"]),
+                "validation": {
+                    "collar_f1": repaired["collar_f1"],
+                    "recall": repaired["recall"],
+                    "segment_f1": repaired["segment_f1"],
+                    "true_positive": repaired["true_positive"],
+                    "false_positive": repaired["false_positive"],
+                    "false_negative": repaired["false_negative"],
+                },
+            }
+        )
+    unweighted_f1 = float(repaired_by_checkpoint[CHECKPOINT_UNWEIGHTED]["collar_f1"])
+    posweight_f1 = float(repaired_by_checkpoint[CHECKPOINT_POSWEIGHT]["collar_f1"])
+    winner_kind = choose_checkpoint_from_ablation(unweighted_f1, posweight_f1)
+    winner_cell = next(
+        cell
+        for cell in cells
+        if cell["checkpoint_kind"] == winner_kind and cell["decoder_kind"] == "repaired"
+    )
+    if posweight_f1 > unweighted_f1:
+        reason = (
+            "pos-weight 73-epoch has strictly higher validation collar F1 under repaired search"
+        )
+    elif posweight_f1 < unweighted_f1:
+        reason = (
+            "40-epoch unweighted has strictly higher validation collar F1 under repaired search"
+        )
+    else:
+        reason = "validation collar F1 tied under repaired search; predeclared 40-epoch unweighted"
+    payload = {
+        "report_version": "1",
+        "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "partition": "development validation rooms only",
+        "validation_rooms": sorted(VALIDATION_ROOMS),
+        "inspection_used": False,
+        "inspection_evaluations": 0,
+        "selection_key": ["collar_f1", "recall", "segment_f1"],
+        "tie_break": "if repaired-search validation collar F1 ties, use 40-epoch unweighted",
+        "encoder_frozen": True,
+        "retrained": False,
+        "train_gold_duration_ms": duration_summary(train_gold_durations),
+        "decoder_grids": {
+            "old": dict(OLD_DECODER),
+            "repaired": {
+                "min_duration_source": (
+                    "short floor 1/2/3 plus train-gold p10; capped at p25; p50 unused"
+                ),
+                "min_active_frames_candidates": list(min_active_frames),
+                "p25_cap_frames": p25_cap,
+                "p50_frames_excluded": p50_frames,
+                "max_gap_frames_candidates": list(DECODER_GAP_FRAMES),
+                "median_filter_frames_candidates": list(DECODER_MEDIAN_WINDOWS),
+                "high_thresholds": list(DECODER_HIGH_THRESHOLDS),
+                "low_ratios": list(DECODER_LOW_RATIOS),
+            },
+        },
+        "cells": cells,
+        "winner": {
+            "checkpoint_kind": winner_kind,
+            "checkpoint_path": winner_cell["checkpoint_path"],
+            "decoder_kind": "repaired",
+            "decoder": winner_cell["decoder"],
+            "validation": winner_cell["validation"],
+            "reason": reason,
+            "repaired_validation_collar_f1": {
+                CHECKPOINT_UNWEIGHTED: unweighted_f1,
+                CHECKPOINT_POSWEIGHT: posweight_f1,
+            },
+        },
+    }
+    arguments.ablation_output.parent.mkdir(parents=True, exist_ok=True)
+    arguments.ablation_output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    print(f"Wrote {arguments.ablation_output}")
+    print(f"Winner: {winner_kind} ({reason})")
+    return payload
+
+
+def run_inspection_eval(
+    *,
+    train_rows: list[dict[str, Any]],
+    validation_rows: list[dict[str, Any]],
+    inspection: list[dict[str, Any]],
+    encoder: Any,
+    torch: Any,
+    arguments: Any,
+) -> None:
+    """Score the predeclared ablation winner once on official inspection rooms."""
+    if not arguments.ablation_output.is_file():
+        raise RuntimeError(f"ablation table missing: {arguments.ablation_output}")
+    ablation = json.loads(arguments.ablation_output.read_text(encoding="utf-8"))
+    if ablation.get("inspection_used") is True:
+        raise RuntimeError("ablation table must be validation-only")
+    winner = ablation["winner"]
+    checkpoint_path = Path(winner["checkpoint_path"])
+    decoder = dict(winner["decoder"])
+    head, mean, scale, checkpoint = load_mlp_checkpoint(checkpoint_path, torch)
+    span_arguments = {
+        "first_frame_center_ms": encoder.first_frame_center_ms,
+        "frame_hop_ms": encoder.frame_hop_ms,
+    }
+    inspection_x = [encoder(row["_audio"]) for row in inspection]
+    inspection_probabilities = clip_probabilities(head, inspection_x, mean, scale, torch)
+    references = [row["events"] for row in inspection]
+    threshold = float(checkpoint["threshold"])
+    direct_predictions = spans(inspection_probabilities, threshold, **span_arguments)
+    predictions = hysteresis_spans(
+        inspection_probabilities,
+        **decoder_span_kwargs(decoder),
+        **span_arguments,
+    )
+    baseline = whole_clip_predictions(references, duration_ms=DURATION_MS)
+    direct_segment = segment_f1(references, direct_predictions, duration_ms=DURATION_MS)
+    direct_collar = collar_event_metrics(references, direct_predictions)
+    temporal_segment = segment_f1(references, predictions, duration_ms=DURATION_MS)
+    baseline_segment = segment_f1(references, baseline, duration_ms=DURATION_MS)
+    temporal_collar = collar_event_metrics(references, predictions)
+    baseline_collar = collar_event_metrics(references, baseline)
+    margin = float(temporal_segment["f1"]) - float(baseline_segment["f1"])
+    collar_f1 = float(temporal_collar["f1"])
+    gate_passed = should_wire_starss23_timestamps(
+        segment_f1=float(temporal_segment["f1"]),
+        whole_clip_segment_f1=float(baseline_segment["f1"]),
+        collar_f1=collar_f1,
+    )
+    durations = duration_error_table(references, predictions)
+    misses = miss_mechanism(
+        references,
+        predictions,
+        inspection_probabilities,
+        high_threshold=float(decoder["high_threshold"]),
+        **span_arguments,
+    )
+    gate = {
+        "passed": gate_passed,
+        "segment_margin_required": SEGMENT_MARGIN_REQUIRED,
+        "segment_margin_observed": margin,
+        "collar_f1_required": COLLAR_F1_REQUIRED,
+        "collar_f1_observed": collar_f1,
+        "temporal_segment_f1": float(temporal_segment["f1"]),
+        "whole_clip_segment_f1": float(baseline_segment["f1"]),
+    }
+    train_gold_durations = gold_event_durations_ms(train_rows)
+    payload = {
+        "report_version": "1",
+        "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "gate_decision": "closed",
+        "inspection_evaluations": 1,
+        "protocol": "first_60s_scene_raster",
+        "task": "STARSS23 v1.1 60-second scene-raster laughter localization",
+        "label_mapping": {"STARSS23 class 4 laughter": "Attune laugh"},
+        "language": "unverified; STARSS23 metadata has no language field",
+        "label_status": "human 100 ms activity label; not reviewed Attune gold",
+        "manifests": {
+            "development": {
+                "path": str(arguments.development_manifest),
+                "sha256": digest(arguments.development_manifest),
+            },
+            "inspection_test": {
+                "path": str(arguments.inspection_manifest),
+                "sha256": digest(arguments.inspection_manifest),
+            },
+        },
+        "encoder": encoder.metadata(),
+        "encoder_frozen": True,
+        "head": {
+            "type": "two-layer binary MLP over frozen 512-d acoustic frames",
+            "trainable_parameters": sum(parameter.numel() for parameter in head.parameters()),
+            "threshold": threshold,
+            "threshold_selected_on": "development validation rooms",
+            "checkpoint_committed": False,
+            "chosen_checkpoint": winner["checkpoint_kind"],
+            "source_checkpoint": str(checkpoint_path),
+            "retrained": False,
+        },
+        "partitions": {
+            "train_clips": len(train_rows),
+            "validation_clips": len(validation_rows),
+            "inspection_test_clips": len(inspection),
+            "validation_rooms": sorted(VALIDATION_ROOMS),
+            "scene_disjoint_validation": True,
+            "file_and_room_disjoint_inspection": True,
+            "natural_overlap_clips": {
+                "train": sum(row["natural_overlap"] for row in train_rows),
+                "validation": sum(row["natural_overlap"] for row in validation_rows),
+                "inspection_test": sum(row["natural_overlap"] for row in inspection),
+            },
+        },
+        "training": {
+            "retrained": False,
+            "chosen_checkpoint": winner["checkpoint_kind"],
+            "source_checkpoint": str(checkpoint_path),
+            "note": "decoder-validity pass; head weights were not updated",
+        },
+        "decoder_search": {
+            "selected_on": "development validation rooms",
+            "min_duration_source": (
+                "short floor 1/2/3 plus train-gold p10; capped at p25; p50 unused"
+            ),
+            "gold_duration_percentiles": list(GOLD_DURATION_PERCENTILES),
+            "train_gold_duration_ms": duration_summary(train_gold_durations),
+            "min_active_frames_candidates": ablation["decoder_grids"]["repaired"][
+                "min_active_frames_candidates"
+            ],
+            "max_gap_frames_candidates": list(DECODER_GAP_FRAMES),
+            "median_filter_frames_candidates": list(DECODER_MEDIAN_WINDOWS),
+            "selection_key": ["collar_f1", "recall", "segment_f1"],
+            "inspection_used": False,
+            "ablation": str(arguments.ablation_output),
+        },
+        "decoder_ablation": {
+            "path": str(arguments.ablation_output),
+            "winner": winner,
+            "cells": ablation["cells"],
+        },
+        "inspection_test": {
+            "designation": "official dev-test rooms; never used for fitting or threshold selection",
+            "event_count": sum(len(row["events"]) for row in inspection),
+            "temporal_head": {
+                "segment_f1": temporal_segment,
+                "collar_event_metrics": temporal_collar,
+            },
+            "direct_threshold_before_decoder": {
+                "threshold": threshold,
+                "segment_f1": direct_segment,
+                "collar_event_metrics": direct_collar,
+            },
+            "validation_selected_hysteresis_decoder": json_safe_decoder(decoder),
+            "duration_error_table": durations,
+            "miss_mechanism": misses,
+            "whole_clip_oracle_tag_baseline": {
+                "definition": (
+                    "uses each scene's known laughter presence but assigns 0..60000 ms; "
+                    "this is deliberately not localization"
+                ),
+                "segment_f1": baseline_segment,
+                "collar_event_metrics": baseline_collar,
+            },
+        },
+        "prior_40_epoch_pass": PRIOR_40_EPOCH_PASS,
+        "prior_posweight_decoder_pass": {
+            "epochs_completed": 73,
+            "segment_f1": 0.3974358974358974,
+            "whole_clip_segment_f1": 0.17212490479817213,
+            "collar_event_f1": 0.030303030303030304,
+            "collar_true_positive": 1,
+            "collar_false_positive": 17,
+            "collar_false_negative": 47,
+            "reference_event_count": 48,
+            "decoder": {
+                "high_threshold": 0.95,
+                "low_threshold": 0.855,
+                "max_gap_frames": 0,
+                "min_active_frames": 15,
+                "median_filter_frames": 5,
+            },
+        },
+        "cascade_wiring": {
+            **gate,
+            "timestamps_wired": gate_passed,
+            "policy": (
+                "wire STARSS23 laugh timestamps only if collar F1 >= 0.25 "
+                "and segment margin >= 0.05"
+            ),
+            "decision": (
+                "wire STARSS23 laugh timing from the 60s scene raster"
+                if gate_passed
+                else "leave STARSS23 unwired; repaired decoder did not clear the collar gate"
+            ),
+        },
+        "runtime": {
+            "device": "cpu",
+            "python": platform.python_version(),
+            "torch": torch.__version__,
+        },
+        "limitations": [
+            "Only STARSS23 laughter maps honestly to the current Attune event ontology.",
+            "Speech language is unverified and speech classes are not training targets.",
+            "Natural recordings require ongoing privacy and consent care.",
+            "The bounded slice is not independently reviewed Attune gold.",
+        ],
+    }
+    arguments.output.parent.mkdir(parents=True, exist_ok=True)
+    arguments.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    error_payload = {
+        "report_version": "1",
+        "generated_at_utc": payload["generated_at_utc"],
+        "gate_decision": "closed",
+        "label_status": "human 100 ms activity label; not reviewed Attune gold",
+        "language": "unverified",
+        "protocol": "first_60s_scene_raster",
+        "partition": "official_dev_test_inspection",
+        "audio_committed": False,
+        "chosen_checkpoint": winner["checkpoint_kind"],
+        "decoder_ablation": str(arguments.ablation_output),
+        "this_pass": durations,
+        "this_pass_collar": {
+            "true_positive": int(temporal_collar["true_positive"]),
+            "false_positive": int(temporal_collar["false_positive"]),
+            "false_negative": int(temporal_collar["false_negative"]),
+            "f1": collar_f1,
+        },
+        "miss_mechanism": misses,
+        "previous_40_epoch_pass": {
+            "collar_true_positive": PRIOR_40_EPOCH_PASS["collar_true_positive"],
+            "collar_false_positive": PRIOR_40_EPOCH_PASS["collar_false_positive"],
+            "collar_false_negative": PRIOR_40_EPOCH_PASS["collar_false_negative"],
+            "collar_event_f1": PRIOR_40_EPOCH_PASS["collar_event_f1"],
+            "segment_f1": PRIOR_40_EPOCH_PASS["segment_f1"],
+            "whole_clip_segment_f1": PRIOR_40_EPOCH_PASS["whole_clip_segment_f1"],
+            "note": "40-epoch pass did not write a duration table; collar counts only",
+        },
+        "previous_posweight_decoder_pass": {
+            "collar_true_positive": 1,
+            "collar_false_positive": 17,
+            "collar_false_negative": 47,
+            "collar_event_f1": 0.030303030303030304,
+            "segment_f1": 0.3974358974358974,
+            "false_positives_are_short_fragments": False,
+            "note": "73-epoch pos-weight pass with 900 ms min-active; remaining error was misses",
+        },
+    }
+    arguments.duration_error_output.parent.mkdir(parents=True, exist_ok=True)
+    arguments.duration_error_output.write_text(
+        json.dumps(error_payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(f"Wrote {arguments.output}")
+    print(f"Wrote {arguments.duration_error_output}")
+    print(
+        "inspection collar "
+        f"{collar_f1:.4f} TP/FP/FN "
+        f"{temporal_collar['true_positive']}/"
+        f"{temporal_collar['false_positive']}/"
+        f"{temporal_collar['false_negative']}; "
+        f"wired={gate_passed}"
+    )
 
 
 def main() -> None:
@@ -439,6 +1061,27 @@ def main() -> None:
         type=Path,
         default=Path("research/error-analysis/starss23-scene-raster-durations.json"),
     )
+    parser.add_argument(
+        "--mode",
+        choices=("train", "ablation", "inspect"),
+        default="train",
+        help="train, validation-only decoder ablation, or one inspection eval",
+    )
+    parser.add_argument(
+        "--checkpoint-unweighted",
+        type=Path,
+        default=Path("artifacts/starss23-scene-raster/frame-head-40epoch.pt"),
+    )
+    parser.add_argument(
+        "--checkpoint-posweight",
+        type=Path,
+        default=Path("artifacts/starss23-scene-raster/frame-head.pt"),
+    )
+    parser.add_argument(
+        "--ablation-output",
+        type=Path,
+        default=Path("research/error-analysis/starss23-decoder-ablation.json"),
+    )
     parser.add_argument("--epochs", type=int, default=400)
     parser.add_argument("--patience", type=int, default=25)
     parser.add_argument("--seed", type=int, default=0)
@@ -465,6 +1108,25 @@ def main() -> None:
         arguments.embedding_cache,
         torch,
     )
+    if arguments.mode == "ablation":
+        run_validation_ablation(
+            train_rows=train_rows,
+            validation_rows=validation_rows,
+            encoder=encoder,
+            torch=torch,
+            arguments=arguments,
+        )
+        return
+    if arguments.mode == "inspect":
+        run_inspection_eval(
+            train_rows=train_rows,
+            validation_rows=validation_rows,
+            inspection=inspection,
+            encoder=encoder,
+            torch=torch,
+            arguments=arguments,
+        )
+        return
 
     def features(rows: list[dict[str, Any]]) -> list[Any]:
         return [encoder(row["_audio"]) for row in rows]
