@@ -11,7 +11,7 @@ from typing import Any
 
 from attune.models.frozen_event_probe import ProbeDataError
 
-SENSEVOICE_EMBEDDING = "sensevoice-small-encoder-v1"
+SENSEVOICE_EMBEDDING = "sensevoice-small-encoder-v2"
 SENSEVOICE_REVISION = "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7"
 QUERY_FRAMES = 4
 TEMPORAL_BINS = 8

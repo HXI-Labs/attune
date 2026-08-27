@@ -78,13 +78,17 @@ def test_fake_encoder_is_frozen_and_embeddings_are_cached(
     )
     first = extractor(audio)
     second = extractor(audio)
+    extractor.cache_dir = tmp_path / "fresh-cache"
+    fresh = extractor(audio)
 
     assert first.shape == (extractor.output_size,)
     assert torch.equal(first, second)
+    assert torch.equal(first, fresh)
     assert not first.requires_grad
     assert all(not parameter.requires_grad for parameter in extractor.model.parameters())
     assert extractor.metadata()["frontend_dither"] == 0.0
-    assert extractor.metadata()["cache_misses"] == 1
+    assert extractor.metadata()["extraction_route"] == "direct_frontend_and_frozen_encoder"
+    assert extractor.metadata()["cache_misses"] == 2
     assert extractor.metadata()["cache_hits"] == 1
 
 

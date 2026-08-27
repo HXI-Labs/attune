@@ -290,13 +290,13 @@ def evaluate_frozen_probe(
     sensevoice_model: Path,
     embedding_cache: Path,
 ) -> dict[str, Any]:
-    """Run an existing frozen probe head as OOD diagnostics; never train a head."""
+    """Optionally run the legacy VocalSound head as a zero-shot OOD diagnostic."""
     if checkpoint is None or not checkpoint.is_file():
         return {
-            "status": "blocked_missing_existing_checkpoint",
+            "status": "not_run_missing_optional_legacy_checkpoint",
             "reason": (
-                "The trained frozen event-probe head is intentionally gitignored and was not "
-                "available on this VM. Retraining is forbidden for this run."
+                "The legacy VocalSound head is intentionally gitignored and unavailable. "
+                "This does not block the newly authorised FSD50K linear probe."
             ),
             "encoder_frozen": True,
             "training_performed": False,
@@ -376,6 +376,11 @@ def parse_args() -> argparse.Namespace:
         default=Path("artifacts/licence-clean-sensevoice-embeddings"),
     )
     parser.add_argument(
+        "--fsd50k-probe-metrics",
+        type=Path,
+        default=Path("research/fsd50k-frozen-probe-metrics.json"),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=Path("research/licence-clean-inspection-results.json"),
@@ -447,7 +452,16 @@ def main() -> None:
         "sensevoice_aed": evaluate_sensevoice_aed(
             sensevoice, event_rows, arguments.cache_dir
         ),
-        "frozen_event_probe": evaluate_frozen_probe(
+        "fsd50k_frozen_probe": (
+            json.loads(arguments.fsd50k_probe_metrics.read_text(encoding="utf-8"))
+            if arguments.fsd50k_probe_metrics.is_file()
+            else {
+                "status": "pending_local_frozen_probe_run",
+                "encoder_frozen": True,
+                "reason": f"metrics file is not yet available: {arguments.fsd50k_probe_metrics}",
+            }
+        ),
+        "legacy_vocalsound_probe_transfer": evaluate_frozen_probe(
             event_rows,
             arguments.cache_dir,
             arguments.probe_checkpoint,

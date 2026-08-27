@@ -31,6 +31,12 @@ AED_DETECTION_RATE = {
     "sob": 0.32,
     "scream": 0.0,
 }
+AED_ONE_VS_REST_F1 = {
+    "shout": 0.0,
+    "whisper": 0.0,
+    "sob": 0.48484848484848486,
+    "scream": 0.0,
+}
 
 
 def file_sha256(path: Path) -> str:
@@ -204,13 +210,15 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
             label: {
                 "frozen_encoder_probe_f1": test_metrics["per_class"][label]["f1"],
                 "off_the_shelf_aed_weak_label_detection_rate": AED_DETECTION_RATE[label],
+                "off_the_shelf_aed_one_vs_rest_f1": AED_ONE_VS_REST_F1[label],
             }
             for label in FSD50K_PROBE_LABELS
         },
         "comparator_note": (
             "The previously reported AED values 0/0/0.32/0 are weak-label detection "
-            "rates, not four-way F1. They are retained under that name rather than "
-            "silently relabelled as F1."
+            "rates, not F1. With eight sob true positives, no sob false positives, "
+            "and 17 sob false negatives in the committed raw outputs, sob one-vs-rest "
+            "F1 is 0.484848; both metrics are named explicitly."
         ),
         "ontology_boundaries": {
             "scream": "Separate source/probe class; never mapped to Attune shouting.",

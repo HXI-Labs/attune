@@ -54,7 +54,7 @@ uv run python scripts/train_probe.py
 
 # Frozen SenseVoiceSmall encoder variant:
 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/train_probe.py \
-  --embedding sensevoice-small-encoder-v1 \
+  --embedding sensevoice-small-encoder-v2 \
   --sensevoice-model /path/to/official/SenseVoiceSmall
 ```
 
@@ -64,6 +64,11 @@ default to `artifacts/sensevoice-embeddings/`. A reviewed scientific run may
 copy only its non-identifying metrics JSON into `research/`, together with
 corpus version, hardware, software, seed, and checkpoint provenance. It must
 not copy audio, embeddings, heads, or weights.
+
+Version 2 calls the FunASR frontend and frozen encoder directly. Version 1 used
+a `generate()` forward hook; FunASR resets the wrapper frontend before
+generation, which also reset its configured dither. Version 1 checkpoints and
+embedding caches are therefore not accepted as version 2 artifacts.
 
 ## Interpretation boundary
 
