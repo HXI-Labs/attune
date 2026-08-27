@@ -204,12 +204,30 @@ def _decode_annotations(
     return annotations
 
 
+def _median_filter_values(values: list[float], window: int) -> list[float]:
+    if window <= 1:
+        return list(values)
+    if window % 2 == 0:
+        raise ValueError("median filter window must be odd")
+    radius = window // 2
+    filtered = []
+    count = len(values)
+    for index in range(count):
+        start = max(0, index - radius)
+        end = min(count, index + radius + 1)
+        ordered = sorted(values[start:end])
+        filtered.append(ordered[len(ordered) // 2])
+    return filtered
+
+
 def _active_intervals(
     values: list[float],
     *,
     threshold: float,
     decoder: dict[str, Any] | None,
 ) -> list[tuple[int, int]]:
+    if decoder:
+        values = _median_filter_values(values, int(decoder.get("median_filter_frames", 1) or 1))
     if not decoder or decoder.get("type") != "hysteresis":
         active = [value >= threshold for value in values]
         intervals = []

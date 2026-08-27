@@ -28,6 +28,27 @@ DURATION_MS = 60_000
 VALIDATION_ROOMS = {"sony-room21", "tau-room6"}
 SEGMENT_MARGIN_REQUIRED = 0.05
 COLLAR_F1_REQUIRED = 0.25
+PRIOR_40_EPOCH_PASS = {
+    "epochs_completed": 40,
+    "segment_f1": 0.4794007490636704,
+    "whole_clip_segment_f1": 0.17212490479817213,
+    "collar_event_f1": 0.10738255033557047,
+    "collar_true_positive": 8,
+    "collar_false_positive": 93,
+    "collar_false_negative": 40,
+    "reference_event_count": 48,
+    "decoder": {
+        "high_threshold": 0.95,
+        "low_threshold": 0.855,
+        "max_gap_frames": 2,
+        "min_active_frames": 3,
+    },
+}
+GOLD_DURATION_PERCENTILES = (10, 25, 50)
+DECODER_HIGH_THRESHOLDS = (0.5, 0.6, 0.7, 0.8, 0.9, 0.95)
+DECODER_LOW_RATIOS = (0.5, 0.7, 0.9)
+DECODER_GAP_FRAMES = (0, 2, 4, 8, 12)
+DECODER_MEDIAN_WINDOWS = (1, 3, 5)
 
 
 def should_wire_starss23_timestamps(
@@ -63,6 +84,160 @@ def load_rows(manifest: Path, cache: Path) -> list[dict[str, Any]]:
             raise RuntimeError("STARSS23 manifest contains an unsupported Attune mapping")
         row["_audio"] = audio
     return rows
+
+
+def positive_class_weight_from_train_frames(train_targets: Any) -> Any:
+    """Return BCE `pos_weight` from TRAIN frames only.
+
+    Inspection tensors are not an argument and must never enter this prior.
+    """
+    if train_targets.ndim != 2 or train_targets.shape[1] != 1:
+        raise ValueError("train_targets must have shape (frames, 1)")
+    positives = train_targets.sum()
+    negatives = train_targets.numel() - positives
+    return (negatives / positives.clamp_min(1)).reshape(1)
+
+
+def gold_event_durations_ms(rows: list[dict[str, Any]]) -> list[int]:
+    return [int(event["end_ms"] - event["start_ms"]) for row in rows for event in row["events"]]
+
+
+def duration_percentile_ms(durations_ms: list[int], percentile: float) -> int:
+    if not durations_ms:
+        raise ValueError("cannot compute a duration percentile over no events")
+    ordered = sorted(durations_ms)
+    index = min(len(ordered) - 1, max(0, round((percentile / 100) * (len(ordered) - 1))))
+    return ordered[index]
+
+
+def min_active_frames_from_gold(
+    durations_ms: list[int],
+    *,
+    frame_hop_ms: float,
+    percentiles: tuple[int, ...] = GOLD_DURATION_PERCENTILES,
+) -> tuple[int, ...]:
+    """Map TRAIN gold length percentiles to decoder minimum-duration candidates."""
+    frames = [
+        max(1, round(duration_percentile_ms(durations_ms, percentile) / frame_hop_ms))
+        for percentile in percentiles
+    ]
+    return tuple(sorted(set(frames)))
+
+
+def duration_summary(durations_ms: list[int]) -> dict[str, float | int | None]:
+    if not durations_ms:
+        return {
+            "count": 0,
+            "min_ms": None,
+            "p25_ms": None,
+            "median_ms": None,
+            "p75_ms": None,
+            "max_ms": None,
+            "mean_ms": None,
+            "shorter_than_300ms": 0,
+            "shorter_than_600ms": 0,
+        }
+    ordered = sorted(durations_ms)
+    return {
+        "count": len(ordered),
+        "min_ms": ordered[0],
+        "p25_ms": duration_percentile_ms(ordered, 25),
+        "median_ms": duration_percentile_ms(ordered, 50),
+        "p75_ms": duration_percentile_ms(ordered, 75),
+        "max_ms": ordered[-1],
+        "mean_ms": sum(ordered) / len(ordered),
+        "shorter_than_300ms": sum(duration < 300 for duration in ordered),
+        "shorter_than_600ms": sum(duration < 600 for duration in ordered),
+    }
+
+
+def duration_error_table(
+    references: list[list[dict[str, Any]]],
+    predictions: list[list[dict[str, Any]]],
+) -> dict[str, Any]:
+    """Collar-match predicted vs gold events and summarize durations. No audio."""
+    true_positive_gold: list[int] = []
+    true_positive_predicted: list[int] = []
+    false_positive: list[int] = []
+    false_negative: list[int] = []
+    gold = gold_event_durations_ms([{"events": clip} for clip in references])
+    predicted = gold_event_durations_ms([{"events": clip} for clip in predictions])
+    for reference, prediction in zip(references, predictions, strict=True):
+        unmatched = set(range(len(reference)))
+        for candidate in prediction:
+            eligible = []
+            for index in unmatched:
+                target = reference[index]
+                duration = target["end_ms"] - target["start_ms"]
+                offset_collar = max(200, round(duration * 0.2))
+                onset_error = abs(candidate["start_ms"] - target["start_ms"])
+                offset_error = abs(candidate["end_ms"] - target["end_ms"])
+                if (
+                    candidate["label"] == target["label"]
+                    and onset_error <= 200
+                    and offset_error <= offset_collar
+                ):
+                    eligible.append((onset_error + offset_error, index))
+            if not eligible:
+                false_positive.append(int(candidate["end_ms"] - candidate["start_ms"]))
+                continue
+            _, matched = min(eligible)
+            unmatched.remove(matched)
+            true_positive_gold.append(
+                int(reference[matched]["end_ms"] - reference[matched]["start_ms"])
+            )
+            true_positive_predicted.append(int(candidate["end_ms"] - candidate["start_ms"]))
+        for index in unmatched:
+            event = reference[index]
+            false_negative.append(int(event["end_ms"] - event["start_ms"]))
+    gold_summary = duration_summary(gold)
+    false_positive_summary = duration_summary(false_positive)
+    gold_p25 = gold_summary["p25_ms"]
+    shorter_than_gold_p25 = (
+        None if gold_p25 is None else sum(duration < gold_p25 for duration in false_positive)
+    )
+    return {
+        "matching": "DCASE-style 200 ms onset and duration-aware offset collar",
+        "gold": gold_summary,
+        "predicted": duration_summary(predicted),
+        "true_positive": {
+            **duration_summary(true_positive_predicted),
+            "gold_durations_ms": true_positive_gold,
+            "predicted_durations_ms": true_positive_predicted,
+        },
+        "false_positive": {
+            **false_positive_summary,
+            "durations_ms": false_positive,
+            "shorter_than_gold_p25": shorter_than_gold_p25,
+            "gold_p25_ms": gold_p25,
+        },
+        "false_negative": {
+            **duration_summary(false_negative),
+            "durations_ms": false_negative,
+        },
+        "false_positives_are_short_fragments": bool(
+            false_positive
+            and gold_p25 is not None
+            and false_positive_summary["median_ms"] is not None
+            and false_positive_summary["median_ms"] < gold_p25
+        ),
+    }
+
+
+def median_filter_values(values: list[float], window: int) -> list[float]:
+    if window <= 1:
+        return list(values)
+    if window % 2 == 0:
+        raise ValueError("median filter window must be odd")
+    radius = window // 2
+    filtered = []
+    count = len(values)
+    for index in range(count):
+        start = max(0, index - radius)
+        end = min(count, index + radius + 1)
+        ordered = sorted(values[start:end])
+        filtered.append(ordered[len(ordered) // 2])
+    return filtered
 
 
 def frame_targets(
@@ -130,10 +305,11 @@ def hysteresis_spans(
     min_active_frames: int,
     first_frame_center_ms: float,
     frame_hop_ms: float,
+    median_filter_frames: int = 1,
 ) -> list[list[dict[str, Any]]]:
     result = []
     for clip_tensor in probabilities:
-        values = clip_tensor[:, 0].tolist()
+        values = median_filter_values(clip_tensor[:, 0].tolist(), median_filter_frames)
         low_active = [value >= low_threshold for value in values]
         intervals = []
         for seed, value in enumerate(values):
@@ -168,45 +344,61 @@ def hysteresis_spans(
     return result
 
 
+def decoder_span_kwargs(decoder: dict[str, float | int]) -> dict[str, float | int]:
+    return {
+        "high_threshold": float(decoder["high_threshold"]),
+        "low_threshold": float(decoder["low_threshold"]),
+        "max_gap_frames": int(decoder["max_gap_frames"]),
+        "min_active_frames": int(decoder["min_active_frames"]),
+        "median_filter_frames": int(decoder.get("median_filter_frames", 1)),
+    }
+
+
 def select_hysteresis_decoder(
     probabilities: list[Any],
     references: list[list[dict[str, Any]]],
     *,
+    min_active_frames: tuple[int, ...],
     first_frame_center_ms: float,
     frame_hop_ms: float,
 ) -> dict[str, float | int]:
+    """Select decoding on validation rooms only. Min-duration candidates come from train gold."""
     candidates = []
-    for high_threshold in (0.5, 0.6, 0.7, 0.8, 0.9, 0.95):
-        for low_ratio in (0.5, 0.7, 0.9):
-            for max_gap_frames in (0, 1, 2):
-                for min_active_frames in (1, 2, 3):
-                    decoder = {
-                        "high_threshold": high_threshold,
-                        "low_threshold": high_threshold * low_ratio,
-                        "max_gap_frames": max_gap_frames,
-                        "min_active_frames": min_active_frames,
-                    }
-                    predictions = hysteresis_spans(
-                        probabilities,
-                        **decoder,
-                        first_frame_center_ms=first_frame_center_ms,
-                        frame_hop_ms=frame_hop_ms,
-                    )
-                    collar = collar_event_metrics(references, predictions)
-                    segment = segment_f1(
-                        references,
-                        predictions,
-                        duration_ms=DURATION_MS,
-                    )
-                    candidates.append(
-                        (
-                            float(collar["f1"]),
-                            float(segment["f1"]),
-                            -int(collar["false_positive"]),
-                            decoder,
+    for high_threshold in DECODER_HIGH_THRESHOLDS:
+        for low_ratio in DECODER_LOW_RATIOS:
+            for max_gap_frames in DECODER_GAP_FRAMES:
+                for minimum in min_active_frames:
+                    for median_filter_frames in DECODER_MEDIAN_WINDOWS:
+                        decoder = {
+                            "high_threshold": high_threshold,
+                            "low_threshold": high_threshold * low_ratio,
+                            "max_gap_frames": max_gap_frames,
+                            "min_active_frames": minimum,
+                            "median_filter_frames": median_filter_frames,
+                        }
+                        predictions = hysteresis_spans(
+                            probabilities,
+                            **decoder_span_kwargs(decoder),
+                            first_frame_center_ms=first_frame_center_ms,
+                            frame_hop_ms=frame_hop_ms,
                         )
-                    )
-    return max(candidates, key=lambda candidate: candidate[:3])[3]
+                        collar = collar_event_metrics(references, predictions)
+                        segment = segment_f1(
+                            references,
+                            predictions,
+                            duration_ms=DURATION_MS,
+                        )
+                        candidates.append(
+                            (
+                                float(collar["f1"]),
+                                float(segment["f1"]),
+                                -int(collar["false_positive"]),
+                                decoder,
+                            )
+                        )
+    selected = max(candidates, key=lambda candidate: candidate[:3])[3]
+    selected["min_duration_ms"] = round(int(selected["min_active_frames"]) * frame_hop_ms)
+    return selected
 
 
 def main() -> None:
@@ -242,8 +434,13 @@ def main() -> None:
         type=Path,
         default=Path("research/starss23-scene-raster-results.json"),
     )
-    parser.add_argument("--epochs", type=int, default=40)
-    parser.add_argument("--patience", type=int, default=6)
+    parser.add_argument(
+        "--duration-error-output",
+        type=Path,
+        default=Path("research/error-analysis/starss23-scene-raster-durations.json"),
+    )
+    parser.add_argument("--epochs", type=int, default=400)
+    parser.add_argument("--patience", type=int, default=25)
     parser.add_argument("--seed", type=int, default=0)
     arguments = parser.parse_args()
     import torch
@@ -297,11 +494,8 @@ def main() -> None:
     train_matrix = (train_matrix - mean) / scale
     validation_matrix = (validation_matrix - mean) / scale
     inspection_matrix = (inspection_matrix - mean) / scale
-    positives = train_targets.sum()
-    negatives = train_targets.numel() - positives
-    loss_function = torch.nn.BCEWithLogitsLoss(
-        pos_weight=(negatives / positives.clamp_min(1)).reshape(1)
-    )
+    pos_weight = positive_class_weight_from_train_frames(train_targets)
+    loss_function = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     head = torch.nn.Sequential(
         torch.nn.Linear(512, 64),
         torch.nn.ReLU(),
@@ -350,6 +544,11 @@ def main() -> None:
         "first_frame_center_ms": encoder.first_frame_center_ms,
         "frame_hop_ms": encoder.frame_hop_ms,
     }
+    train_gold_durations = gold_event_durations_ms(train_rows)
+    min_active_frames = min_active_frames_from_gold(
+        train_gold_durations,
+        frame_hop_ms=encoder.frame_hop_ms,
+    )
     thresholds = [index / 20 for index in range(1, 20)]
     threshold = max(
         thresholds,
@@ -364,11 +563,12 @@ def main() -> None:
     decoder = select_hysteresis_decoder(
         validation_probabilities,
         references_validation,
+        min_active_frames=min_active_frames,
         **span_arguments,
     )
     predictions = hysteresis_spans(
         inspection_probabilities,
-        **decoder,
+        **decoder_span_kwargs(decoder),
         **span_arguments,
     )
     baseline = whole_clip_predictions(references, duration_ms=DURATION_MS)
@@ -389,6 +589,7 @@ def main() -> None:
         whole_clip_segment_f1=float(baseline_segment["f1"]),
         collar_f1=collar_f1,
     )
+    durations = duration_error_table(references, predictions)
     gate = {
         "passed": gate_passed,
         "segment_margin_required": SEGMENT_MARGIN_REQUIRED,
@@ -417,6 +618,8 @@ def main() -> None:
         },
         arguments.checkpoint_output,
     )
+    train_positive_frames = int(train_targets.sum().item())
+    train_total_frames = int(train_targets.numel())
     payload = {
         "report_version": "1",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
@@ -462,7 +665,24 @@ def main() -> None:
         "training": {
             "seed": arguments.seed,
             "epochs_completed": len(history),
+            "patience": arguments.patience,
+            "loss": "BCEWithLogitsLoss",
+            "positive_class_weight_source": "train_frames_only",
+            "train_positive_frames": train_positive_frames,
+            "train_total_frames": train_total_frames,
+            "train_positive_frame_prior": train_positive_frames / train_total_frames,
+            "positive_class_weight": float(pos_weight.reshape(())),
             "history": history,
+        },
+        "decoder_search": {
+            "selected_on": "development validation rooms",
+            "min_duration_source": "train gold length percentiles; inspection unused",
+            "gold_duration_percentiles": list(GOLD_DURATION_PERCENTILES),
+            "train_gold_duration_ms": duration_summary(train_gold_durations),
+            "min_active_frames_candidates": list(min_active_frames),
+            "max_gap_frames_candidates": list(DECODER_GAP_FRAMES),
+            "median_filter_frames_candidates": list(DECODER_MEDIAN_WINDOWS),
+            "inspection_used": False,
         },
         "inspection_test": {
             "designation": "official dev-test rooms; never used for fitting or threshold selection",
@@ -477,6 +697,7 @@ def main() -> None:
                 "collar_event_metrics": direct_collar,
             },
             "validation_selected_hysteresis_decoder": decoder,
+            "duration_error_table": durations,
             "whole_clip_oracle_tag_baseline": {
                 "definition": (
                     "uses each scene's known laughter presence but assigns 0..60000 ms; "
@@ -486,6 +707,7 @@ def main() -> None:
                 "collar_event_metrics": baseline_collar,
             },
         },
+        "prior_40_epoch_pass": PRIOR_40_EPOCH_PASS,
         "cascade_wiring": {
             **gate,
             "timestamps_wired": gate_passed,
@@ -513,7 +735,39 @@ def main() -> None:
     }
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     arguments.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    error_payload = {
+        "report_version": "1",
+        "generated_at_utc": payload["generated_at_utc"],
+        "gate_decision": "closed",
+        "label_status": "human 100 ms activity label; not reviewed Attune gold",
+        "language": "unverified",
+        "protocol": "first_60s_scene_raster",
+        "partition": "official_dev_test_inspection",
+        "audio_committed": False,
+        "this_pass": durations,
+        "this_pass_collar": {
+            "true_positive": int(temporal_collar["true_positive"]),
+            "false_positive": int(temporal_collar["false_positive"]),
+            "false_negative": int(temporal_collar["false_negative"]),
+            "f1": collar_f1,
+        },
+    }
+    error_payload["previous_40_epoch_pass"] = {
+        "collar_true_positive": PRIOR_40_EPOCH_PASS["collar_true_positive"],
+        "collar_false_positive": PRIOR_40_EPOCH_PASS["collar_false_positive"],
+        "collar_false_negative": PRIOR_40_EPOCH_PASS["collar_false_negative"],
+        "collar_event_f1": PRIOR_40_EPOCH_PASS["collar_event_f1"],
+        "segment_f1": PRIOR_40_EPOCH_PASS["segment_f1"],
+        "whole_clip_segment_f1": PRIOR_40_EPOCH_PASS["whole_clip_segment_f1"],
+        "note": "40-epoch pass did not write a duration table; collar counts only",
+    }
+    arguments.duration_error_output.parent.mkdir(parents=True, exist_ok=True)
+    arguments.duration_error_output.write_text(
+        json.dumps(error_payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
     print(f"Wrote {arguments.output}")
+    print(f"Wrote {arguments.duration_error_output}")
 
 
 if __name__ == "__main__":

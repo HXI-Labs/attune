@@ -131,18 +131,23 @@ is superseded.
 
 A follow-up replaced laughter-centered 10 s crops with the first 60 seconds of
 every eligible official development recording (no Music class 8 in the excerpt).
-One frozen-frame MLP, one seed, and one validation-selected hysteresis recipe
-were evaluated once on official dev-test rooms. Details are in
-`research/starss23-scene-raster.md`.
+The same frozen-frame MLP (no Conv/GRU) was trained twice on that protocol: a
+40-epoch pass, then one longer pass with train-only class weight, gold-percentile
+min-duration, larger gap-merge, and a median filter. Inspection was scored once
+per pass. Details are in `research/starss23-scene-raster.md`.
 
-| STARSS23 60 s scene raster | 1 s segment F1 | 200 ms collar event F1 |
-|---|---:|---:|
-| Frozen frame MLP | **0.4794** | **0.1074** |
-| Whole-clip oracle tags | 0.1721 | 0.0000 |
+| STARSS23 60 s scene raster | 1 s segment F1 | 200 ms collar event F1 | TP/FP/FN |
+|---|---:|---:|---:|
+| Frozen frame MLP, 40 epochs | **0.4794** | **0.1074** | 8/93/40 |
+| Frozen frame MLP, 73 epochs + duration decoder | 0.3974 | 0.0303 | 1/17/47 |
+| Whole-clip oracle tags | 0.1721 | 0.0000 | 0/20/48 |
 
-Segment margin is `+0.3073`, which clears `+0.05`, but collar F1 is 8/48
-matched intervals and still fails `0.25`. STARSS23 laugh timestamps therefore
-remain **unwired**. The crop protocol was not a sufficient collar fix.
+The 40-epoch segment margin is `+0.3073`; the longer pass is `+0.2253`. Both
+clear `+0.05`. Both fail collar F1 `>=0.25`. The longer decoder pass cut false
+positives 93→17, but those FPs were not short fragments (median 1080 ms versus
+gold p25 600 ms). True positives fell 8→1 and misses rose 40→47. Remaining
+error is misses, not fragments. STARSS23 laugh timestamps therefore remain
+**unwired**. The crop protocol was not a sufficient collar fix.
 Natural-scene event boundaries remain unsolved. No second architecture, seed,
 or DCASE rerun was attempted. DCASE wiring is unchanged.
 

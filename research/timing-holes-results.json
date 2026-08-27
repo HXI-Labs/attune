@@ -134,7 +134,7 @@
     },
     "eligible_for_cascade_wiring": false,
     "timestamps_wired": false,
-    "decision": "60s scene raster still fails collar F1 >= 0.25; STARSS23 laugh timing remains unwired",
+    "decision": "60s scene raster longer pass still fails collar F1 >= 0.25; STARSS23 laugh timing remains unwired",
     "english_metadata_filter_available": false,
     "language": "unverified",
     "merge_quality_localization": false,
@@ -156,12 +156,12 @@
       "trainable_parameters": 32897,
       "seed": 0,
       "inspection_evaluations": 1,
-      "segment_f1": 0.4794007490636704,
+      "segment_f1": 0.3974358974358974,
       "whole_clip_segment_f1": 0.17212490479817213,
-      "segment_f1_margin": 0.30727584426549825,
-      "collar_event_f1": 0.10738255033557047,
+      "segment_f1_margin": 0.22531099263772528,
+      "collar_event_f1": 0.030303030303030304,
       "whole_clip_oracle_tag_collar_event_f1": 0.0,
-      "collar_true_positive": 8,
+      "collar_true_positive": 1,
       "reference_event_count": 48,
       "wiring_gate": {
         "segment_margin_required": 0.05,
@@ -169,7 +169,24 @@
         "passed": false
       },
       "eligible_for_cascade_wiring": false,
-      "timestamps_wired": false
+      "timestamps_wired": false,
+      "prior_40_epoch_pass": {
+        "epochs_completed": 40,
+        "segment_f1": 0.4794007490636704,
+        "whole_clip_segment_f1": 0.17212490479817213,
+        "segment_f1_margin": 0.30727584426549825,
+        "collar_event_f1": 0.10738255033557047,
+        "collar_true_positive": 8,
+        "collar_false_positive": 93,
+        "collar_false_negative": 40,
+        "reference_event_count": 48
+      },
+      "epochs_completed": 73,
+      "collar_false_positive": 17,
+      "collar_false_negative": 47,
+      "false_positives_are_short_fragments": false,
+      "remaining_error": "misses; FP median 1080 ms is not below gold p25 600 ms",
+      "duration_table": "research/error-analysis/starss23-scene-raster-durations.json"
     }
   },
   "claims": {

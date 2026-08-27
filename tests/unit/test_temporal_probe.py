@@ -92,3 +92,37 @@ def test_frame_probabilities_decode_multiple_bounded_event_spans() -> None:
         (annotation.label.value, annotation.start_ms, annotation.end_ms)
         for annotation in annotations
     ] == [("laugh", 0, 120), ("laugh", 180, 240)]
+
+
+def test_hysteresis_decoder_applies_median_filter_and_min_duration() -> None:
+    probabilities = torch.tensor(
+        [
+            [0.1],
+            [0.1],
+            [0.9],
+            [0.1],
+            [0.9],
+            [0.9],
+            [0.9],
+            [0.1],
+            [0.1],
+        ]
+    )
+    decoder = {
+        "type": "hysteresis",
+        "high_threshold": 0.8,
+        "low_threshold": 0.5,
+        "max_gap_frames": 2,
+        "min_active_frames": 3,
+        "median_filter_frames": 3,
+    }
+    annotations = _decode_annotations(
+        probabilities,
+        labels=("laugh",),
+        threshold=0.5,
+        decoder=decoder,
+        first_frame_center_ms=30.0,
+        frame_hop_ms=60.0,
+        duration_ms=540,
+    )
+    assert [(annotation.start_ms, annotation.end_ms) for annotation in annotations] == [(180, 420)]
