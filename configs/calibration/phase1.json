@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-27T07:24:26.664207Z",
+  "method": "temperature_scaling",
+  "fitted_on": "validation",
+  "gate_decision": "closed",
+  "label_status": "weak source / acted labels; not reviewed gold",
+  "inspection_test": {
+    "designation": "test",
+    "unique_clips": 310,
+    "used_for_fitting_or_selection": false
+  },
+  "components": {
+    "emotion2vec_plus_affect": {
+      "method": "temperature_scaling",
+      "labels": [
+        "neutral",
+        "joy",
+        "distress",
+        "anger",
+        "fear",
+        "surprise",
+        "other",
+        "ambiguous"
+      ],
+      "temperature": 2.7058460458864917,
+      "fitted_on": "validation",
+      "selection": "minimum categorical NLL on validation only",
+      "validation": {
+        "clips": 120,
+        "before": {
+          "ece": 0.09528064183947185,
+          "brier": 0.1986700752567696
+        },
+        "after": {
+          "ece": 0.06550067555494071,
+          "brier": 0.20025510431645344
+        }
+      },
+      "inspection_test": {
+        "designation": "test; never used for fitting or selection",
+        "clips": 130,
+        "before": {
+          "ece": 0.08410403453414697,
+          "brier": 0.1855188433726818
+        },
+        "after": {
+          "ece": 0.06792922715372113,
+          "brier": 0.1505744995536055
+        }
+      }
+    },
+    "fsd50k_probe": {
+      "method": "temperature_scaling",
+      "labels": [
+        "shout",
+        "whisper",
+        "sob",
+        "scream",
+        "none"
+      ],
+      "temperature": 6.111227829888099,
+      "fitted_on": "validation",
+      "selection": "minimum categorical NLL on validation only",
+      "validation": {
+        "clips": 226,
+        "before": {
+          "ece": 0.04938026378110483,
+          "brier": 0.09301061846112278
+        },
+        "after": {
+          "ece": 0.023059298311117304,
+          "brier": 0.08241851787264838
+        }
+      },
+      "inspection_test": {
+        "designation": "test; never used for fitting or selection",
+        "clips": 310,
+        "before": {
+          "ece": 0.13921735586512282,
+          "brier": 0.28156965002312706
+        },
+        "after": {
+          "ece": 0.06701749815653871,
+          "brier": 0.24743261245202627
+        }
+      }
+    },
+    "vocalsound_probe": {
+      "method": "temperature_scaling",
+      "labels": [
+        "laugh",
+        "sigh",
+        "cough",
+        "throat_clear",
+        "sneeze",
+        "none"
+      ],
+      "temperature": 8.74527826147217,
+      "fitted_on": "validation",
+      "selection": "minimum categorical NLL on validation only",
+      "validation": {
+        "clips": 226,
+        "before": {
+          "ece": 0.12933862435113663,
+          "brier": 0.26665253380576653
+        },
+        "after": {
+          "ece": 0.036835581216112585,
+          "brier": 0.1950870042698365
+        }
+      },
+      "inspection_test": {
+        "designation": "test; never used for fitting or selection",
+        "clips": 310,
+        "before": {
+          "ece": 0.06153580912873343,
+          "brier": 0.12488554328545223
+        },
+        "after": {
+          "ece": 0.024412899671258013,
+          "brier": 0.10314025907992523
+        }
+      }
+    }
+  }
+}

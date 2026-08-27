@@ -625,8 +625,8 @@ def main() -> None:
             ),
             "timestamps": "whole utterance only; no word or frame localization",
             "probe_confidence": (
-                "closed-set softmax diagnostic plus validation selection among max-softmax, "
-                "energy, and a genuine-negative none logit; not reviewed gold"
+                "validation-temperature-scaled class/none probabilities; abstention "
+                "uses the existing validation-selected uncalibrated none margin"
             ),
         },
         "slices": slices,
