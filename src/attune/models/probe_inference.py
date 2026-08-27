@@ -43,6 +43,8 @@ class ProbeAnnotation:
     channel: AnnotationChannel
     label: EventLabel | StyleLabel
     confidence: float
+    start_ms: int | None = None
+    end_ms: int | None = None
 
 
 @dataclass(frozen=True)
@@ -127,9 +129,7 @@ class FrozenLinearProbeHead:
         if method == "none_logit":
             none_index = len(payload["labels"])
             index = int(raw_probabilities[:none_index].argmax())
-            score = float(
-                raw_probabilities[:none_index].max() - raw_probabilities[none_index]
-            )
+            score = float(raw_probabilities[:none_index].max() - raw_probabilities[none_index])
             abstained = not accepts(score, threshold)
         else:
             score = float(confidence_scores(logits, method, torch)[0])
@@ -141,9 +141,7 @@ class FrozenLinearProbeHead:
             *payload["labels"],
             *(["none"] if method == "none_logit" else []),
         ]
-        raw_distribution = dict(
-            zip(probability_labels, raw_probabilities.tolist(), strict=True)
-        )
+        raw_distribution = dict(zip(probability_labels, raw_probabilities.tolist(), strict=True))
         calibration = self.calibration
         if calibration is not None and calibration.labels != tuple(probability_labels):
             raise RuntimeError(f"{self.name} calibration labels do not match checkpoint")
@@ -160,9 +158,7 @@ class FrozenLinearProbeHead:
         )
         confidence = calibrated_distribution[source_label]
         return ProbePrediction(
-            annotations=(
-                () if abstained else (ProbeAnnotation(channel, label, confidence),)
-            ),
+            annotations=(() if abstained else (ProbeAnnotation(channel, label, confidence),)),
             elapsed_seconds=time.perf_counter() - started,
             diagnostics={
                 "name": self.name,
@@ -175,9 +171,7 @@ class FrozenLinearProbeHead:
                     if calibration is not None
                     else "diagnostic uncalibrated softmax; not reviewed gold"
                 ),
-                "calibration_method": (
-                    "temperature_scaling" if calibration is not None else None
-                ),
+                "calibration_method": ("temperature_scaling" if calibration is not None else None),
                 "calibration_temperature": (
                     calibration.temperature if calibration is not None else None
                 ),
@@ -192,8 +186,7 @@ class FrozenLinearProbeHead:
                 "abstention_score_uses_uncalibrated_margin": True,
                 "energy": -score if method == "energy" else None,
                 "class_probabilities": {
-                    source: calibrated_distribution[source]
-                    for source in payload["labels"]
+                    source: calibrated_distribution[source] for source in payload["labels"]
                 },
                 "uncalibrated_class_probabilities": {
                     source: raw_distribution[source] for source in payload["labels"]
@@ -240,8 +233,7 @@ class FrozenLinearProbeHead:
         expected_features = FrozenSenseVoiceEncoder.output_size
         if feature_count != expected_features:
             raise RuntimeError(
-                f"{self.name} checkpoint has {feature_count} features, "
-                f"expected {expected_features}"
+                f"{self.name} checkpoint has {feature_count} features, expected {expected_features}"
             )
         output_count = len(labels) + (method == "none_logit")
         head = torch.nn.Linear(feature_count, output_count)

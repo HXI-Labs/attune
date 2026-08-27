@@ -1,0 +1,57 @@
+dataset_id: starss23_v1_1
+name: STARSS23 - Sony-TAu Realistic Spatial Soundscapes 2023
+record: https://zenodo.org/records/7880637
+doi: 10.5281/zenodo.7880637
+version: 1.1.0
+providers:
+  - Tampere University Audio Research Group
+  - Sony
+licence:
+  name: MIT
+  record_metadata_id: mit-license
+  bundled_file_md5: 1c11108eda7c915172b10c48276cc189
+licence_review:
+  status: reviewed_for_bounded_timing_research
+  authorized_by: Jerry Buaba
+  reviewed_at: "2026-08-27"
+development_assets:
+  metadata:
+    filename: metadata_dev.zip
+    bytes: 1165845
+    md5: e73af95a6d5f3f7e009ac6a70804f44a
+  microphone_audio:
+    filename: mic_dev.zip
+    bytes: 3370049004
+    md5: 06967bcc8def1580c2425fabc311dbd2
+source_format:
+  sample_rate_hz: 24000
+  channels: 4
+  spatial_format: tetrahedral microphone array
+annotation:
+  resolution_ms: 100
+  type: human temporal activity plus optically tracked spatial position
+  target_mapping:
+    laughter_class_4: laugh
+  music_class_8: excluded_loudspeaker_playback
+  all_other_classes: unmapped
+language:
+  status: unverified
+  note: >-
+    STARSS23 metadata has no language field and the dataset README states that
+    speech spans several languages. No English filter or claim is made.
+privacy_consent:
+  status: bounded_research_caveat
+  note: >-
+    These are natural recordings involving participants. The dataset reports
+    participant consent for synchronized video and face blurring, but this
+    project has not independently verified individual consent records. Audio is
+    used only in a bounded local research slice and is never committed.
+attribution: >-
+  STARSS23 by Archontis Politis, Kazuki Shimada, Parthasaarathy Sudarsanam,
+  Aapo Hakala, Shusuke Takahashi, Daniel Krause, Sharath Adavanne, Yuichiro
+  Koyama, Kengo Uchida, Yuki Mitsufuji, Tuomas Virtanen, and collaborators.
+constraints:
+  - Use development audio with labels; never use unlabelled evaluation audio for this experiment.
+  - Commit only manifests, hashes, provenance, code, and aggregate metrics.
+  - Never commit audio, embeddings, model weights, or trained checkpoints.
+  - Keep the scientific gold gate closed; STARSS23 labels are not Attune gold.

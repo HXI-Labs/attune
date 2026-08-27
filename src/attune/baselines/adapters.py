@@ -22,7 +22,7 @@ from attune.baselines.sensevoice import (
 )
 from attune.calibration import ConfidenceAbstention, TemperatureCalibration
 from attune.evaluation.report import RuntimeMetrics
-from attune.schema.output import AffectCategory, AttuneOutput
+from attune.schema.output import AffectCategory, AttuneOutput, Word
 
 AFFECT_LABELS = tuple(category.value for category in AffectCategory)
 NEUTRAL_DISTRIBUTION = {
@@ -135,6 +135,7 @@ class WhisperSmallAdapter(BaselineAdapter):
         )
         self._processor: Any | None = None
         self._model: Any | None = None
+        self._pipeline: Any | None = None
 
     def availability(self) -> tuple[bool, str | None]:
         if self.checkpoint is None:
@@ -159,24 +160,30 @@ class WhisperSmallAdapter(BaselineAdapter):
         samples, sample_rate = _read_pcm16(item.audio_path)
         if sample_rate != 16_000:
             raise ValueError("Whisper adapter currently requires 16 kHz fixture audio")
-        from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
+        import numpy
+        from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 
         if self._processor is None or self._model is None:
-            self._processor = AutoProcessor.from_pretrained(
-                self.checkpoint, local_files_only=True
-            )
+            self._processor = AutoProcessor.from_pretrained(self.checkpoint, local_files_only=True)
             self._model = AutoModelForSpeechSeq2Seq.from_pretrained(
                 self.checkpoint, local_files_only=True
             )
-        inputs = self._processor(samples, sampling_rate=sample_rate, return_tensors="pt")
-        generated_ids = self._model.generate(
-            inputs.input_features,
-            language=item.language_hint,
-            task="transcribe",
+        if self._pipeline is None:
+            self._pipeline = pipeline(
+                "automatic-speech-recognition",
+                model=self._model,
+                tokenizer=self._processor.tokenizer,
+                feature_extractor=self._processor.feature_extractor,
+                device=-1,
+            )
+        transcription = self._pipeline(
+            {"raw": numpy.asarray(samples, dtype=numpy.float32), "sampling_rate": sample_rate},
+            return_timestamps="word",
+            generate_kwargs={"language": item.language_hint, "task": "transcribe"},
         )
-        transcript = self._processor.batch_decode(
-            generated_ids, skip_special_tokens=True
-        )[0].strip()
+        transcript = str(transcription.get("text", "")).strip()
+        duration_ms, _, _ = _wave_info(item.audio_path)
+        words = parse_whisper_word_timestamps(transcription.get("chunks"), duration_ms=duration_ms)
         category, distribution = TranscriptSentimentAdapter().classify(transcript)
         output = build_partial_output(
             item,
@@ -184,6 +191,7 @@ class WhisperSmallAdapter(BaselineAdapter):
             transcript=transcript,
             category=category,
             distribution=distribution,
+            words=words,
         )
         elapsed = time.perf_counter() - started
         return BaselinePrediction(
@@ -193,7 +201,10 @@ class WhisperSmallAdapter(BaselineAdapter):
             ),
             diagnostics={
                 "affect_source": "transcript_lexicon",
-                "raw_model_output": {"transcript": transcript},
+                "raw_model_output": {
+                    "transcript": transcript,
+                    "word_timestamps_returned": bool(words),
+                },
                 "raw_affect_label": None,
                 "schema_affect_label": category.value,
                 "note": "Whisper has no affect head; affect is a transcript-lexicon fallback.",
@@ -248,13 +259,15 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
                     frontend_conf={"dither": 0.0},
                 )
             result = self._model.generate(
-                input=str(item.audio_path), cache={}, language="auto"
+                input=str(item.audio_path),
+                cache={},
+                language="auto",
+                output_timestamp=True,
+                sentence_timestamp=True,
             )
         parsed = parse_sensevoice_output(result)
         affect_trace = sensevoice_affect_trace(result)
-        mapped_affect_trace = [
-            row for row in affect_trace if row["schema_label"] is not None
-        ]
+        mapped_affect_trace = [row for row in affect_trace if row["schema_label"] is not None]
         if parsed.affect:
             category = parsed.affect[0].label
             if not isinstance(category, AffectCategory):
@@ -263,12 +276,15 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
             distribution[category] = 0.93
         else:
             category, distribution = TranscriptSentimentAdapter().classify(parsed.transcript)
+        duration_ms, _, _ = _wave_info(item.audio_path)
+        words = parse_sensevoice_word_timestamps(result, duration_ms=duration_ms)
         output = build_partial_output(
             item,
             model_name=self.name,
             transcript=parsed.transcript,
             category=category,
             distribution=distribution,
+            words=words,
         )
         events, styles = build_utterance_spans(
             parsed,
@@ -296,11 +312,10 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
                     )
                 ),
                 "raw_model_output": _diagnostic_value(result),
-                "raw_affect_label": (
-                    str(affect_trace[0]["raw_label"]) if affect_trace else None
-                ),
+                "raw_affect_label": (str(affect_trace[0]["raw_label"]) if affect_trace else None),
                 "schema_affect_label": category.value,
                 "affect_mapping": affect_trace,
+                "word_alignment": "model_returned" if words else "unavailable",
                 "note": (
                     "SenseVoice SER/rich-transcription affect was mapped directly."
                     if mapped_affect_trace
@@ -357,18 +372,14 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
         with _offline_model_environment():
             if self._model is None:
                 self._model = AutoModel(model=str(self.checkpoint), disable_update=True)
-            result = self._model.generate(
-                input=str(item.audio_path), granularity="utterance"
-            )
+            result = self._model.generate(input=str(item.audio_path), granularity="utterance")
         category, raw_distribution = _map_emotion2vec_result(result)
         distribution = raw_distribution
         if self.calibration is not None:
             calibrated = self.calibration.scale_distribution(
                 {label.value: value for label, value in raw_distribution.items()}
             )
-            distribution = {
-                AffectCategory(label): value for label, value in calibrated.items()
-            }
+            distribution = {AffectCategory(label): value for label, value in calibrated.items()}
             category = max(distribution, key=distribution.__getitem__)
         abstain = self.abstention is not None and self.abstention.abstains(
             {label.value: value for label, value in distribution.items()}
@@ -400,6 +411,155 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
         )
 
 
+def parse_sensevoice_word_timestamps(result: Any, *, duration_ms: int) -> list[dict[str, Any]]:
+    """Parse explicit SenseVoice token/word alignment without inferring boundaries."""
+    row = result[0] if isinstance(result, list) and result else result
+    if not isinstance(row, dict):
+        return []
+    candidates = row.get("words", row.get("word_timestamps"))
+    if candidates is None:
+        token_timestamps = row.get("timestamp")
+        if not isinstance(token_timestamps, list):
+            return []
+        normalized_tokens = []
+        for token_timestamp in token_timestamps:
+            if (
+                not isinstance(token_timestamp, list | tuple)
+                or len(token_timestamp) != 3
+                or not isinstance(token_timestamp[0], str)
+                or not all(isinstance(value, int | float) for value in token_timestamp[1:])
+            ):
+                return []
+            normalized_tokens.append(
+                {
+                    "text": token_timestamp[0],
+                    # Official SenseVoice model.py emits token times in seconds.
+                    "start_ms": round(float(token_timestamp[1]) * 1000),
+                    "end_ms": round(float(token_timestamp[2]) * 1000),
+                    "confidence": 0.0,
+                }
+            )
+        return _validated_word_spans(normalized_tokens, duration_ms=duration_ms)
+    if not isinstance(candidates, list):
+        return []
+    if all(isinstance(candidate, str) for candidate in candidates):
+        timestamps = row.get("timestamp")
+        if not isinstance(timestamps, list) or len(candidates) != len(timestamps):
+            return []
+        normalized_words = []
+        for word, timestamp in zip(candidates, timestamps, strict=True):
+            if (
+                not isinstance(timestamp, list | tuple)
+                or len(timestamp) != 2
+                or not all(isinstance(value, int | float) for value in timestamp)
+            ):
+                return []
+            normalized_words.append(
+                {
+                    "text": word,
+                    # FunASR parallel word/timestamp arrays use milliseconds.
+                    "start_ms": round(float(timestamp[0])),
+                    "end_ms": round(float(timestamp[1])),
+                    "confidence": 0.0,
+                }
+            )
+        return _validated_word_spans(normalized_words, duration_ms=duration_ms)
+    normalized = []
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            return []
+        text = candidate.get("word", candidate.get("text"))
+        timestamp = candidate.get("timestamp")
+        start = candidate.get("start_ms")
+        end = candidate.get("end_ms")
+        if start is None and end is None and isinstance(timestamp, list | tuple):
+            if len(timestamp) != 2:
+                return []
+            start, end = timestamp
+        if (
+            not isinstance(text, str)
+            or not isinstance(start, int | float)
+            or not isinstance(end, int | float)
+        ):
+            return []
+        normalized.append(
+            {
+                "text": text.strip(),
+                "start_ms": round(float(start)),
+                "end_ms": round(float(end)),
+                "confidence": _bounded_confidence(
+                    candidate.get("confidence", candidate.get("score", 0.0))
+                ),
+            }
+        )
+    return _validated_word_spans(normalized, duration_ms=duration_ms)
+
+
+def parse_whisper_word_timestamps(chunks: Any, *, duration_ms: int) -> list[dict[str, Any]]:
+    """Parse official Transformers Whisper word chunks, whose times are seconds."""
+    if not isinstance(chunks, list):
+        return []
+    normalized = []
+    for chunk in chunks:
+        if not isinstance(chunk, dict):
+            return []
+        text = chunk.get("text")
+        timestamp = chunk.get("timestamp")
+        if (
+            not isinstance(text, str)
+            or not isinstance(timestamp, list | tuple)
+            or len(timestamp) != 2
+            or not all(isinstance(value, int | float) for value in timestamp)
+        ):
+            return []
+        normalized.append(
+            {
+                "text": text.strip(),
+                "start_ms": round(float(timestamp[0]) * 1000),
+                "end_ms": round(float(timestamp[1]) * 1000),
+                "confidence": _bounded_confidence(chunk.get("confidence", 0.0)),
+            }
+        )
+    return _validated_word_spans(normalized, duration_ms=duration_ms)
+
+
+def _bounded_confidence(value: Any) -> float:
+    if not isinstance(value, int | float):
+        return 0.0
+    return min(1.0, max(0.0, float(value)))
+
+
+def _validated_word_spans(
+    candidates: list[dict[str, Any]], *, duration_ms: int
+) -> list[dict[str, Any]]:
+    """Accept a complete genuine alignment only when every span is valid."""
+    if not candidates:
+        return []
+    words = []
+    previous_start = -1
+    for index, candidate in enumerate(candidates, start=1):
+        start = candidate["start_ms"]
+        end = candidate["end_ms"]
+        if (
+            not candidate["text"]
+            or start < 0
+            or end < start
+            or end > duration_ms
+            or start < previous_start
+        ):
+            return []
+        word = Word(
+            id=f"w{index}",
+            text=candidate["text"],
+            start_ms=start,
+            end_ms=end,
+            confidence=candidate["confidence"],
+        )
+        words.append(word.model_dump(mode="json"))
+        previous_start = start
+    return words
+
+
 def build_partial_output(
     item: BaselineInput,
     *,
@@ -408,6 +568,7 @@ def build_partial_output(
     category: AffectCategory,
     distribution: dict[AffectCategory, float],
     abstain: bool = False,
+    words: list[dict[str, Any]] | None = None,
 ) -> AttuneOutput:
     """Build a valid contract with documented placeholders for unsupported heads."""
     duration_ms, sample_rate, channels = _wave_info(item.audio_path)
@@ -423,9 +584,8 @@ def build_partial_output(
                 "quality": placeholder_quality_probabilities(),
             },
             "language": {"label": item.language_hint, "confidence": 0.5},
-            # These adapters expose utterance text, not word alignment. An empty
-            # list is authoritative and avoids fabricated word-level timestamps.
-            "transcript": {"text": transcript, "confidence": 0.5, "words": []},
+            # Empty remains authoritative unless a runner returned genuine alignment.
+            "transcript": {"text": transcript, "confidence": 0.5, "words": words or []},
             "styles": [],
             "events": [],
             "affect": {
@@ -551,29 +711,15 @@ def _emotion2vec_diagnostics(
         "uncalibrated_affect_probabilities": {
             label.value: value for label, value in raw_distribution.items()
         },
-        "affect_probabilities": {
-            label.value: value for label, value in distribution.items()
-        },
-        "calibration_method": (
-            "temperature_scaling" if calibration is not None else None
-        ),
-        "calibration_temperature": (
-            calibration.temperature if calibration is not None else None
-        ),
+        "affect_probabilities": {label.value: value for label, value in distribution.items()},
+        "calibration_method": ("temperature_scaling" if calibration is not None else None),
+        "calibration_temperature": (calibration.temperature if calibration is not None else None),
         "calibration_fitted_on": calibration.fitted_on if calibration is not None else None,
         "affect_abstained": abstained,
-        "affect_abstention_method": (
-            "confidence_threshold" if abstention is not None else None
-        ),
-        "affect_abstention_score": (
-            abstention.score if abstention is not None else None
-        ),
-        "affect_abstention_threshold": (
-            abstention.threshold if abstention is not None else None
-        ),
-        "affect_abstention_fitted_on": (
-            abstention.fitted_on if abstention is not None else None
-        ),
+        "affect_abstention_method": ("confidence_threshold" if abstention is not None else None),
+        "affect_abstention_score": (abstention.score if abstention is not None else None),
+        "affect_abstention_threshold": (abstention.threshold if abstention is not None else None),
+        "affect_abstention_fitted_on": (abstention.fitted_on if abstention is not None else None),
     }
 
 

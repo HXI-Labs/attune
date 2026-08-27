@@ -60,6 +60,15 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=Path("configs/calibration/phase2.json"),
     )
     parser.add_argument(
+        "--temporal-head",
+        type=Path,
+        action="append",
+        default=(
+            [path] if (path := _path_from_env("ATTUNE_TEMPORAL_HEAD_PATH")) is not None else []
+        ),
+        help="repeatable held-out-gated frame head path",
+    )
+    parser.add_argument(
         "--fixture-mode",
         action="store_true",
         help="schema/CLI test path only; emits an explicit placeholder without loading models",
@@ -75,8 +84,7 @@ def _path_from_env(name: str) -> Path | None:
 def _require_real_artifacts(arguments: argparse.Namespace) -> None:
     if os.environ.get("ATTUNE_SENSEVOICE_LICENSE_REVIEWED") != "1":
         raise ValueError(
-            "review the SenseVoice model licence, then set "
-            "ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1"
+            "review the SenseVoice model licence, then set ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1"
         )
     required = {
         "SenseVoice-Small weights (--sensevoice-path or ATTUNE_SENSEVOICE_SMALL_PATH)": (
@@ -88,9 +96,7 @@ def _require_real_artifacts(arguments: argparse.Namespace) -> None:
         "VocalSound probe head (--vocalsound-probe or ATTUNE_VOCALSOUND_PROBE_PATH)": (
             arguments.vocalsound_probe
         ),
-        "FSD50K probe head (--fsd50k-probe or ATTUNE_FSD50K_PROBE_PATH)": (
-            arguments.fsd50k_probe
-        ),
+        "FSD50K probe head (--fsd50k-probe or ATTUNE_FSD50K_PROBE_PATH)": (arguments.fsd50k_probe),
         "Phase 2 calibration": arguments.calibration,
     }
     missing = [
@@ -146,6 +152,7 @@ def _build_cascade(arguments: argparse.Namespace) -> AttuneCascade:
         fsd50k_probe_checkpoint=arguments.fsd50k_probe,
         embedding_cache=arguments.embedding_cache,
         calibration_path=arguments.calibration,
+        temporal_head_checkpoints=tuple(arguments.temporal_head),
     )
     available, reason = cascade.availability()
     if not available:

@@ -1,0 +1,192 @@
+{
+  "report_version": "1",
+  "generated_at_utc": "2026-08-27T09:29:41.025237Z",
+  "gate_decision": "closed",
+  "task": "single-pass STARSS23 natural-scene laughter temporal Conv1d",
+  "inspection_evaluations": 1,
+  "label_mapping": {
+    "STARSS23 class 4 laughter": "Attune laugh"
+  },
+  "language": "unverified; STARSS23 metadata has no language field",
+  "label_status": "human 100 ms activity label; not reviewed Attune gold",
+  "manifests": {
+    "development": {
+      "path": "data/manifests/starss23-localization-development.jsonl",
+      "sha256": "1e2ad11b477b6d3359ac1b4060caff9b5469949869b0d79ef2b232ed4796b4f0"
+    },
+    "inspection_test": {
+      "path": "data/manifests/starss23-localization-inspection.jsonl",
+      "sha256": "edc136db1fb108f72657962c9308b939100071b5cc540f69f2a094722b0dcfd8"
+    }
+  },
+  "encoder": {
+    "name": "sensevoice-small-encoder-frames-v1",
+    "model": "SenseVoiceSmall by FunASR/FunAudioLLM",
+    "revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
+    "model_file_sha256": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea",
+    "trainable_parameters": 0,
+    "total_parameters": 233999167,
+    "query_frames_excluded": 4,
+    "frontend_dither": 0.0,
+    "extraction_route": "direct_frontend_and_frozen_encoder",
+    "pooling": null,
+    "cache_hits": 120,
+    "cache_misses": 0,
+    "output_shape": [
+      "T",
+      512
+    ],
+    "frame_hop_ms_approx": 60.0,
+    "first_acoustic_frame_center_ms_approx": 30.0,
+    "query_prefix_time_semantics": "four non-acoustic query positions are removed; they do not shift audio time"
+  },
+  "encoder_frozen": true,
+  "head": {
+    "architecture": "Conv1d(512,128,kernel_size=7)+ReLU+Conv1d(128,1,kernel_size=1)",
+    "trainable_parameters": 459009,
+    "parameter_budget": 1000000,
+    "checkpoint_namespace": "starss23-temporal-conv-v1",
+    "checkpoint_committed": false
+  },
+  "partitions": {
+    "train_clips": 53,
+    "validation_clips": 27,
+    "inspection_test_clips": 40,
+    "validation_rooms": [
+      "sony-room21",
+      "tau-room6"
+    ],
+    "scene_disjoint_validation": true,
+    "file_and_room_disjoint_inspection": true
+  },
+  "training": {
+    "seed": 0,
+    "epochs_completed": 10,
+    "early_stopping": "minimum validation BCE; patience 6",
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 1.1343120336532593,
+        "validation_loss": 0.8937281370162964
+      },
+      {
+        "epoch": 2,
+        "train_loss": 0.8056837320327759,
+        "validation_loss": 0.6603178381919861
+      },
+      {
+        "epoch": 3,
+        "train_loss": 0.6874899864196777,
+        "validation_loss": 0.559831976890564
+      },
+      {
+        "epoch": 4,
+        "train_loss": 0.6071791648864746,
+        "validation_loss": 0.5424616932868958
+      },
+      {
+        "epoch": 5,
+        "train_loss": 0.5418599843978882,
+        "validation_loss": 0.5591122508049011
+      },
+      {
+        "epoch": 6,
+        "train_loss": 0.493607759475708,
+        "validation_loss": 0.5784865617752075
+      },
+      {
+        "epoch": 7,
+        "train_loss": 0.46116968989372253,
+        "validation_loss": 0.5833355784416199
+      },
+      {
+        "epoch": 8,
+        "train_loss": 0.43420687317848206,
+        "validation_loss": 0.5758419632911682
+      },
+      {
+        "epoch": 9,
+        "train_loss": 0.4058786630630493,
+        "validation_loss": 0.5669721364974976
+      },
+      {
+        "epoch": 10,
+        "train_loss": 0.37701529264450073,
+        "validation_loss": 0.5642696619033813
+      }
+    ]
+  },
+  "decoder": {
+    "high_threshold": 0.9,
+    "low_threshold": 0.45,
+    "max_gap_frames": 0,
+    "min_active_frames": 1,
+    "selected_on": "development validation only"
+  },
+  "inspection_test": {
+    "designation": "evaluated once after model and decoder selection",
+    "event_count": 31,
+    "temporal_head": {
+      "segment_f1": {
+        "f1": 0.711340206185567,
+        "true_positive": 69,
+        "false_positive": 44,
+        "false_negative": 12,
+        "segment_ms": 1000
+      },
+      "collar_event_metrics": {
+        "f1": 0.028169014084507043,
+        "true_positive": 1,
+        "false_positive": 39,
+        "false_negative": 30,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": 200.0,
+        "matched_offset_mae_ms": 100.0
+      }
+    },
+    "whole_clip_oracle_tag_baseline": {
+      "segment_f1": {
+        "f1": 0.48942598187311176,
+        "true_positive": 81,
+        "false_positive": 169,
+        "false_negative": 0,
+        "segment_ms": 1000
+      },
+      "collar_event_metrics": {
+        "f1": 0.0,
+        "true_positive": 0,
+        "false_positive": 25,
+        "false_negative": 31,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": null,
+        "matched_offset_mae_ms": null
+      },
+      "definition": "oracle laughter presence assigned 0..10000 ms; not localization"
+    }
+  },
+  "cascade_wiring": {
+    "passed": false,
+    "segment_margin_required": 0.05,
+    "segment_margin_observed": 0.22191422431245528,
+    "collar_f1_required": 0.25,
+    "collar_f1_observed": 0.028169014084507043,
+    "temporal_segment_f1": 0.711340206185567,
+    "whole_clip_segment_f1": 0.48942598187311176,
+    "timestamps_wired": false,
+    "decision": "unwire STARSS23 laugh timing; natural-scene boundaries remain unsolved"
+  },
+  "runtime": {
+    "device": "cpu",
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130"
+  },
+  "limitations": [
+    "This is one architecture and one seed on a bounded natural-scene slice.",
+    "Speech language is unverified and speech classes are not targets.",
+    "The scientific gold gate remains closed."
+  ]
+}

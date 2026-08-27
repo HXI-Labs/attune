@@ -81,22 +81,33 @@ abstention invariants, and serialization while naming itself as a placeholder.
 It is not a model result. Exact real and fixture commands are in
 `docs/baseline-runners.md`.
 
-The current ASR adapter has utterance text but no reviewed alignment, so the
-authoritative `transcript.words` list is empty. Events and styles use
-provisional null-anchored `0..duration` bounds solely to encode utterance scope;
-those bounds are not presented as localization.
+The original Phase 2 ASR adapter had utterance text but no reviewed alignment,
+so the authoritative `transcript.words` list was empty. The timing follow-up
+now preserves only explicit model-returned SenseVoice/Whisper word alignment;
+it never fabricates missing spans. A later gated frame head localizes only
+`laugh`, `cough`, and `throat_clear`; remaining event/style `0..duration`
+bounds solely encode utterance scope and are not presented as localization.
 
 ## Timing boundary
 
-The DCASE 2016 temporal MLP remains a negative result: segment F1 0.1943 versus
+The DCASE 2016 eight-bin temporal MLP remains a negative result: segment F1 0.1943 versus
 0.3183 for the whole-clip comparator, with 0 collar event F1 for both. It is not
-wired into cascade timestamps, and this PR does not rerun it.
+wired into cascade timestamps. A later frame-level retry protocol is documented
+in `research/timing-holes.md`: segment F1 0.7285 versus 0.3183 whole-clip and
+200 ms collar F1 0.4637 versus 0 directly. Validation-selected hysteresis
+improves collar F1 to 0.5279 while segment F1 becomes 0.7059. Its active +0.3876
+segment margin clears the predeclared +0.05 gate, so only its three overlapping
+event labels may use frame spans when the gated checkpoint is configured.
 
-No small pre-cached, hash-verified natural-audio timing slice was present.
-STARSS23 is therefore only the next Phase-2-adjacent candidate: it is the MIT
-natural-spatial-audio dataset with 100 ms labels, English cannot be selected
-from its metadata, and licence/privacy review is required for natural
-recordings. No STARSS23 or DCASE download was started for this package.
+The authorized follow-up created a hash-verified 80/40-window STARSS23
+development slice, excluding Music and mapping only laughter to `laugh`.
+Held-out natural-scene segment F1 is 0.7381 versus 0.4894 whole-clip, while
+collar F1 is only 0.1159 versus 0. Language is unverified because STARSS23 has
+no language metadata, and natural participant recordings retain privacy and
+consent caveats. A single temporal Conv1d follow-up scores 0.7113 segment and
+0.0282 collar F1. It fails the replacement collar >=0.25 plus segment-margin
+>=0.05 gate, so STARSS23 timestamps are unwired and natural-scene boundaries
+remain unsolved.
 
 ## What Phase 2 established
 
@@ -109,7 +120,9 @@ recordings. No STARSS23 or DCASE download was started for this package.
   withhold low-confidence labels through the authoritative schema.
 - A complete offline local-cascade CLI can preserve trusted structured
   channels without a product UI or model downloads.
-- The attempted frozen temporal head did not justify finer timestamps.
+- Acoustic frames justify bounded timing for three synthetic-DCASE overlap
+  labels and coarse STARSS23 laughter activity; weak natural-scene collar F1
+  does not establish merge-quality boundaries or natural gold.
 
 ## What still requires Phase 3 evidence
 

@@ -33,29 +33,48 @@ def test_optional_local_weight_adapter(adapter) -> None:
 
 
 def test_whisper_uses_known_language_hint(monkeypatch: pytest.MonkeyPatch) -> None:
-    generate_arguments = {}
+    pipeline_arguments = {}
 
     class Processor:
-        def __call__(self, samples, *, sampling_rate, return_tensors):
-            return SimpleNamespace(input_features="features")
+        tokenizer = "tokenizer"
+        feature_extractor = "feature-extractor"
 
-        def batch_decode(self, generated_ids, *, skip_special_tokens):
-            return ["test transcript"]
+    def pipeline(*args, **kwargs):
+        pipeline_arguments["construction"] = (args, kwargs)
 
-    class Model:
-        def generate(self, input_features, **kwargs):
-            generate_arguments.update(kwargs)
-            return ["tokens"]
+        def transcribe(audio, **options):
+            pipeline_arguments["audio"] = audio
+            pipeline_arguments["options"] = options
+            return {
+                "text": "test transcript",
+                "chunks": [{"text": "test", "timestamp": (0.0, 0.1)}],
+            }
+
+        return transcribe
 
     monkeypatch.setitem(
         sys.modules,
+        "numpy",
+        SimpleNamespace(asarray=lambda values, dtype: values, float32="float32"),
+    )
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace())
+    monkeypatch.setitem(
+        sys.modules,
         "transformers",
-        SimpleNamespace(AutoModelForSpeechSeq2Seq=object, AutoProcessor=object),
+        SimpleNamespace(
+            AutoModelForSpeechSeq2Seq=object,
+            AutoProcessor=object,
+            pipeline=pipeline,
+        ),
     )
     adapter = WhisperSmallAdapter(checkpoint=Path("."))
     adapter._processor = Processor()
-    adapter._model = Model()
+    adapter._model = object()
 
-    adapter.predict(BaselineInput(FIXTURE.audio_path, language_hint="en"))
+    prediction = adapter.predict(BaselineInput(FIXTURE.audio_path, language_hint="en"))
 
-    assert generate_arguments == {"language": "en", "task": "transcribe"}
+    assert pipeline_arguments["options"] == {
+        "return_timestamps": "word",
+        "generate_kwargs": {"language": "en", "task": "transcribe"},
+    }
+    assert prediction.output.transcript.words[0].text == "test"

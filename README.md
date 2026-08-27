@@ -73,7 +73,17 @@ event/style, preserving AED-only output. Run the combined original-150 plus
 licence-clean-160 inspection with
 `scripts/evaluate_attune_cascade.py` after preparing the bounded datasets,
 reviewed local model paths, and gitignored heads. The encoder remains frozen,
-all annotations are utterance-level and provisional, and the gate is closed.
+all annotations remain provisional, and the scientific gold gate is closed.
+The frame-level DCASE retry scores 0.7285 segment / 0.4637 collar F1 directly;
+validation-selected hysteresis trades segment F1 to 0.7059 while improving
+collar F1 to 0.5279, versus 0.3183 / 0 for whole-clip. It enables gated frame
+spans for laugh/cough/throat-clear when its gitignored checkpoint is configured.
+Other `0..duration` event/style spans remain utterance scope, never
+localization. A separate natural-scene STARSS23 laughter head scores 0.7381
+segment F1 versus 0.4894 whole-clip, but only 0.1159 collar F1; it is therefore
+not merge-quality boundary alignment. A single temporal Conv1d follow-up scores
+0.7113 / 0.0282 and fails the fixed collar gate, so STARSS23 timestamps are
+unwired. Details are in `research/timing-holes.md`.
 For one or more local WAV files, `scripts/infer.py` emits authoritative JSON
 and optional deterministic XML; exact offline commands are in
 `docs/baseline-runners.md`.
@@ -99,11 +109,15 @@ tested script entry points.
 
 ## Output contract
 
-The schema supports quality probabilities, language confidence, word timings,
+The schema supports quality probabilities, language confidence, genuine word timings,
 overlapping styles, between-word events, dimensional and categorical affect,
 abstention, and out-of-distribution uncertainty. Affect categories always form
 a complete probability distribution. If `affect.abstain` is `true`,
 `affect.top_label` **must be `null`**.
+
+SenseVoice and Whisper adapters populate `transcript.words` only from explicit
+model-returned alignment. Missing or invalid alignment remains `[]`; Attune
+never interpolates words across an utterance.
 
 See `docs/ontology.md` and `docs/annotation-guide.md` before creating labels.
 The required framing is “How does the speaker sound?”, never “What is the

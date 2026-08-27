@@ -1,0 +1,352 @@
+{
+  "report_version": "1",
+  "generated_at_utc": "2026-08-27T09:14:02.087565Z",
+  "gate_decision": "closed",
+  "task": "STARSS23 v1.1 natural-scene laughter localization",
+  "label_mapping": {
+    "STARSS23 class 4 laughter": "Attune laugh"
+  },
+  "language": "unverified; STARSS23 metadata has no language field",
+  "label_status": "human 100 ms activity label; not reviewed Attune gold",
+  "manifests": {
+    "development": {
+      "path": "data/manifests/starss23-localization-development.jsonl",
+      "sha256": "1e2ad11b477b6d3359ac1b4060caff9b5469949869b0d79ef2b232ed4796b4f0"
+    },
+    "inspection_test": {
+      "path": "data/manifests/starss23-localization-inspection.jsonl",
+      "sha256": "edc136db1fb108f72657962c9308b939100071b5cc540f69f2a094722b0dcfd8"
+    }
+  },
+  "encoder": {
+    "name": "sensevoice-small-encoder-frames-v1",
+    "model": "SenseVoiceSmall by FunASR/FunAudioLLM",
+    "revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
+    "model_file_sha256": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea",
+    "trainable_parameters": 0,
+    "total_parameters": 233999167,
+    "query_frames_excluded": 4,
+    "frontend_dither": 0.0,
+    "extraction_route": "direct_frontend_and_frozen_encoder",
+    "pooling": null,
+    "cache_hits": 120,
+    "cache_misses": 0,
+    "output_shape": [
+      "T",
+      512
+    ],
+    "frame_hop_ms_approx": 60.0,
+    "first_acoustic_frame_center_ms_approx": 30.0,
+    "query_prefix_time_semantics": "four non-acoustic query positions are removed; they do not shift audio time"
+  },
+  "encoder_frozen": true,
+  "head": {
+    "type": "two-layer binary MLP over frozen 512-d acoustic frames",
+    "trainable_parameters": 32897,
+    "threshold": 0.95,
+    "threshold_selected_on": "development validation rooms",
+    "checkpoint_committed": false
+  },
+  "partitions": {
+    "train_clips": 53,
+    "validation_clips": 27,
+    "inspection_test_clips": 40,
+    "validation_rooms": [
+      "sony-room21",
+      "tau-room6"
+    ],
+    "scene_disjoint_validation": true,
+    "file_and_room_disjoint_inspection": true,
+    "natural_overlap_clips": {
+      "train": 49,
+      "validation": 26,
+      "inspection_test": 40
+    }
+  },
+  "training": {
+    "seed": 0,
+    "epochs_completed": 34,
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 1.1276487112045288,
+        "validation_loss": 0.8850672245025635
+      },
+      {
+        "epoch": 2,
+        "train_loss": 1.037436842918396,
+        "validation_loss": 0.8572478294372559
+      },
+      {
+        "epoch": 3,
+        "train_loss": 0.9679533839225769,
+        "validation_loss": 0.8279135823249817
+      },
+      {
+        "epoch": 4,
+        "train_loss": 0.914422333240509,
+        "validation_loss": 0.7961834073066711
+      },
+      {
+        "epoch": 5,
+        "train_loss": 0.8720318675041199,
+        "validation_loss": 0.7635205984115601
+      },
+      {
+        "epoch": 6,
+        "train_loss": 0.8369714617729187,
+        "validation_loss": 0.7317216992378235
+      },
+      {
+        "epoch": 7,
+        "train_loss": 0.8068299889564514,
+        "validation_loss": 0.7025099992752075
+      },
+      {
+        "epoch": 8,
+        "train_loss": 0.7801400423049927,
+        "validation_loss": 0.6771870851516724
+      },
+      {
+        "epoch": 9,
+        "train_loss": 0.7561421990394592,
+        "validation_loss": 0.6560285687446594
+      },
+      {
+        "epoch": 10,
+        "train_loss": 0.7343549132347107,
+        "validation_loss": 0.6391392946243286
+      },
+      {
+        "epoch": 11,
+        "train_loss": 0.7144922018051147,
+        "validation_loss": 0.6258860230445862
+      },
+      {
+        "epoch": 12,
+        "train_loss": 0.6962088346481323,
+        "validation_loss": 0.6156644225120544
+      },
+      {
+        "epoch": 13,
+        "train_loss": 0.6792891621589661,
+        "validation_loss": 0.607856810092926
+      },
+      {
+        "epoch": 14,
+        "train_loss": 0.6635656952857971,
+        "validation_loss": 0.6017988920211792
+      },
+      {
+        "epoch": 15,
+        "train_loss": 0.6489115357398987,
+        "validation_loss": 0.596900463104248
+      },
+      {
+        "epoch": 16,
+        "train_loss": 0.635132908821106,
+        "validation_loss": 0.592726469039917
+      },
+      {
+        "epoch": 17,
+        "train_loss": 0.6220726370811462,
+        "validation_loss": 0.5889684557914734
+      },
+      {
+        "epoch": 18,
+        "train_loss": 0.609572172164917,
+        "validation_loss": 0.585392951965332
+      },
+      {
+        "epoch": 19,
+        "train_loss": 0.5974975824356079,
+        "validation_loss": 0.5818569660186768
+      },
+      {
+        "epoch": 20,
+        "train_loss": 0.5857845544815063,
+        "validation_loss": 0.5782854557037354
+      },
+      {
+        "epoch": 21,
+        "train_loss": 0.5743785500526428,
+        "validation_loss": 0.574712336063385
+      },
+      {
+        "epoch": 22,
+        "train_loss": 0.5632621645927429,
+        "validation_loss": 0.5712380409240723
+      },
+      {
+        "epoch": 23,
+        "train_loss": 0.5524103045463562,
+        "validation_loss": 0.5679169297218323
+      },
+      {
+        "epoch": 24,
+        "train_loss": 0.5418196320533752,
+        "validation_loss": 0.5648757815361023
+      },
+      {
+        "epoch": 25,
+        "train_loss": 0.5315201878547668,
+        "validation_loss": 0.5622656345367432
+      },
+      {
+        "epoch": 26,
+        "train_loss": 0.5215099453926086,
+        "validation_loss": 0.5602197051048279
+      },
+      {
+        "epoch": 27,
+        "train_loss": 0.5117887854576111,
+        "validation_loss": 0.5588444471359253
+      },
+      {
+        "epoch": 28,
+        "train_loss": 0.5023420453071594,
+        "validation_loss": 0.558192789554596
+      },
+      {
+        "epoch": 29,
+        "train_loss": 0.49316975474357605,
+        "validation_loss": 0.5582649111747742
+      },
+      {
+        "epoch": 30,
+        "train_loss": 0.48423323035240173,
+        "validation_loss": 0.5590315461158752
+      },
+      {
+        "epoch": 31,
+        "train_loss": 0.47551432251930237,
+        "validation_loss": 0.5603993535041809
+      },
+      {
+        "epoch": 32,
+        "train_loss": 0.4670157730579376,
+        "validation_loss": 0.5623002052307129
+      },
+      {
+        "epoch": 33,
+        "train_loss": 0.4587329030036926,
+        "validation_loss": 0.5645706057548523
+      },
+      {
+        "epoch": 34,
+        "train_loss": 0.4506314694881439,
+        "validation_loss": 0.5670804381370544
+      }
+    ]
+  },
+  "inspection_test": {
+    "designation": "official dev-test rooms; never used for fitting or threshold selection",
+    "event_count": 31,
+    "temporal_head": {
+      "segment_f1": {
+        "f1": 0.7380952380952381,
+        "true_positive": 62,
+        "false_positive": 25,
+        "false_negative": 19,
+        "segment_ms": 1000
+      },
+      "collar_event_metrics": {
+        "f1": 0.11594202898550725,
+        "true_positive": 4,
+        "false_positive": 34,
+        "false_negative": 27,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": 130.0,
+        "matched_offset_mae_ms": 175.0
+      }
+    },
+    "direct_threshold_before_decoder": {
+      "threshold": 0.95,
+      "segment_f1": {
+        "f1": 0.7142857142857143,
+        "true_positive": 50,
+        "false_positive": 9,
+        "false_negative": 31,
+        "segment_ms": 1000
+      },
+      "collar_event_metrics": {
+        "f1": 0.025,
+        "true_positive": 1,
+        "false_positive": 48,
+        "false_negative": 30,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": 40.0,
+        "matched_offset_mae_ms": 100.0
+      }
+    },
+    "validation_selected_hysteresis_decoder": {
+      "high_threshold": 0.9,
+      "low_threshold": 0.45,
+      "max_gap_frames": 2,
+      "min_active_frames": 1
+    },
+    "whole_clip_oracle_tag_baseline": {
+      "definition": "uses each window's known laughter presence but assigns 0..10000 ms; this is deliberately not localization",
+      "segment_f1": {
+        "f1": 0.48942598187311176,
+        "true_positive": 81,
+        "false_positive": 169,
+        "false_negative": 0,
+        "segment_ms": 1000
+      },
+      "collar_event_metrics": {
+        "f1": 0.0,
+        "true_positive": 0,
+        "false_positive": 25,
+        "false_negative": 31,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": null,
+        "matched_offset_mae_ms": null
+      }
+    }
+  },
+  "single_pass_temporal_conv_followup": {
+    "result": "research/starss23-temporal-conv-results.json",
+    "architecture": "Conv1d(512,128,kernel_size=7)+ReLU+Conv1d(128,1,kernel_size=1)",
+    "trainable_parameters": 459009,
+    "seed": 0,
+    "inspection_evaluations": 1,
+    "segment_f1": 0.711340206185567,
+    "whole_clip_segment_f1": 0.48942598187311176,
+    "segment_margin": 0.22191422431245528,
+    "collar_event_f1": 0.028169014084507043,
+    "whole_clip_collar_event_f1": 0.0,
+    "collar_true_positive": 1,
+    "reference_event_count": 31
+  },
+  "cascade_wiring": {
+    "passed": false,
+    "segment_margin_required": 0.05,
+    "segment_margin_observed": 0.22191422431245528,
+    "collar_f1_required": 0.25,
+    "collar_f1_observed": 0.028169014084507043,
+    "temporal_segment_f1": 0.711340206185567,
+    "whole_clip_segment_f1": 0.48942598187311176,
+    "timestamps_wired": false,
+    "policy": "require collar F1 >= 0.25 and segment margin >= 0.05",
+    "decision": "unwire STARSS23 laugh timing; natural-scene boundaries remain unsolved",
+    "prior_mlp_segment_only_gate_superseded": true
+  },
+  "runtime": {
+    "device": "cpu",
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130"
+  },
+  "limitations": [
+    "Only STARSS23 laughter maps honestly to the current Attune event ontology.",
+    "Speech language is unverified and speech classes are not training targets.",
+    "Natural recordings require ongoing privacy and consent care.",
+    "The bounded slice is not independently reviewed Attune gold."
+  ]
+}
