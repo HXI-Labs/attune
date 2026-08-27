@@ -22,6 +22,25 @@ from attune.inference.packaging import package_for_trusted_channel
 from attune.schema.output import AttuneOutput
 from attune.schema.xml import render_xml
 
+PR17_BASELINE = {
+    "original_150": {
+        "wer": 0.0703,
+        "affect_macro_f1": 0.9208,
+        "cascade_target_macro_f1": 0.7912,
+        "aed_only_target_macro_f1": 0.4498,
+        "intended_probe_only_target_macro_f1": 0.8370,
+        "micro_f1_all_predictions": 0.5075,
+    },
+    "licence_clean_expansion_160": {
+        "wer": 0.1900,
+        "affect_macro_f1": 0.8679,
+        "cascade_target_macro_f1": 0.7465,
+        "aed_only_target_macro_f1": 0.1429,
+        "intended_probe_only_target_macro_f1": 0.7410,
+        "micro_f1_all_predictions": 0.4934,
+    },
+}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -239,6 +258,58 @@ def component_set(components: list[dict[str, Any]], name_fragment: str) -> set[s
     }
 
 
+def ood_false_positive_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Count clips where a probe emits outside its source domain."""
+    probes = {
+        "vocalsound": ("VocalSound", "vocalsound_probe_annotations"),
+        "fsd50k": ("FSD50K", "fsd50k_probe_annotations"),
+    }
+    by_probe: dict[str, Any] = {}
+    total_opportunities = 0
+    total_false_positives = 0
+    for name, (in_domain, prediction_key) in probes.items():
+        ood = [record for record in records if record["source_dataset"] != in_domain]
+        false_positives = sum(bool(record[prediction_key]) for record in ood)
+        total_opportunities += len(ood)
+        total_false_positives += false_positives
+        by_probe[name] = {
+            "in_domain": in_domain,
+            "ood_clips": len(ood),
+            "false_positive_clips": false_positives,
+            "false_positive_rate": false_positives / len(ood) if ood else 0.0,
+            "by_source": {
+                source: {
+                    "clips": len(source_rows),
+                    "false_positive_clips": sum(
+                        bool(record[prediction_key]) for record in source_rows
+                    ),
+                    "false_positive_rate": (
+                        sum(bool(record[prediction_key]) for record in source_rows)
+                        / len(source_rows)
+                    ),
+                }
+                for source in sorted({record["source_dataset"] for record in ood})
+                if (
+                    source_rows := [
+                        record for record in ood if record["source_dataset"] == source
+                    ]
+                )
+            },
+        }
+    return {
+        "definition": (
+            "fraction of out-of-domain clip/probe opportunities where that probe "
+            "emits any event or style"
+        ),
+        "false_positive_rate": (
+            total_false_positives / total_opportunities if total_opportunities else 0.0
+        ),
+        "false_positive_clips": total_false_positives,
+        "probe_opportunities": total_opportunities,
+        "by_probe": by_probe,
+    }
+
+
 def run_row(cascade: AttuneCascade, row: dict[str, Any]) -> dict[str, Any]:
     prediction = cascade.predict(
         BaselineInput(
@@ -250,6 +321,9 @@ def run_row(cascade: AttuneCascade, row: dict[str, Any]) -> dict[str, Any]:
     output = AttuneOutput.model_validate(prediction.output.model_dump(mode="json"))
     diagnostics = prediction.diagnostics or {}
     components = diagnostics["event_style_components"]
+    probe_diagnostics = {
+        item["name"]: item for item in diagnostics.get("probe_diagnostics", [])
+    }
     aed = component_set(components, "-aed")
     vocalsound = component_set(components, "vocalsound-frozen")
     fsd50k = component_set(components, "fsd50k-frozen")
@@ -287,6 +361,18 @@ def run_row(cascade: AttuneCascade, row: dict[str, Any]) -> dict[str, Any]:
         "vocalsound_probe_annotations": vocalsound,
         "fsd50k_probe_annotations": fsd50k,
         "probe_only_annotations": vocalsound | fsd50k,
+        "probe_abstention": {
+            name: {
+                key: detail[key]
+                for key in (
+                    "abstained",
+                    "abstention_method",
+                    "abstention_score",
+                    "abstention_threshold",
+                )
+            }
+            for name, detail in probe_diagnostics.items()
+        },
         "cascade_annotations": cascade_annotations,
         "schema_valid": True,
         "xml_deterministic": xml == render_xml(output),
@@ -338,6 +424,10 @@ def summarize_slice(records: list[dict[str, Any]]) -> dict[str, Any]:
                 event_records, "vocalsound_probe_annotations"
             ),
             "fsd50k_probe_only": annotation_metrics(event_records, "fsd50k_probe_annotations"),
+            "all_clips_all_predictions": annotation_metrics(
+                records, "cascade_annotations"
+            ),
+            "ood_false_positives": ood_false_positive_metrics(records),
         },
     }
 
@@ -364,6 +454,41 @@ def load_training_report(path: Path) -> dict[str, Any]:
         "inspection_test_metrics": inspection_metrics,
         "partitions": report["partitions"],
     }
+
+
+def comparison_with_pr17(
+    summaries: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Build the requested side-by-side without overwriting the closed gate."""
+    result: dict[str, dict[str, Any]] = {}
+    for name, baseline in PR17_BASELINE.items():
+        summary = summaries[name]
+        events = summary["events_styles"]
+        current = {
+            "wer": summary["asr"]["wer"],
+            "affect_macro_f1": summary["affect"]["emotion2vec_plus"]["macro_f1"],
+            "cascade_target_macro_f1": events["cascade"]["target_macro_f1"],
+            "aed_only_target_macro_f1": events["aed_only"]["target_macro_f1"],
+            "intended_probe_only_target_macro_f1": events["probe_only"][
+                "target_macro_f1"
+            ],
+            "micro_f1_all_predictions": events["cascade"][
+                "micro_f1_all_predictions"
+            ],
+            "ood_false_positive_rate": events["ood_false_positives"][
+                "false_positive_rate"
+            ],
+        }
+        baseline_with_ood = {**baseline, "ood_false_positive_rate": 1.0}
+        result[name] = {
+            "pr17": baseline_with_ood,
+            "abstaining_probes": current,
+            "delta": {
+                metric: current[metric] - baseline_with_ood[metric]
+                for metric in current
+            },
+        }
+    return result
 
 
 def main() -> None:
@@ -404,8 +529,20 @@ def main() -> None:
         records.append(run_row(cascade, row))
         print(f"Attune cascade {index}/310 {row['clip_id']}", flush=True)
 
+    slices = {
+        "original_150": summarize_slice(
+            [record for record in records if record["inspection_slice"] == "original_150"]
+        ),
+        "licence_clean_expansion_160": summarize_slice(
+            [
+                record
+                for record in records
+                if record["inspection_slice"] == "licence_clean_expansion_160"
+            ]
+        ),
+    }
     payload = {
-        "report_version": "1",
+        "report_version": "2",
         "title": "Attune cascade combined 310-clip inspection",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "gate_decision": "closed",
@@ -423,29 +560,32 @@ def main() -> None:
             "transcript": "SenseVoiceSmall",
             "affect": "emotion2vec+ acoustic SER; transcript lexicon excluded",
             "events_styles": (
-                "SenseVoice AED UNION frozen VocalSound linear probe "
-                "UNION frozen FSD50K linear probe"
+                "SenseVoice AED UNION validation-selected abstaining frozen VocalSound "
+                "linear probe UNION validation-selected abstaining frozen FSD50K linear probe"
             ),
             "merge_rule": (
                 "Deterministic set union by channel and label in AED, VocalSound, "
-                "FSD50K order; later duplicates are suppressed. Scream remains a "
-                "discrete event, not shouting. Sob remains an event, not crying_speech."
+                "FSD50K order. An abstaining probe contributes nothing, preserving AED-only "
+                "output; if every source is empty, events and styles remain empty. Later "
+                "duplicates are suppressed. Scream remains a discrete event, not shouting. "
+                "Sob remains an event, not crying_speech."
             ),
             "timestamps": "whole utterance only; no word or frame localization",
-            "probe_confidence": "uncalibrated closed-set diagnostic, not gold",
-        },
-        "slices": {
-            "original_150": summarize_slice(
-                [record for record in records if record["inspection_slice"] == "original_150"]
-            ),
-            "licence_clean_expansion_160": summarize_slice(
-                [
-                    record
-                    for record in records
-                    if record["inspection_slice"] == "licence_clean_expansion_160"
-                ]
+            "probe_confidence": (
+                "closed-set softmax diagnostic plus validation selection among max-softmax, "
+                "energy, and a genuine-negative none logit; not reviewed gold"
             ),
         },
+        "slices": slices,
+        "combined_310": {
+            "events_styles": {
+                "all_clips_all_predictions": annotation_metrics(
+                    records, "cascade_annotations"
+                ),
+                "ood_false_positives": ood_false_positive_metrics(records),
+            }
+        },
+        "comparison_with_pr17": comparison_with_pr17(slices),
         "contract_audit": {
             "schema_valid": sum(record["schema_valid"] for record in records),
             "deterministic_xml": sum(record["xml_deterministic"] for record in records),
@@ -496,7 +636,8 @@ def main() -> None:
         },
         "limitations": [
             "The research gate remains closed.",
-            "Both probes are closed-set and have no evaluated OOD or abstention threshold.",
+            "Abstention is selected on bounded cross-domain validation negatives; broader "
+            "OOD behavior remains unestablished.",
             "All event/style spans are whole-utterance provisional spans.",
             "Weak source labels are not reviewed Attune gold.",
             "FSD50K standalone events do not establish speech-embedded style coverage.",

@@ -24,6 +24,13 @@ from attune.models.frozen_event_probe import (
     load_inspection_rows,
     make_speaker_disjoint_split,
 )
+from attune.models.fsd50k_probe import training_examples as fsd50k_training_examples
+from attune.models.probe_abstention import calibrate_abstention, fit_none_logit_head
+from attune.models.probe_ood import (
+    crema_probe_negatives,
+    partition_negatives,
+    source_speakers,
+)
 from attune.models.sensevoice_probe import (
     SENSEVOICE_EMBEDDING,
     FrozenSenseVoiceEncoder,
@@ -185,16 +192,26 @@ def extract_partition(
     extractor: Any = None,
 ) -> tuple[Any, Any]:
     """Materialize frozen embeddings and integer labels for one partition."""
+    features = extract_features(examples, torch, extractor)
+    label_indices = {label: index for index, label in enumerate(EVENT_LABELS)}
+    labels = torch.tensor([label_indices[example.label] for example in examples])
+    return features, labels
+
+
+def extract_features(
+    examples: Any,
+    torch: Any,
+    extractor: Any,
+) -> Any:
+    """Materialize frozen embeddings for examples that expose an audio path."""
     missing = [str(example.path) for example in examples if not example.path.is_file()]
     if missing:
         preview = "\n".join(f"  - {path}" for path in missing[:10])
         raise ProbeDataError(f"{len(missing)} audio files are missing:\n{preview}")
-    label_indices = {label: index for index, label in enumerate(EVENT_LABELS)}
     extractor = extractor or partial(frozen_logmel_embedding, torch=torch)
     with torch.inference_mode():
         features = torch.stack([extractor(example.path) for example in examples])
-    labels = torch.tensor([label_indices[example.label] for example in examples])
-    return features, labels
+    return features
 
 
 def classification_metrics(targets: list[int], predictions: list[int]) -> dict[str, Any]:
@@ -306,6 +323,25 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         validation_fraction=args.validation_fraction,
         seed=args.seed,
     )
+    fsd50k_candidates = fsd50k_training_examples(
+        args.fsd50k_probe_manifest, args.fsd50k_probe_cache
+    )
+    ood_training = tuple(
+        example for example in fsd50k_candidates if example.partition == "train"
+    )
+    ood_validation = tuple(
+        example for example in fsd50k_candidates if example.partition == "validation"
+    )
+    crema_negatives = crema_probe_negatives(
+        args.crema_ood_manifest,
+        args.crema_ood_cache,
+        excluded_speakers=source_speakers(
+            (args.inspection_manifest, args.expansion_manifest),
+            "CREMA-D",
+        ),
+    )
+    crema_ood_training = partition_negatives(crema_negatives, "train")
+    crema_ood_validation = partition_negatives(crema_negatives, "validation")
     if len(split.train) < args.min_train_clips:
         raise ProbeDataError(
             f"training pool has {len(split.train)} clips after inspection-speaker exclusion; "
@@ -325,7 +361,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             raise ProbeDataError("--sensevoice-model is required for SenseVoice extraction")
         sensevoice_extractor = FrozenSenseVoiceEncoder(
             sensevoice_model,
-            getattr(args, "embedding_cache", Path("artifacts/sensevoice-embeddings")),
+            getattr(
+                args,
+                "embedding_cache",
+                Path("artifacts/cascade-sensevoice-embeddings"),
+            ),
             torch,
         )
         extractor = sensevoice_extractor
@@ -337,11 +377,25 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     train_x, train_y = extract_partition(split.train, torch, extractor)
     validation_x, validation_y = extract_partition(split.validation, torch, extractor)
     test_x, test_y = extract_partition(split.test, torch, extractor)
+    ood_training_x = torch.cat(
+        (
+            extract_features(ood_training, torch, extractor),
+            extract_features(crema_ood_training, torch, extractor),
+        )
+    )
+    ood_validation_x = torch.cat(
+        (
+            extract_features(ood_validation, torch, extractor),
+            extract_features(crema_ood_validation, torch, extractor),
+        )
+    )
     mean = train_x.mean(dim=0)
     scale = train_x.std(dim=0).clamp_min(1e-5)
     train_x = (train_x - mean) / scale
     validation_x = (validation_x - mean) / scale
     test_x = (test_x - mean) / scale
+    ood_training_x = (ood_training_x - mean) / scale
+    ood_validation_x = (ood_validation_x - mean) / scale
 
     # Extraction internals and cache hits must not change head initialization.
     torch.manual_seed(args.seed)
@@ -388,6 +442,39 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     if best_state is None:
         raise ProbeDataError("training did not produce a checkpoint")
     head.load_state_dict(best_state)
+    head.eval()
+    closed_head = head
+    try:
+        none_head, none_state, none_history = fit_none_logit_head(
+            closed_head=closed_head,
+            train_features=train_x,
+            train_targets=train_y,
+            ood_train_features=ood_training_x,
+            validation_features=validation_x,
+            validation_targets=validation_y,
+            ood_validation_features=ood_validation_x,
+            label_count=len(EVENT_LABELS),
+            learning_rate=args.learning_rate,
+            batch_size=args.batch_size,
+            epochs=args.epochs,
+            patience=args.patience,
+            seed=args.seed,
+            torch=torch,
+        )
+    except RuntimeError as error:
+        raise ProbeDataError(str(error)) from error
+    with torch.inference_mode():
+        abstention = calibrate_abstention(
+            id_logits=closed_head(validation_x),
+            id_targets=validation_y,
+            ood_logits=closed_head(ood_validation_x),
+            label_count=len(EVENT_LABELS),
+            torch=torch,
+            none_id_logits=none_head(validation_x),
+            none_ood_logits=none_head(ood_validation_x),
+        )
+    selected_head = none_head if abstention["method"] == "none_logit" else closed_head
+    selected_state = none_state if abstention["method"] == "none_logit" else best_state
     args.checkpoint_output.parent.mkdir(parents=True, exist_ok=True)
     embedding_metadata = (
         sensevoice_extractor.metadata()
@@ -400,11 +487,12 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     )
     torch.save(
         {
-            "head_state_dict": best_state,
+            "head_state_dict": selected_state,
             "feature_mean": mean,
             "feature_scale": scale,
             "labels": [label.value for label in EVENT_LABELS],
             "embedding": embedding_name,
+            "abstention": abstention,
         },
         args.checkpoint_output,
     )
@@ -418,8 +506,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             ),
         }
 
-    validation_metrics = evaluate(head, validation_x, validation_y, torch)
-    test_metrics = evaluate(head, test_x, test_y, torch)
+    validation_metrics = evaluate(closed_head, validation_x, validation_y, torch)
+    test_metrics = evaluate(closed_head, test_x, test_y, torch)
     report = {
         "stage": 2,
         "task": "VocalSound utterance-level 5-way event classification",
@@ -427,17 +515,51 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "encoder_frozen": True,
         "embedding": embedding_metadata,
         "head": {
-            "type": "linear",
-            "trainable_parameters": sum(parameter.numel() for parameter in head.parameters()),
+            "type": (
+                "linear_with_none_logit"
+                if abstention["method"] == "none_logit"
+                else "linear"
+            ),
+            "trainable_parameters": sum(
+                parameter.numel() for parameter in selected_head.parameters()
+            ),
+            "abstention": abstention,
+            "candidate_trainable_parameters": {
+                "closed_set": sum(
+                    parameter.numel() for parameter in closed_head.parameters()
+                ),
+                "closed_set_plus_none_checkpoint": sum(
+                    parameter.numel() for parameter in none_head.parameters()
+                ),
+            },
+            "fitted_none_logit_parameters": train_x.shape[1] + 1,
+            "closed_set_rows_preserved": True,
         },
         "seed": args.seed,
         "epochs_completed": len(history),
         "early_stopping_patience": args.patience,
         "history": history,
+        "none_logit_history": none_history,
         "partitions": {
             "train": partition_report(split.train),
             "validation": partition_report(split.validation),
             "test": partition_report(split.test),
+            "ood_training": {
+                "clips": len(ood_training) + len(crema_ood_training),
+                "sources": {
+                    "FSD50K": len(ood_training),
+                    "CREMA-D": len(crema_ood_training),
+                },
+                "target": "none logit only",
+            },
+            "ood_validation": {
+                "clips": len(ood_validation) + len(crema_ood_validation),
+                "sources": {
+                    "FSD50K": len(ood_validation),
+                    "CREMA-D": len(crema_ood_validation),
+                },
+                "expected_probe_annotations": "empty for the VocalSound head",
+            },
             "excluded_inspection_speakers": sorted(excluded_speakers),
         },
         "validation_metrics": validation_metrics,
@@ -473,12 +595,38 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--embedding-cache",
         type=Path,
-        default=Path("artifacts/sensevoice-embeddings"),
+        default=Path("artifacts/cascade-sensevoice-embeddings"),
         help="gitignored cache for frozen SenseVoice encoder embeddings",
     )
     parser.add_argument("--dataset-dir", type=Path, default=DEFAULT_DATASET)
     parser.add_argument("--inspection-manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--inspection-cache", type=Path, default=DEFAULT_INSPECTION_CACHE)
+    parser.add_argument(
+        "--expansion-manifest",
+        type=Path,
+        default=Path("data/manifests/licence-clean-inspection.jsonl"),
+    )
+    parser.add_argument(
+        "--fsd50k-probe-manifest",
+        type=Path,
+        default=Path("data/manifests/fsd50k-frozen-probe.jsonl"),
+        help="bounded FSD50K pool whose validation split supplies OOD negatives",
+    )
+    parser.add_argument(
+        "--fsd50k-probe-cache",
+        type=Path,
+        default=Path("data/raw/fsd50k-frozen-probe"),
+    )
+    parser.add_argument(
+        "--crema-ood-manifest",
+        type=Path,
+        default=Path("data/manifests/crema-probe-ood.jsonl"),
+    )
+    parser.add_argument(
+        "--crema-ood-cache",
+        type=Path,
+        default=Path("data/raw/crema-probe-ood"),
+    )
     parser.add_argument(
         "--test-set",
         choices=("inspection", "held_out_speakers"),

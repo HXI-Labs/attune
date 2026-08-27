@@ -9,6 +9,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from attune.models.probe_abstention import (
+    accepts,
+    checkpoint_abstention,
+    confidence_scores,
+)
 from attune.models.sensevoice_probe import SENSEVOICE_EMBEDDING, FrozenSenseVoiceEncoder
 from attune.schema.output import EventLabel, StyleLabel
 
@@ -46,6 +51,7 @@ class ProbePrediction:
     annotations: tuple[ProbeAnnotation, ...]
     elapsed_seconds: float
     diagnostics: dict[str, Any]
+    abstained: bool = False
 
 
 class FrozenEncoderProvider:
@@ -112,33 +118,59 @@ class FrozenLinearProbeHead:
         with torch.inference_mode():
             features = extractor(audio_path)
             normalized = (features - payload["feature_mean"]) / payload["feature_scale"]
-            probabilities = torch.softmax(head(normalized.unsqueeze(0)), dim=1)[0]
-        index = int(probabilities.argmax())
+            logits = head(normalized.unsqueeze(0))
+            probabilities = torch.softmax(logits, dim=1)[0]
+        method, threshold = checkpoint_abstention(payload)
+        if method == "none_logit":
+            none_index = len(payload["labels"])
+            index = int(probabilities[:none_index].argmax())
+            score = float(
+                probabilities[:none_index].max() - probabilities[none_index]
+            )
+            abstained = not accepts(score, threshold)
+        else:
+            score = float(confidence_scores(logits, method, torch)[0])
+            abstained = not accepts(score, threshold)
+            index = int(probabilities.argmax())
         source_label = payload["labels"][index]
         channel, label = self.label_mapping[source_label]
         confidence = float(probabilities[index])
         return ProbePrediction(
-            annotations=(ProbeAnnotation(channel, label, confidence),),
+            annotations=(
+                () if abstained else (ProbeAnnotation(channel, label, confidence),)
+            ),
             elapsed_seconds=time.perf_counter() - started,
             diagnostics={
                 "name": self.name,
                 "source_label": source_label,
-                "mapped_channel": channel,
-                "mapped_label": label.value,
+                "mapped_channel": None if abstained else channel,
+                "mapped_label": None if abstained else label.value,
                 "confidence": confidence,
                 "confidence_role": (
-                    "diagnostic closed-set softmax; uncalibrated and not reviewed gold"
+                    "diagnostic closed-set softmax; not reviewed gold"
                 ),
+                "abstained": abstained,
+                "abstention_method": method,
+                "abstention_score": score,
+                "abstention_threshold": threshold,
+                "abstention_rule": "emit when score >= threshold",
+                "energy": -score if method == "energy" else None,
                 "class_probabilities": {
                     source: float(probability)
                     for source, probability in zip(
-                        payload["labels"], probabilities.tolist(), strict=True
+                        payload["labels"],
+                        probabilities[: len(payload["labels"])].tolist(),
+                        strict=True,
                     )
                 },
+                "none_probability": (
+                    float(probabilities[-1]) if method == "none_logit" else None
+                ),
                 "encoder_frozen": True,
                 "embedding": SENSEVOICE_EMBEDDING,
                 "span_scope": "utterance",
             },
+            abstained=abstained,
         )
 
     def _load(self, torch: Any) -> tuple[Any, dict[str, Any]]:
@@ -151,6 +183,7 @@ class FrozenLinearProbeHead:
             "feature_scale",
             "labels",
             "embedding",
+            "abstention",
         }
         if not isinstance(payload, dict) or not required <= payload.keys():
             raise RuntimeError(f"{self.name} checkpoint has an unsupported payload")
@@ -159,6 +192,7 @@ class FrozenLinearProbeHead:
                 f"{self.name} checkpoint uses {payload['embedding']!r}, "
                 f"expected {SENSEVOICE_EMBEDDING!r}"
             )
+        method, _threshold = checkpoint_abstention(payload)
         labels = payload["labels"]
         if not isinstance(labels, list) or set(labels) != set(self.label_mapping):
             raise RuntimeError(f"{self.name} checkpoint labels do not match its ontology mapping")
@@ -169,7 +203,8 @@ class FrozenLinearProbeHead:
                 f"{self.name} checkpoint has {feature_count} features, "
                 f"expected {expected_features}"
             )
-        head = torch.nn.Linear(feature_count, len(labels))
+        output_count = len(labels) + (method == "none_logit")
+        head = torch.nn.Linear(feature_count, output_count)
         head.load_state_dict(payload["head_state_dict"])
         head.eval()
         self._head = head

@@ -98,6 +98,7 @@ class ModularCascade(BaselineAdapter):
             components.append(
                 {
                     "name": head.name,
+                    "abstained": prediction.abstained,
                     "annotations": [
                         {
                             "channel": annotation.channel,
@@ -136,10 +137,12 @@ class ModularCascade(BaselineAdapter):
                 "merge_decisions": decisions,
                 "merge_policy": (
                     "Set union by channel and ontology label. ASR/SenseVoice AED is "
-                    "considered first; probes fill missing labels and duplicate labels "
-                    "are suppressed. Scream is a discrete event and never becomes "
-                    "shouting. Sob is a discrete event and never becomes crying_speech. "
-                    "All spans cover the utterance and are provisional."
+                    "considered first; an abstaining probe contributes nothing, so AED-only "
+                    "annotations remain unchanged. If AED and both probes are empty, no "
+                    "event/style is emitted. Non-abstaining probes fill missing labels and "
+                    "duplicate labels are suppressed. Scream is a discrete event and never "
+                    "becomes shouting. Sob is a discrete event and never becomes "
+                    "crying_speech. All spans cover the utterance and are provisional."
                 ),
                 "timestamp_policy": (
                     "utterance-level only; no word alignment or frame localization inferred"
