@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import sys
+from contextlib import redirect_stdout
 from pathlib import Path
 
 from attune.baselines.adapters import (
@@ -149,7 +150,10 @@ def main() -> None:
     available, reason = cascade.availability()
     if not available:
         raise SystemExit(f"error: {reason}")
-    prediction = cascade.predict(BaselineInput(audio_path=arguments.audio))
+    # FunASR prints model-loading notices and progress bars to stdout. Keep stdout
+    # machine-readable by routing dependency chatter to stderr.
+    with redirect_stdout(sys.stderr):
+        prediction = cascade.predict(BaselineInput(audio_path=arguments.audio))
     if arguments.xml:
         print(render_xml(prediction.output))
         return
