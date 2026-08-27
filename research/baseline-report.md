@@ -446,10 +446,11 @@ SHA-256 in `data/manifests/licence-clean-inspection.jsonl`.
 
 FSD50K selection used official ground truth and clip metadata before any audio
 fetch. Only individual Freesound clips licensed CC0 or CC BY were eligible:
-16 CC0 and 84 CC BY clips were selected. Uploader attribution is retained per
-row. CC BY-NC and Sampling+ were excluded, and no full FSD50K audio archive was
-downloaded. FSD50K curation and annotations remain attributed to Fonseca et
-al. under CC BY 4.0.
+16 CC0 and 84 CC BY clips were selected, each carrying exactly one of the four
+target classes. Uploader attribution is retained per row. CC BY-NC, Sampling+,
+and cross-target clips were excluded, and no full FSD50K audio archive was
+downloaded. FSD50K curation and annotations remain attributed to Fonseca et al.
+under CC BY 4.0.
 
 The weak-label boundary is explicit: FSD50K `Shout` is a standalone sound, not
 speech-embedded shouting; `Whispering` maps weakly to `whispering`;

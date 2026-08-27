@@ -245,7 +245,10 @@ def evaluate_frozen_probe(
     try:
         import torch
 
-        from attune.models.sensevoice_probe import FrozenSenseVoiceEncoder
+        from attune.models.sensevoice_probe import (
+            SENSEVOICE_EMBEDDING,
+            FrozenSenseVoiceEncoder,
+        )
     except ImportError as error:
         return {
             "status": "blocked_missing_runtime",
@@ -254,7 +257,7 @@ def evaluate_frozen_probe(
             "training_performed": False,
         }
     payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
-    if payload.get("embedding") != "sensevoice-encoder-pooled-v1":
+    if payload.get("embedding") != SENSEVOICE_EMBEDDING:
         return {
             "status": "blocked_wrong_checkpoint",
             "reason": "Checkpoint is not the existing frozen SenseVoice encoder probe.",

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "created_at": "2026-08-27",
   "manifest": "data/manifests/licence-clean-inspection.jsonl",
-  "manifest_sha256": "64a38db7ffabe679e9b65ff05344cd6f5fd59bc511edb61718884b45f7922a4c",
+  "manifest_sha256": "422c9b7b33b56a5f97d27945c717c769ddbd138f262577f504259a9536d39859",
   "row_count": 160,
   "audio_contract": {
     "sample_rate_hz": 16000,
@@ -26,7 +26,7 @@
       "official_record": "https://zenodo.org/records/4060432",
       "transport_repository": "Fhrozen/FSD50k",
       "transport_revision": "812caa9897ee9e0e9a3b0ce075f7d70f14fa6460",
-      "selection_rule": "Filter official clip metadata to CC0 or CC BY before constructing individual audio URLs; then take the first 25 unique numeric Freesound IDs per class.",
+      "selection_rule": "Filter official clip metadata to CC0 or CC BY and exactly one of the four target classes before constructing individual audio URLs; then take the first 25 unique numeric Freesound IDs per class.",
       "excluded_clip_licences": [
         "CC-BY-NC-3.0",
         "Sampling+"

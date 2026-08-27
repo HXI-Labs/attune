@@ -147,10 +147,11 @@ SHA-256-hashed clips:
 
 The FSD50K selector downloads only the official 6.7 MB metadata and 335 KB
 ground-truth archives first. It rejects every clip whose own Freesound licence
-is not CC0 or CC BY before constructing an individual audio URL. It never
-downloads the full FSD50K audio archive. Uploader, clip licence, title, source
-class, FSD50K curation attribution, and the pinned transport revision are
-retained per row. CC BY-NC and Sampling+ clips are ineligible.
+is not CC0 or CC BY, or which carries more than one of the four target classes,
+before constructing an individual audio URL. It never downloads the full
+FSD50K audio archive. Uploader, clip licence, title, source class, FSD50K
+curation attribution, and the pinned transport revision are retained per row.
+CC BY-NC and Sampling+ clips are ineligible.
 
 ```bash
 # Fetch only the 160 selected files, with finite retry/backoff, and convert.

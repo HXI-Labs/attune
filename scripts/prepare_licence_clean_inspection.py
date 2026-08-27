@@ -165,7 +165,7 @@ def _fsd_candidates(metadata_root: Path) -> list[dict[str, Any]]:
             for row in rows:
                 labels = set(row["labels"].split(","))
                 selected_labels = labels & FSD_CLASSES.keys()
-                if not selected_labels:
+                if len(selected_labels) != 1:
                     continue
                 info = clip_info[row["fname"]]
                 if info["license"] not in ALLOWED_CLIP_LICENCES:

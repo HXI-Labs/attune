@@ -1,7 +1,7 @@
 {
   "report_version": "1",
   "title": "Licence-clean FSD50K event and CREMA-D affect inspection",
-  "generated_at_utc": "2026-08-27T00:11:23.111605Z",
+  "generated_at_utc": "2026-08-27T00:16:06.994517Z",
   "scope": {
     "manifest": "data/manifests/licence-clean-inspection.jsonl",
     "clip_count": 160,
@@ -15,8 +15,8 @@
     "gate_decision": "closed"
   },
   "execution": {
-    "run_commit": "618184c73fdc0d8ca0fe89314a57f8828b487b9a",
-    "wall_seconds": 64.81849002838135,
+    "run_commit": "12b545ed8ca493e7dee102bfbb2828e7654400d0",
+    "wall_seconds": 59.260241985321045,
     "python": "3.12.3",
     "platform": "Linux-6.12.94+-x86_64-with-glibc2.39",
     "logical_cpu_count": 4,
@@ -70,8 +70,8 @@
       },
       "runtime": {
         "audio_seconds": 155.25000000000003,
-        "elapsed_seconds": 51.5675886920003,
-        "real_time_factor": 0.33215838126892294,
+        "elapsed_seconds": 48.454432851999854,
+        "real_time_factor": 0.3121058476779378,
         "device": "cpu"
       },
       "failures": []
@@ -115,8 +115,8 @@
       },
       "runtime": {
         "audio_seconds": 155.25000000000003,
-        "elapsed_seconds": 8.949442722000185,
-        "real_time_factor": 0.057645363748793456,
+        "elapsed_seconds": 8.114535213000636,
+        "real_time_factor": 0.05226753760386882,
         "device": "cpu"
       },
       "failures": []
@@ -258,13 +258,6 @@
       {
         "clip_id": "fsd50k-1925",
         "source_class": "Shout",
-        "events": [],
-        "styles": [],
-        "matched_mapped_weak_label": false
-      },
-      {
-        "clip_id": "fsd50k-19345",
-        "source_class": "Screaming",
         "events": [],
         "styles": [],
         "matched_mapped_weak_label": false
@@ -588,6 +581,13 @@
         "matched_mapped_weak_label": false
       },
       {
+        "clip_id": "fsd50k-34281",
+        "source_class": "Screaming",
+        "events": [],
+        "styles": [],
+        "matched_mapped_weak_label": false
+      },
+      {
         "clip_id": "fsd50k-34544",
         "source_class": "Whispering",
         "events": [],
@@ -597,13 +597,6 @@
       {
         "clip_id": "fsd50k-34545",
         "source_class": "Whispering",
-        "events": [],
-        "styles": [],
-        "matched_mapped_weak_label": false
-      },
-      {
-        "clip_id": "fsd50k-41328",
-        "source_class": "Crying_and_sobbing",
         "events": [],
         "styles": [],
         "matched_mapped_weak_label": false
@@ -627,11 +620,9 @@
       {
         "clip_id": "fsd50k-46964",
         "source_class": "Crying_and_sobbing",
-        "events": [
-          "sob"
-        ],
+        "events": [],
         "styles": [],
-        "matched_mapped_weak_label": true
+        "matched_mapped_weak_label": false
       },
       {
         "clip_id": "fsd50k-47929",
@@ -717,16 +708,11 @@
       {
         "clip_id": "fsd50k-59579",
         "source_class": "Crying_and_sobbing",
-        "events": [],
+        "events": [
+          "sob"
+        ],
         "styles": [],
-        "matched_mapped_weak_label": false
-      },
-      {
-        "clip_id": "fsd50k-59586",
-        "source_class": "Crying_and_sobbing",
-        "events": [],
-        "styles": [],
-        "matched_mapped_weak_label": false
+        "matched_mapped_weak_label": true
       },
       {
         "clip_id": "fsd50k-61569",
@@ -778,14 +764,28 @@
         "matched_mapped_weak_label": false
       },
       {
-        "clip_id": "fsd50k-9428",
+        "clip_id": "fsd50k-80477",
         "source_class": "Crying_and_sobbing",
         "events": [],
         "styles": [],
         "matched_mapped_weak_label": false
       },
       {
-        "clip_id": "fsd50k-9429",
+        "clip_id": "fsd50k-80478",
+        "source_class": "Crying_and_sobbing",
+        "events": [],
+        "styles": [],
+        "matched_mapped_weak_label": false
+      },
+      {
+        "clip_id": "fsd50k-80479",
+        "source_class": "Crying_and_sobbing",
+        "events": [],
+        "styles": [],
+        "matched_mapped_weak_label": false
+      },
+      {
+        "clip_id": "fsd50k-9428",
         "source_class": "Crying_and_sobbing",
         "events": [],
         "styles": [],
@@ -794,7 +794,9 @@
       {
         "clip_id": "fsd50k-9432",
         "source_class": "Screaming",
-        "events": [],
+        "events": [
+          "laugh"
+        ],
         "styles": [],
         "matched_mapped_weak_label": false
       },

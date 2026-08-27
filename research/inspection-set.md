@@ -64,9 +64,10 @@ ShareAlike obligations must be preserved.
 clips and 60 CREMA-D affect clips. The FSD50K slice is balanced at 25 clips
 each for `Shout`, `Whispering`, `Crying_and_sobbing`, and `Screaming`. All 100
 were selected from official metadata only after their individual Freesound
-licences were confirmed as CC0 (16) or CC BY (84). Every row preserves the
-uploader attribution. CC BY-NC and Sampling+ clips were excluded before audio
-fetch, and no full FSD50K audio archive was downloaded.
+licences were confirmed as CC0 (16) or CC BY (84) and the clip carried exactly
+one of the four target classes. Every row preserves the uploader attribution.
+CC BY-NC, Sampling+, and cross-target clips were excluded before audio fetch,
+and no full FSD50K audio archive was downloaded.
 
 These are weak labels with deliberately narrow mappings:
 
