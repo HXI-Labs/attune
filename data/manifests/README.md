@@ -207,7 +207,9 @@ selection boundary, class/partition counts, and clip-licence counts.
 
 The VocalSound and FSD50K training entry points share
 `artifacts/cascade-sensevoice-embeddings` by default. Each compares max-softmax
-and energy thresholds using its own in-domain validation partition and the
-other probe's validation partition as genuine OOD negatives. The chosen method
-and threshold are written only to the gitignored head checkpoint and metrics
-artifact; inspection/test clips do not choose the operating point.
+and energy thresholds with a `none` logit trained on the other probe's training
+partition as genuine OOD negatives. Its own in-domain validation partition and
+the other probe's validation partition select the candidate and operating
+point. The chosen method and threshold (when applicable) are written only to
+the gitignored head checkpoint and metrics artifact; inspection/test clips do
+not choose the operating point.

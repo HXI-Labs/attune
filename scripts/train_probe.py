@@ -25,7 +25,7 @@ from attune.models.frozen_event_probe import (
     make_speaker_disjoint_split,
 )
 from attune.models.fsd50k_probe import training_examples as fsd50k_training_examples
-from attune.models.probe_abstention import calibrate_abstention
+from attune.models.probe_abstention import calibrate_abstention, fit_none_logit_head
 from attune.models.sensevoice_probe import (
     SENSEVOICE_EMBEDDING,
     FrozenSenseVoiceEncoder,
@@ -318,12 +318,14 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         validation_fraction=args.validation_fraction,
         seed=args.seed,
     )
+    fsd50k_candidates = fsd50k_training_examples(
+        args.fsd50k_probe_manifest, args.fsd50k_probe_cache
+    )
+    ood_training = tuple(
+        example for example in fsd50k_candidates if example.partition == "train"
+    )
     ood_validation = tuple(
-        example
-        for example in fsd50k_training_examples(
-            args.fsd50k_probe_manifest, args.fsd50k_probe_cache
-        )
-        if example.partition == "validation"
+        example for example in fsd50k_candidates if example.partition == "validation"
     )
     if len(split.train) < args.min_train_clips:
         raise ProbeDataError(
@@ -360,12 +362,14 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     train_x, train_y = extract_partition(split.train, torch, extractor)
     validation_x, validation_y = extract_partition(split.validation, torch, extractor)
     test_x, test_y = extract_partition(split.test, torch, extractor)
+    ood_training_x = extract_features(ood_training, torch, extractor)
     ood_validation_x = extract_features(ood_validation, torch, extractor)
     mean = train_x.mean(dim=0)
     scale = train_x.std(dim=0).clamp_min(1e-5)
     train_x = (train_x - mean) / scale
     validation_x = (validation_x - mean) / scale
     test_x = (test_x - mean) / scale
+    ood_training_x = (ood_training_x - mean) / scale
     ood_validation_x = (ood_validation_x - mean) / scale
 
     # Extraction internals and cache hits must not change head initialization.
@@ -414,14 +418,37 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         raise ProbeDataError("training did not produce a checkpoint")
     head.load_state_dict(best_state)
     head.eval()
-    with torch.inference_mode():
-        abstention = calibrate_abstention(
-            id_logits=head(validation_x),
-            id_targets=validation_y,
-            ood_logits=head(ood_validation_x),
+    closed_head = head
+    try:
+        none_head, none_state, none_history = fit_none_logit_head(
+            train_features=train_x,
+            train_targets=train_y,
+            ood_train_features=ood_training_x,
+            validation_features=validation_x,
+            validation_targets=validation_y,
+            ood_validation_features=ood_validation_x,
             label_count=len(EVENT_LABELS),
+            learning_rate=args.learning_rate,
+            batch_size=args.batch_size,
+            epochs=args.epochs,
+            patience=args.patience,
+            seed=args.seed,
             torch=torch,
         )
+    except RuntimeError as error:
+        raise ProbeDataError(str(error)) from error
+    with torch.inference_mode():
+        abstention = calibrate_abstention(
+            id_logits=closed_head(validation_x),
+            id_targets=validation_y,
+            ood_logits=closed_head(ood_validation_x),
+            label_count=len(EVENT_LABELS),
+            torch=torch,
+            none_id_logits=none_head(validation_x),
+            none_ood_logits=none_head(ood_validation_x),
+        )
+    selected_head = none_head if abstention["method"] == "none_logit" else closed_head
+    selected_state = none_state if abstention["method"] == "none_logit" else best_state
     args.checkpoint_output.parent.mkdir(parents=True, exist_ok=True)
     embedding_metadata = (
         sensevoice_extractor.metadata()
@@ -434,7 +461,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     )
     torch.save(
         {
-            "head_state_dict": best_state,
+            "head_state_dict": selected_state,
             "feature_mean": mean,
             "feature_scale": scale,
             "labels": [label.value for label in EVENT_LABELS],
@@ -453,8 +480,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             ),
         }
 
-    validation_metrics = evaluate(head, validation_x, validation_y, torch)
-    test_metrics = evaluate(head, test_x, test_y, torch)
+    validation_metrics = evaluate(closed_head, validation_x, validation_y, torch)
+    test_metrics = evaluate(closed_head, test_x, test_y, torch)
     report = {
         "stage": 2,
         "task": "VocalSound utterance-level 5-way event classification",
@@ -462,18 +489,38 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "encoder_frozen": True,
         "embedding": embedding_metadata,
         "head": {
-            "type": "linear",
-            "trainable_parameters": sum(parameter.numel() for parameter in head.parameters()),
+            "type": (
+                "linear_with_none_logit"
+                if abstention["method"] == "none_logit"
+                else "linear"
+            ),
+            "trainable_parameters": sum(
+                parameter.numel() for parameter in selected_head.parameters()
+            ),
             "abstention": abstention,
+            "candidate_trainable_parameters": {
+                "closed_set": sum(
+                    parameter.numel() for parameter in closed_head.parameters()
+                ),
+                "none_logit": sum(
+                    parameter.numel() for parameter in none_head.parameters()
+                ),
+            },
         },
         "seed": args.seed,
         "epochs_completed": len(history),
         "early_stopping_patience": args.patience,
         "history": history,
+        "none_logit_history": none_history,
         "partitions": {
             "train": partition_report(split.train),
             "validation": partition_report(split.validation),
             "test": partition_report(split.test),
+            "ood_training": {
+                "clips": len(ood_training),
+                "source": "FSD50K probe training partition",
+                "target": "none logit only",
+            },
             "ood_validation": {
                 "clips": len(ood_validation),
                 "source": "FSD50K probe validation partition",

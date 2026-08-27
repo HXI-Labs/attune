@@ -560,8 +560,8 @@ def main() -> None:
             "transcript": "SenseVoiceSmall",
             "affect": "emotion2vec+ acoustic SER; transcript lexicon excluded",
             "events_styles": (
-                "SenseVoice AED UNION validation-thresholded frozen VocalSound linear "
-                "probe UNION validation-thresholded frozen FSD50K linear probe"
+                "SenseVoice AED UNION validation-selected abstaining frozen VocalSound "
+                "linear probe UNION validation-selected abstaining frozen FSD50K linear probe"
             ),
             "merge_rule": (
                 "Deterministic set union by channel and label in AED, VocalSound, "
@@ -572,8 +572,8 @@ def main() -> None:
             ),
             "timestamps": "whole utterance only; no word or frame localization",
             "probe_confidence": (
-                "closed-set softmax diagnostic plus a validation-selected max-softmax "
-                "or energy abstention threshold; not reviewed gold"
+                "closed-set softmax diagnostic plus validation selection among max-softmax, "
+                "energy, and a genuine-negative none logit; not reviewed gold"
             ),
         },
         "slices": slices,

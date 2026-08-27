@@ -33,7 +33,7 @@ from attune.models.fsd50k_probe import (
     training_examples,
     validate_clip_disjoint,
 )
-from attune.models.probe_abstention import calibrate_abstention
+from attune.models.probe_abstention import calibrate_abstention, fit_none_logit_head
 from attune.models.sensevoice_probe import SENSEVOICE_EMBEDDING, FrozenSenseVoiceEncoder
 
 AED_DETECTION_RATE = {
@@ -106,7 +106,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
     )
     validate_clip_disjoint(train_examples, validation_examples, test_examples)
     vocalsound_rows = load_vocalsound_inspection_rows(arguments.vocalsound_manifest)
-    vocalsound_ood = make_speaker_disjoint_split(
+    vocalsound_split = make_speaker_disjoint_split(
         discover_vocalsound(arguments.vocalsound_dataset),
         vocalsound_inspection_examples(
             arguments.vocalsound_manifest, arguments.vocalsound_cache
@@ -114,7 +114,9 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         excluded_speakers={row["speaker_id"] for row in vocalsound_rows},
         validation_fraction=arguments.vocalsound_validation_fraction,
         seed=arguments.seed,
-    ).validation
+    )
+    ood_training = vocalsound_split.train
+    ood_validation = vocalsound_split.validation
 
     extractor = FrozenSenseVoiceEncoder(
         arguments.sensevoice_model,
@@ -124,12 +126,14 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
     train_x, train_y = extract_partition(train_examples, extractor, torch)
     validation_x, validation_y = extract_partition(validation_examples, extractor, torch)
     test_x, test_y = extract_partition(test_examples, extractor, torch)
-    ood_validation_x = extract_features(vocalsound_ood, extractor, torch)
+    ood_training_x = extract_features(ood_training, extractor, torch)
+    ood_validation_x = extract_features(ood_validation, extractor, torch)
     mean = train_x.mean(dim=0)
     scale = train_x.std(dim=0).clamp_min(1e-5)
     train_x = (train_x - mean) / scale
     validation_x = (validation_x - mean) / scale
     test_x = (test_x - mean) / scale
+    ood_training_x = (ood_training_x - mean) / scale
     ood_validation_x = (ood_validation_x - mean) / scale
 
     torch.manual_seed(arguments.seed)
@@ -177,18 +181,41 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         raise ProbeDataError("linear-head training did not produce a checkpoint")
     head.load_state_dict(best_state)
     head.eval()
-    with torch.inference_mode():
-        abstention = calibrate_abstention(
-            id_logits=head(validation_x),
-            id_targets=validation_y,
-            ood_logits=head(ood_validation_x),
+    closed_head = head
+    try:
+        none_head, none_state, none_history = fit_none_logit_head(
+            train_features=train_x,
+            train_targets=train_y,
+            ood_train_features=ood_training_x,
+            validation_features=validation_x,
+            validation_targets=validation_y,
+            ood_validation_features=ood_validation_x,
             label_count=len(FSD50K_PROBE_LABELS),
+            learning_rate=arguments.learning_rate,
+            batch_size=arguments.batch_size,
+            epochs=arguments.epochs,
+            patience=arguments.patience,
+            seed=arguments.seed,
             torch=torch,
         )
+    except RuntimeError as error:
+        raise ProbeDataError(str(error)) from error
+    with torch.inference_mode():
+        abstention = calibrate_abstention(
+            id_logits=closed_head(validation_x),
+            id_targets=validation_y,
+            ood_logits=closed_head(ood_validation_x),
+            label_count=len(FSD50K_PROBE_LABELS),
+            torch=torch,
+            none_id_logits=none_head(validation_x),
+            none_ood_logits=none_head(ood_validation_x),
+        )
+    selected_head = none_head if abstention["method"] == "none_logit" else closed_head
+    selected_state = none_state if abstention["method"] == "none_logit" else best_state
     arguments.checkpoint_output.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
         {
-            "head_state_dict": best_state,
+            "head_state_dict": selected_state,
             "feature_mean": mean,
             "feature_scale": scale,
             "labels": list(FSD50K_PROBE_LABELS),
@@ -198,8 +225,8 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         arguments.checkpoint_output,
     )
 
-    validation_metrics = evaluate(head, validation_x, validation_y, torch)
-    test_metrics = evaluate(head, test_x, test_y, torch)
+    validation_metrics = evaluate(closed_head, validation_x, validation_y, torch)
+    test_metrics = evaluate(closed_head, test_x, test_y, torch)
 
     def partition_report(examples: tuple[FSD50KProbeExample, ...]) -> dict[str, Any]:
         return {
@@ -215,10 +242,24 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         "encoder_frozen": True,
         "fine_tuning_performed": False,
         "head": {
-            "type": "linear",
-            "trainable_parameters": sum(parameter.numel() for parameter in head.parameters()),
+            "type": (
+                "linear_with_none_logit"
+                if abstention["method"] == "none_logit"
+                else "linear"
+            ),
+            "trainable_parameters": sum(
+                parameter.numel() for parameter in selected_head.parameters()
+            ),
             "checkpoint_committed": False,
             "abstention": abstention,
+            "candidate_trainable_parameters": {
+                "closed_set": sum(
+                    parameter.numel() for parameter in closed_head.parameters()
+                ),
+                "none_logit": sum(
+                    parameter.numel() for parameter in none_head.parameters()
+                ),
+            },
         },
         "embedding": extractor.metadata(),
         "data_contract": {
@@ -239,9 +280,15 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
             "train": partition_report(train_examples),
             "validation": partition_report(validation_examples),
             "inspection_test": partition_report(test_examples),
+            "ood_training": {
+                "clips": len(ood_training),
+                "speakers": sorted({example.speaker_id for example in ood_training}),
+                "source": "speaker-disjoint VocalSound training partition",
+                "target": "none logit only",
+            },
             "ood_validation": {
-                "clips": len(vocalsound_ood),
-                "speakers": sorted({example.speaker_id for example in vocalsound_ood}),
+                "clips": len(ood_validation),
+                "speakers": sorted({example.speaker_id for example in ood_validation}),
                 "source": "speaker-disjoint VocalSound validation partition",
                 "expected_probe_annotations": "empty for the FSD50K head",
             },
@@ -250,6 +297,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         "epochs_completed": len(history),
         "early_stopping_patience": arguments.patience,
         "history": history,
+        "none_logit_history": none_history,
         "validation_metrics": validation_metrics,
         "inspection_test_metrics": test_metrics,
         "comparison": {
@@ -288,7 +336,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         "limitations": [
             "FSD50K source labels are weak labels, not reviewed Attune gold.",
             "Standalone Freesound clips do not establish speech-embedded style coverage.",
-            "No localization, calibration, abstention, or OOD threshold was evaluated.",
+            "No localization or broad open-world OOD coverage is established.",
         ],
     }
 

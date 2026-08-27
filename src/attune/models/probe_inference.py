@@ -121,9 +121,22 @@ class FrozenLinearProbeHead:
             logits = head(normalized.unsqueeze(0))
             probabilities = torch.softmax(logits, dim=1)[0]
         method, threshold = checkpoint_abstention(payload)
-        score = float(confidence_scores(logits, method, torch)[0])
-        abstained = not accepts(score, threshold)
-        index = int(probabilities.argmax())
+        if method == "none_logit":
+            none_index = len(payload["labels"])
+            output_index = int(probabilities.argmax())
+            abstained = output_index == none_index
+            index = (
+                int(probabilities[:none_index].argmax())
+                if abstained
+                else output_index
+            )
+            score = float(
+                probabilities[:none_index].max() - probabilities[none_index]
+            )
+        else:
+            score = float(confidence_scores(logits, method, torch)[0])
+            abstained = not accepts(score, threshold)
+            index = int(probabilities.argmax())
         source_label = payload["labels"][index]
         channel, label = self.label_mapping[source_label]
         confidence = float(probabilities[index])
@@ -150,9 +163,14 @@ class FrozenLinearProbeHead:
                 "class_probabilities": {
                     source: float(probability)
                     for source, probability in zip(
-                        payload["labels"], probabilities.tolist(), strict=True
+                        payload["labels"],
+                        probabilities[: len(payload["labels"])].tolist(),
+                        strict=True,
                     )
                 },
+                "none_probability": (
+                    float(probabilities[-1]) if method == "none_logit" else None
+                ),
                 "encoder_frozen": True,
                 "embedding": SENSEVOICE_EMBEDDING,
                 "span_scope": "utterance",
@@ -179,7 +197,7 @@ class FrozenLinearProbeHead:
                 f"{self.name} checkpoint uses {payload['embedding']!r}, "
                 f"expected {SENSEVOICE_EMBEDDING!r}"
             )
-        checkpoint_abstention(payload)
+        method, _threshold = checkpoint_abstention(payload)
         labels = payload["labels"]
         if not isinstance(labels, list) or set(labels) != set(self.label_mapping):
             raise RuntimeError(f"{self.name} checkpoint labels do not match its ontology mapping")
@@ -190,7 +208,8 @@ class FrozenLinearProbeHead:
                 f"{self.name} checkpoint has {feature_count} features, "
                 f"expected {expected_features}"
             )
-        head = torch.nn.Linear(feature_count, len(labels))
+        output_count = len(labels) + (method == "none_logit")
+        head = torch.nn.Linear(feature_count, output_count)
         head.load_state_dict(payload["head_state_dict"])
         head.eval()
         self._head = head

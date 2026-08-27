@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any, Literal
 
-AbstentionMethod = Literal["max_softmax", "energy"]
-ABSTENTION_METHODS: tuple[AbstentionMethod, ...] = ("max_softmax", "energy")
+AbstentionMethod = Literal["max_softmax", "energy", "none_logit"]
+THRESHOLD_METHODS: tuple[AbstentionMethod, ...] = ("max_softmax", "energy")
+ABSTENTION_METHODS: tuple[AbstentionMethod, ...] = (*THRESHOLD_METHODS, "none_logit")
 
 
 def confidence_scores(logits: Any, method: AbstentionMethod, torch: Any) -> Any:
@@ -31,6 +33,8 @@ def calibrate_abstention(
     ood_logits: Any,
     label_count: int,
     torch: Any,
+    none_id_logits: Any | None = None,
+    none_ood_logits: Any | None = None,
 ) -> dict[str, Any]:
     """Compare score methods and choose a threshold using validation data only."""
     if len(id_logits) == 0 or len(ood_logits) == 0:
@@ -44,17 +48,34 @@ def calibrate_abstention(
             label_count=label_count,
             torch=torch,
         )
-        for method in ABSTENTION_METHODS
+        for method in THRESHOLD_METHODS
     }
+    if (none_id_logits is None) != (none_ood_logits is None):
+        raise ValueError("both none-logit validation tensors are required")
+    if none_id_logits is not None:
+        none_metrics = evaluate_none_logit(
+            logits=none_id_logits,
+            targets=id_targets,
+            ood_logits=none_ood_logits,
+            label_count=label_count,
+        )
+        comparisons["none_logit"] = {
+            "selected": none_metrics,
+            "threshold_sweep": [{**none_metrics, "selected": True}],
+        }
     selected_method = max(
-        ABSTENTION_METHODS,
+        comparisons,
         key=lambda method: _selection_key(comparisons[method]["selected"]),
     )
     selected = comparisons[selected_method]["selected"]
     return {
         "method": selected_method,
-        "threshold": selected["threshold"],
-        "score_rule": "emit when score >= threshold; otherwise abstain",
+        "threshold": selected.get("threshold"),
+        "score_rule": (
+            "emit when the argmax is not the trained none logit"
+            if selected_method == "none_logit"
+            else "emit when score >= threshold; otherwise abstain"
+        ),
         "score_definition": _score_definition(selected_method),
         "selection_metric": (
             "validation micro-F1 over one expected ID label per in-domain clip and "
@@ -64,7 +85,7 @@ def calibrate_abstention(
         "validation": selected,
         "method_comparison": {
             method: {
-                "selected_threshold": result["selected"]["threshold"],
+                "selected_threshold": result["selected"].get("threshold"),
                 "validation": result["selected"],
                 "threshold_sweep": result["threshold_sweep"],
             }
@@ -90,7 +111,134 @@ def evaluate_threshold(
     target_values = targets.tolist()
     emitted = [accepts(float(score), threshold) for score in id_scores]
     ood_emitted = [accepts(float(score), threshold) for score in ood_scores]
+    return _decision_metrics(
+        target_values=target_values,
+        predictions=predictions,
+        emitted=emitted,
+        ood_emitted=ood_emitted,
+        label_count=label_count,
+        threshold=threshold,
+    )
 
+
+def evaluate_none_logit(
+    *,
+    logits: Any,
+    targets: Any,
+    ood_logits: Any,
+    label_count: int,
+) -> dict[str, Any]:
+    """Measure a head whose final output is a genuine-negative ``none`` class."""
+    predictions = logits.argmax(dim=1).tolist()
+    ood_predictions = ood_logits.argmax(dim=1).tolist()
+    return _decision_metrics(
+        target_values=targets.tolist(),
+        predictions=predictions,
+        emitted=[prediction != label_count for prediction in predictions],
+        ood_emitted=[prediction != label_count for prediction in ood_predictions],
+        label_count=label_count,
+        threshold=None,
+    )
+
+
+def fit_none_logit_head(
+    *,
+    train_features: Any,
+    train_targets: Any,
+    ood_train_features: Any,
+    validation_features: Any,
+    validation_targets: Any,
+    ood_validation_features: Any,
+    label_count: int,
+    learning_rate: float,
+    batch_size: int,
+    epochs: int,
+    patience: int,
+    seed: int,
+    torch: Any,
+) -> tuple[Any, dict[str, Any], list[dict[str, float | int]]]:
+    """Fit one small none-logit candidate while keeping all embeddings frozen."""
+    none_index = label_count
+    features = torch.cat((train_features, ood_train_features))
+    targets = torch.cat(
+        (
+            train_targets,
+            torch.full((len(ood_train_features),), none_index, dtype=torch.long),
+        )
+    )
+    validation_x = torch.cat((validation_features, ood_validation_features))
+    validation_y = torch.cat(
+        (
+            validation_targets,
+            torch.full((len(ood_validation_features),), none_index, dtype=torch.long),
+        )
+    )
+    counts = torch.bincount(targets, minlength=label_count + 1).float()
+    class_weights = len(targets) / ((label_count + 1) * counts)
+
+    torch.manual_seed(seed + 1)
+    head = torch.nn.Linear(features.shape[1], label_count + 1)
+    optimizer = torch.optim.AdamW(head.parameters(), lr=learning_rate)
+    generator = torch.Generator().manual_seed(seed + 1)
+    best_state = None
+    best_validation_loss = math.inf
+    stale_epochs = 0
+    history: list[dict[str, float | int]] = []
+    for epoch in range(1, epochs + 1):
+        head.train()
+        permutation = torch.randperm(len(targets), generator=generator)
+        total_loss = 0.0
+        for start in range(0, len(permutation), batch_size):
+            indices = permutation[start : start + batch_size]
+            optimizer.zero_grad()
+            loss = torch.nn.functional.cross_entropy(
+                head(features[indices]),
+                targets[indices],
+                weight=class_weights,
+            )
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item() * len(indices)
+        head.eval()
+        with torch.inference_mode():
+            validation_loss = torch.nn.functional.cross_entropy(
+                head(validation_x),
+                validation_y,
+                weight=class_weights,
+            ).item()
+        history.append(
+            {
+                "epoch": epoch,
+                "train_loss": total_loss / len(targets),
+                "validation_loss": validation_loss,
+            }
+        )
+        if validation_loss < best_validation_loss - 1e-6:
+            best_validation_loss = validation_loss
+            best_state = {
+                name: value.detach().clone() for name, value in head.state_dict().items()
+            }
+            stale_epochs = 0
+        else:
+            stale_epochs += 1
+            if stale_epochs >= patience:
+                break
+    if best_state is None:
+        raise RuntimeError("none-logit training did not produce a checkpoint")
+    head.load_state_dict(best_state)
+    head.eval()
+    return head, best_state, history
+
+
+def _decision_metrics(
+    *,
+    target_values: list[int],
+    predictions: list[int],
+    emitted: list[bool],
+    ood_emitted: list[bool],
+    label_count: int,
+    threshold: float | None,
+) -> dict[str, Any]:
     per_class_f1: list[float] = []
     true_positive = false_positive = false_negative = 0
     for label_index in range(label_count):
@@ -144,7 +292,9 @@ def evaluate_threshold(
     }
 
 
-def checkpoint_abstention(payload: dict[str, Any]) -> tuple[AbstentionMethod, float]:
+def checkpoint_abstention(
+    payload: dict[str, Any],
+) -> tuple[AbstentionMethod, float | None]:
     """Validate and return a checkpoint's mandatory abstention configuration."""
     config = payload.get("abstention")
     if not isinstance(config, dict):
@@ -153,6 +303,8 @@ def checkpoint_abstention(payload: dict[str, Any]) -> tuple[AbstentionMethod, fl
     if method not in ABSTENTION_METHODS:
         raise RuntimeError(f"probe checkpoint has unsupported abstention method: {method!r}")
     threshold = config.get("threshold")
+    if method == "none_logit" and threshold is None:
+        return method, None
     if not isinstance(threshold, int | float):
         raise RuntimeError("probe checkpoint has an invalid abstention threshold")
     return method, float(threshold)
@@ -217,4 +369,6 @@ def _selection_key(row: dict[str, Any]) -> tuple[float, float, float, float]:
 def _score_definition(method: AbstentionMethod) -> str:
     if method == "max_softmax":
         return "maximum closed-set softmax probability"
-    return "negative energy = logsumexp(logits); energy itself is -score"
+    if method == "energy":
+        return "negative energy = logsumexp(logits); energy itself is -score"
+    return "trained final none logit; argmax none means abstain"

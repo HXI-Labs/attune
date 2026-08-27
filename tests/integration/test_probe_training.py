@@ -81,19 +81,23 @@ def test_probe_trains_only_a_linear_head_on_synthetic_wavs(tmp_path: Path) -> No
     fsd50k_cache = tmp_path / "fsd50k"
     fsd50k_manifest = tmp_path / "fsd50k.jsonl"
     fsd50k_rows = []
-    for label_index, source_class in enumerate(
-        ("Shout", "Whispering", "Crying_and_sobbing", "Screaming")
-    ):
-        relative_path = f"fsd50k/ood-{label_index}.wav"
-        write_tone(fsd50k_cache / relative_path, 900 + label_index * 100)
-        fsd50k_rows.append(
-            {
-                "cache_path": relative_path,
-                "clip_id": f"ood-{label_index}",
-                "partition": "validation",
-                "source_class": source_class,
-            }
-        )
+    for partition_index, partition in enumerate(("train", "validation")):
+        for label_index, source_class in enumerate(
+            ("Shout", "Whispering", "Crying_and_sobbing", "Screaming")
+        ):
+            relative_path = f"fsd50k/ood-{partition}-{label_index}.wav"
+            write_tone(
+                fsd50k_cache / relative_path,
+                900 + partition_index * 50 + label_index * 100,
+            )
+            fsd50k_rows.append(
+                {
+                    "cache_path": relative_path,
+                    "clip_id": f"ood-{partition}-{label_index}",
+                    "partition": partition,
+                    "source_class": source_class,
+                }
+            )
     fsd50k_manifest.write_text(
         "".join(f"{json.dumps(row)}\n" for row in fsd50k_rows),
         encoding="utf-8",
@@ -120,7 +124,12 @@ def test_probe_trains_only_a_linear_head_on_synthetic_wavs(tmp_path: Path) -> No
 
     assert report["encoder_frozen"] is True
     assert report["embedding"]["trainable_parameters"] == 0
-    assert report["head"]["type"] == "linear"
+    assert report["head"]["type"].startswith("linear")
+    assert set(report["head"]["abstention"]["method_comparison"]) == {
+        "max_softmax",
+        "energy",
+        "none_logit",
+    }
     assert report["partitions"]["train"]["clips"] == 20
     assert report["partitions"]["validation"]["clips"] == 10
     assert report["partitions"]["test"]["clips"] == 10

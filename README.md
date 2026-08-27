@@ -63,9 +63,10 @@ No model checkpoints are downloaded by installation.
 
 `AttuneCascade` is the concrete inspected runner: SenseVoiceSmall transcript
 and AED, emotion2vec+ affect, and the union of the frozen VocalSound and FSD50K
-linear probes when their validation-selected max-softmax/energy checks do not
-abstain. Abstention contributes no event/style, preserving AED-only output. Run
-the combined original-150 plus licence-clean-160 inspection with
+linear probes when their validation-selected max-softmax, energy, or
+genuine-negative `none`-logit checks do not abstain. Abstention contributes no
+event/style, preserving AED-only output. Run the combined original-150 plus
+licence-clean-160 inspection with
 `scripts/evaluate_attune_cascade.py` after preparing the bounded datasets,
 reviewed local model paths, and gitignored heads. The encoder remains frozen,
 all annotations are utterance-level and provisional, and the gate is closed.

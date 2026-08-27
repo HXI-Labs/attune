@@ -38,6 +38,28 @@ def test_energy_score_is_negative_energy() -> None:
     assert score.item() == pytest.approx(torch.logsumexp(logits, dim=1).item())
 
 
+def test_calibration_can_select_genuine_negative_none_logit() -> None:
+    closed_id = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
+    closed_ood = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
+    none_id = torch.tensor([[8.0, 0.0, -1.0], [0.0, 8.0, -1.0]])
+    none_ood = torch.tensor([[0.0, 0.0, 8.0], [0.0, 0.0, 8.0]])
+
+    result = calibrate_abstention(
+        id_logits=closed_id,
+        id_targets=torch.tensor([0, 1]),
+        ood_logits=closed_ood,
+        label_count=2,
+        torch=torch,
+        none_id_logits=none_id,
+        none_ood_logits=none_ood,
+    )
+
+    assert result["method"] == "none_logit"
+    assert result["threshold"] is None
+    assert result["validation"]["all_prediction_micro_f1"] == 1.0
+    assert result["validation"]["ood_false_positive_rate"] == 0.0
+
+
 def test_checkpoint_abstention_is_mandatory() -> None:
     with pytest.raises(RuntimeError, match="no abstention"):
         checkpoint_abstention({})
