@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect validation and inspection-test emotion2vec+ scores for calibration."""
+"""Collect actor-disjoint validation emotion2vec+ scores for calibration."""
 
 from __future__ import annotations
 
@@ -30,11 +30,7 @@ def load_rows(manifest: Path, cache: Path, split: str) -> list[dict[str, Any]]:
     ]
     selected = []
     for row in rows:
-        target = (
-            row.get("target_affect")
-            if split == "validation"
-            else (row.get("intended_attune_labels", {}).get("affect") or [None])[0]
-        )
+        target = row.get("target_affect")
         if target is None:
             continue
         audio = cache / row["cache_path"]
@@ -58,26 +54,6 @@ def main() -> None:
         default=Path("data/raw/affect-calibration"),
     )
     parser.add_argument(
-        "--original-manifest",
-        type=Path,
-        default=Path("data/manifests/inspection-set.jsonl"),
-    )
-    parser.add_argument(
-        "--original-cache",
-        type=Path,
-        default=Path("data/raw/inspection-set"),
-    )
-    parser.add_argument(
-        "--expansion-manifest",
-        type=Path,
-        default=Path("data/manifests/licence-clean-inspection.jsonl"),
-    )
-    parser.add_argument(
-        "--expansion-cache",
-        type=Path,
-        default=Path("data/raw/licence-clean-inspection"),
-    )
-    parser.add_argument(
         "--output",
         type=Path,
         default=Path("artifacts/calibration/affect-scores.jsonl"),
@@ -90,23 +66,11 @@ def main() -> None:
             "FUNASR_DISABLE_UPDATE": "1",
         }
     )
-    rows = [
-        *load_rows(
-            arguments.validation_manifest,
-            arguments.validation_cache,
-            "validation",
-        ),
-        *load_rows(
-            arguments.original_manifest,
-            arguments.original_cache,
-            "inspection_test",
-        ),
-        *load_rows(
-            arguments.expansion_manifest,
-            arguments.expansion_cache,
-            "inspection_test",
-        ),
-    ]
+    rows = load_rows(
+        arguments.validation_manifest,
+        arguments.validation_cache,
+        "validation",
+    )
     adapter = Emotion2VecPlusAdapter(checkpoint=arguments.emotion2vec_path)
     records = []
     for index, row in enumerate(rows, 1):
