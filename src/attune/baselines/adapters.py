@@ -442,6 +442,28 @@ def parse_sensevoice_word_timestamps(result: Any, *, duration_ms: int) -> list[d
         return _validated_word_spans(normalized_tokens, duration_ms=duration_ms)
     if not isinstance(candidates, list):
         return []
+    if all(isinstance(candidate, str) for candidate in candidates):
+        timestamps = row.get("timestamp")
+        if not isinstance(timestamps, list) or len(candidates) != len(timestamps):
+            return []
+        normalized_words = []
+        for word, timestamp in zip(candidates, timestamps, strict=True):
+            if (
+                not isinstance(timestamp, list | tuple)
+                or len(timestamp) != 2
+                or not all(isinstance(value, int | float) for value in timestamp)
+            ):
+                return []
+            normalized_words.append(
+                {
+                    "text": word,
+                    # FunASR parallel word/timestamp arrays use milliseconds.
+                    "start_ms": round(float(timestamp[0])),
+                    "end_ms": round(float(timestamp[1])),
+                    "confidence": 0.0,
+                }
+            )
+        return _validated_word_spans(normalized_words, duration_ms=duration_ms)
     normalized = []
     for candidate in candidates:
         if not isinstance(candidate, dict):

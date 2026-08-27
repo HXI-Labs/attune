@@ -35,8 +35,8 @@ never calls `AutoModel.generate`. Pooling these frames reconstructs the existing
 unchanged.
 
 Frame centres are approximate. SenseVoice's low-frame-rate frontend advances
-about 60 ms per encoder frame; the first acoustic centre is approximately half
-an fbank window after audio start. The four query positions are tokens, not
+about 60 ms per encoder frame; the first acoustic centre is represented at
+approximately 30 ms. The four query positions are tokens, not
 audio, so removing them does not justify shifting every acoustic timestamp by
 four hops.
 

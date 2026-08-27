@@ -9,6 +9,7 @@ import json
 import math
 import os
 import platform
+import re
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
@@ -27,6 +28,7 @@ from attune.models.sensevoice_probe import (
 LABELS = ("laugh", "cough", "throat_clear")
 DURATION_MS = 10_000
 CLEAR_SEGMENT_F1_MARGIN = 0.05
+_SCENE_PATTERN = re.compile(r"^(?P<scene>.+)_poly_\d+\.wav$")
 
 
 def digest(path: Path) -> str:
@@ -124,6 +126,45 @@ def should_wire_timestamps(
     return temporal_segment_f1 >= whole_clip_segment_f1 + clear_margin
 
 
+def scene_key(source_recording: str) -> str:
+    """Collapse DCASE polyphonic renders to their underlying scene identity."""
+    match = _SCENE_PATTERN.fullmatch(source_recording)
+    if match is None:
+        raise ValueError(f"unsupported DCASE source recording name: {source_recording}")
+    return match.group("scene")
+
+
+def development_split(
+    rows: list[dict[str, Any]], *, validation_scene_count: int = 3
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    """Hold out complete development scenes, including every polyphonic render."""
+    scenes = sorted({scene_key(row["source_recording"]) for row in rows})
+    if validation_scene_count < 1 or validation_scene_count >= len(scenes):
+        raise ValueError("validation_scene_count must leave train and validation scenes")
+    validation_scenes = set(scenes[-validation_scene_count:])
+    validation_recordings = {
+        row["source_recording"]
+        for row in rows
+        if scene_key(row["source_recording"]) in validation_scenes
+    }
+    train_rows = [
+        row for row in rows if scene_key(row["source_recording"]) not in validation_scenes
+    ]
+    validation_rows = [
+        row for row in rows if scene_key(row["source_recording"]) in validation_scenes
+    ]
+    return (
+        train_rows,
+        validation_rows,
+        {
+            "validation_scenes": sorted(validation_scenes),
+            "validation_recordings": sorted(validation_recordings),
+            "validation_scene_disjoint": True,
+            "validation_file_disjoint": True,
+        },
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sensevoice-path", type=Path, required=True)
@@ -167,14 +208,7 @@ def main() -> None:
     torch.manual_seed(arguments.seed)
     training_rows = load_rows(arguments.training_manifest, arguments.cache_dir)
     inspection_rows = load_rows(arguments.inspection_manifest, arguments.cache_dir)
-    recordings = sorted({row["source_recording"] for row in training_rows})
-    validation_recordings = set(recordings[-4:])
-    train_rows = [
-        row for row in training_rows if row["source_recording"] not in validation_recordings
-    ]
-    validation_rows = [
-        row for row in training_rows if row["source_recording"] in validation_recordings
-    ]
+    train_rows, validation_rows, split_metadata = development_split(training_rows)
     encoder = FrozenSenseVoiceFrameEncoder(
         arguments.sensevoice_path,
         arguments.embedding_cache,
@@ -315,9 +349,8 @@ def main() -> None:
             "train_clips": len(train_rows),
             "validation_clips": len(validation_rows),
             "inspection_test_clips": len(inspection_rows),
-            "validation_recordings": sorted(validation_recordings),
             "source_disjoint_test": True,
-            "validation_file_disjoint": True,
+            **split_metadata,
         },
         "training": {
             "seed": arguments.seed,

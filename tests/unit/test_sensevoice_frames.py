@@ -113,6 +113,6 @@ def test_frame_time_geometry_excludes_query_prefix_without_audio_shift(
     frame_extractor = extractor(FrozenSenseVoiceFrameEncoder, tmp_path, monkeypatch)
 
     assert frame_extractor.frame_hop_ms == 60.0
-    assert frame_extractor.frame_centers_ms(3) == (12.5, 72.5, 132.5)
+    assert frame_extractor.frame_centers_ms(3) == (30.0, 90.0, 150.0)
     assert frame_extractor.metadata()["query_frames_excluded"] == 4
     assert frame_extractor.metadata()["trainable_parameters"] == 0

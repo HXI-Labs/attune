@@ -24,7 +24,7 @@
     "frame_hop_ms_approx": 60,
     "query_frames_stripped": 4,
     "head": "512->128->3 MLP with multi-label BCE",
-    "split": "development train/validation file-disjoint; public-test source-disjoint",
+    "split": "development train/validation scene- and file-disjoint; public-test source-disjoint",
     "threshold_selection": "development validation only",
     "clear_segment_f1_margin_required": 0.05,
     "status": "blocked",

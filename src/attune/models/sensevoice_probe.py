@@ -241,7 +241,7 @@ class FrozenSenseVoiceFrameEncoder(FrozenSenseVoiceEncoder):
     @property
     def first_frame_center_ms(self) -> float:
         """Approximate centre of the first acoustic frontend frame."""
-        return float(getattr(self.frontend, "frame_length", 25)) / 2
+        return self.frame_hop_ms / 2
 
     def frame_centers_ms(self, frame_count: int) -> tuple[float, ...]:
         """Return approximate audio-time centres after query-frame removal."""

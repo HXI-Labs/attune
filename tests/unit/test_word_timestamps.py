@@ -32,6 +32,19 @@ def test_sensevoice_official_token_timestamp_shape_converts_seconds() -> None:
     ]
 
 
+def test_sensevoice_parallel_word_and_millisecond_arrays_are_zipped() -> None:
+    result = {
+        "text": "hello there",
+        "words": ["hello", "there"],
+        "timestamp": [[120, 410], [430, 780]],
+    }
+
+    assert parse_sensevoice_word_timestamps(result, duration_ms=1000) == [
+        {"id": "w1", "text": "hello", "start_ms": 120, "end_ms": 410, "confidence": 0.0},
+        {"id": "w2", "text": "there", "start_ms": 430, "end_ms": 780, "confidence": 0.0},
+    ]
+
+
 def test_whisper_official_word_chunks_convert_seconds_to_milliseconds() -> None:
     chunks = [
         {"text": " hello", "timestamp": (0.12, 0.41)},
