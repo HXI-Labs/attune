@@ -37,7 +37,10 @@ AFFECT_LABELS = ("anger", "fear", "other")
 
 
 def normalize_asr(text: str) -> str:
-    return " ".join("".join(character if character.isalnum() else " " for character in text.lower()).split())
+    cleaned = "".join(
+        character if character.isalnum() else " " for character in text.lower()
+    )
+    return " ".join(cleaned.split())
 
 
 def checkpoint_hashes(root: Path) -> dict[str, str]:
