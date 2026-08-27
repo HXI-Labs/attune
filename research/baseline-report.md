@@ -435,3 +435,68 @@ Exact checkpoint revisions and hashes are in the machine-readable result. No
 fine-tuning occurred. This accent slice does not evaluate affect, events,
 localization, calibration, abstention, or OOD robustness; it does not pass the
 gate, and the gate remains closed.
+
+## Licence-clean event and affect expansion
+
+This packed inspection revision adds 100 individually fetched FSD50K clips
+(25 each of `Shout`, `Whispering`, `Crying_and_sobbing`, and `Screaming`) plus
+60 CREMA-D clips (20 actors × `ANG`, `FEA`, and `DIS`). All audio is mono
+16 kHz PCM16 under gitignored `data/raw/`; every selected converted file has a
+SHA-256 in `data/manifests/licence-clean-inspection.jsonl`.
+
+FSD50K selection used official ground truth and clip metadata before any audio
+fetch. Only individual Freesound clips licensed CC0 or CC BY were eligible:
+16 CC0 and 84 CC BY clips were selected, each carrying exactly one of the four
+target classes. Uploader attribution is retained per row. CC BY-NC, Sampling+,
+and cross-target clips were excluded, and no full FSD50K audio archive was
+downloaded. FSD50K curation and annotations remain attributed to Fonseca et al.
+under CC BY 4.0.
+
+The weak-label boundary is explicit: FSD50K `Shout` is a standalone sound, not
+speech-embedded shouting; `Whispering` maps weakly to `whispering`;
+`Crying_and_sobbing` maps to `sob`, not `crying_speech`; and `Screaming`
+remains separate. CREMA-D intensity remains source metadata and is never
+mapped to shouting or whispering. CREMA-D has no surprise source category.
+Its 20 expansion actors are disjoint from the original 70-clip inspection set.
+
+The evaluation script runs reviewed, pinned OpenAI Whisper-Small and
+SenseVoiceSmall by FunASR/FunAudioLLM offline after checkpoint fetch. It
+reports Whisper-versus-SenseVoice WER/CER and categorical affect on CREMA-D,
+SenseVoice AED tags on FSD50K, and can run an already-trained frozen
+SenseVoice event-probe head as an OOD diagnostic. It never trains a new head
+or fine-tunes an encoder. The probe checkpoint is intentionally gitignored;
+if unavailable, the machine report records that step as blocked rather than
+retraining.
+
+The offline run completed from commit `618184c` with no model or clip failures.
+Both checkpoints match the hashes used by the earlier Common Voice run.
+
+| Runner | CREMA-D clips | WER | CER | Affect accuracy | Affect macro-F1 |
+|---|---:|---:|---:|---:|---:|
+| Whisper-Small | 60/60 | 0.1967 | 0.2877 | 0.0000 | 0.0000 |
+| SenseVoiceSmall | 60/60 | 0.1900 | 0.2561 | 0.0000 | 0.0000 |
+
+Whisper labelled all 60 affect outputs `neutral`. SenseVoice labelled 58
+`neutral` and two `distress`; none matched the balanced weak ANG/FEA/DIS
+references. These are categorical output checks, not evidence that acted
+emotion categories are internal states. The comparison also does not isolate
+speaker, sentence, or intensity effects.
+
+SenseVoice AED detected `sob` on 8/25 (0.32) `Crying_and_sobbing` clips. It
+emitted no matching `shouting` or `whispering` style tags on the respective
+25-clip classes. The 25 `Screaming` clips have no Attune shouting target and
+remain a separate reported source class. The released AED inventory and this
+adapter do not expose a scream target.
+
+The frozen SenseVoice encoder probe evaluation is explicitly incomplete:
+status `blocked_missing_existing_checkpoint`. The trained linear head from the
+earlier probe is correctly gitignored and was not present on this VM. No new
+head was trained, the encoder was not fine-tuned, and no checkpoint was
+committed. Exact outputs, checkpoint hashes, runtime, failures, and the blocked
+status are in `research/licence-clean-inspection-results.json`.
+
+RAVDESS, SAVEE, DEED, EmoV-DB, and MSP-Podcast remain gated and were not
+downloaded. The existing Ghanaian-English NC research-only slice was not
+expanded. Human listening, reviewed gold labels, localization, calibration,
+abstention/OOD thresholds, and an approved gate decision remain incomplete.
+The gate remains **CLOSED**.

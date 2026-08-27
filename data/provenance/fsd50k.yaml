@@ -1,0 +1,36 @@
+dataset_id: fsd50k
+dataset_name: FSD50K
+source_url: https://zenodo.org/records/4060432
+transport_mirror: https://huggingface.co/datasets/Fhrozen/FSD50k
+transport_revision: 812caa9897ee9e0e9a3b0ce075f7d70f14fa6460
+intended_use: Bounded weak-label inspection of Shout, Whispering, Crying_and_sobbing, and Screaming
+licence:
+  dataset_curation_name: Creative Commons Attribution 4.0
+  dataset_curation_identifier: CC-BY-4.0
+  clip_licences_allowed:
+    - CC0-1.0
+    - CC-BY-3.0
+  clip_licences_excluded:
+    - CC-BY-NC-3.0
+    - Sampling+
+  licence_review_status: reviewed_selected_clips_internal_research_ok
+  reviewed_by: Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-26"
+conditions:
+  filter_before_audio_fetch: true
+  preserve_uploader_attribution: true
+  full_archive_download_forbidden: true
+redistribution:
+  original_audio: not_authorised_by_this_review
+  manifests_and_attribution: authorised
+downloaded_at: "2026-08-27"
+checksums_manifest: data/manifests/licence-clean-inspection.jsonl
+notes:
+  - FSD50K curation and annotations are CC BY 4.0, while each Freesound clip retains its own licence.
+  - Selection reads the official metadata and ground-truth archives before constructing any clip audio URL.
+  - Only clip-level CC0 and CC BY entries are eligible; NC and Sampling+ entries fail closed.
+  - Individual selected WAV files are fetched from a pinned mirror and converted to mono 16 kHz PCM16 under gitignored data/raw/.
+  - Shout is a standalone Freesound event, not speech-embedded shouting.
+  - Crying_and_sobbing maps to sob, not crying_speech without evidence of speech with crying.
+  - Screaming remains separate and is not relabelled as shouting.
+  - This is operational research guidance, not legal advice or lawyer sign-off.

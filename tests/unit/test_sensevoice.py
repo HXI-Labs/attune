@@ -15,6 +15,9 @@ def test_rich_transcript_tags_map_to_events_and_speech_styles() -> None:
         ("laughing_speech", 0.0),
         ("crying_speech", 0.0),
     ]
+    assert [(row.label.value, row.confidence) for row in parsed.affect] == [
+        ("neutral", 0.0)
+    ]
 
 
 def test_structured_events_use_scores_and_drop_unmapped_labels() -> None:
@@ -37,6 +40,7 @@ def test_structured_events_use_scores_and_drop_unmapped_labels() -> None:
         ("sneeze", 1.0),
     ]
     assert parsed.styles == ()
+    assert parsed.affect == ()
 
 
 def test_utterance_tags_become_provisional_whole_clip_spans() -> None:
