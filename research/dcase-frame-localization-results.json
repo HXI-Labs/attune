@@ -1,0 +1,297 @@
+{
+  "report_version": "2",
+  "generated_at_utc": "2026-08-27T08:41:08.659870Z",
+  "gate_decision": "closed",
+  "task": "DCASE 2016 Task 2 synthetic strong-label event localization",
+  "labels": [
+    "laugh",
+    "cough",
+    "throat_clear"
+  ],
+  "label_status": "synthetic strong onset/offset; not reviewed Attune gold",
+  "manifests": {
+    "training": {
+      "path": "data/manifests/dcase2016-localization-training.jsonl",
+      "sha256": "f7885caf0ace4cab62b2bdbbca403459ebe24124402983671fb09732b516f589"
+    },
+    "inspection_test": {
+      "path": "data/manifests/dcase2016-localization-inspection.jsonl",
+      "sha256": "95bbf2ab627b76cea14b7dd0e911a2a086791af74844e277cf4b6995f395c338"
+    }
+  },
+  "encoder": {
+    "name": "sensevoice-small-encoder-frames-v1",
+    "model": "SenseVoiceSmall by FunASR/FunAudioLLM",
+    "revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
+    "model_file_sha256": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea",
+    "trainable_parameters": 0,
+    "total_parameters": 233999167,
+    "query_frames_excluded": 4,
+    "frontend_dither": 0.0,
+    "extraction_route": "direct_frontend_and_frozen_encoder",
+    "pooling": null,
+    "cache_hits": 316,
+    "cache_misses": 0,
+    "output_shape": [
+      "T",
+      512
+    ],
+    "frame_hop_ms_approx": 60.0,
+    "first_acoustic_frame_center_ms_approx": 30.0,
+    "query_prefix_time_semantics": "four non-acoustic query positions are removed; they do not shift audio time"
+  },
+  "encoder_frozen": true,
+  "head": {
+    "type": "two-layer temporal MLP over every frozen 512-d acoustic frame",
+    "trainable_parameters": 66051,
+    "threshold": 0.95,
+    "threshold_selected_on": "development validation recordings",
+    "checkpoint_committed": false
+  },
+  "partitions": {
+    "train_clips": 168,
+    "validation_clips": 48,
+    "inspection_test_clips": 100,
+    "source_disjoint_test": true,
+    "validation_scenes": [
+      "dev_1_ebr_6_nec_3",
+      "dev_1_ebr_6_nec_4",
+      "dev_1_ebr_6_nec_5"
+    ],
+    "validation_recordings": [
+      "dev_1_ebr_6_nec_3_poly_0.wav",
+      "dev_1_ebr_6_nec_3_poly_1.wav",
+      "dev_1_ebr_6_nec_4_poly_1.wav",
+      "dev_1_ebr_6_nec_5_poly_1.wav"
+    ],
+    "validation_scene_disjoint": true,
+    "validation_file_disjoint": true
+  },
+  "training": {
+    "seed": 0,
+    "epochs_completed": 30,
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 1.3503211736679077,
+        "validation_loss": 1.2692339420318604
+      },
+      {
+        "epoch": 2,
+        "train_loss": 1.1081211566925049,
+        "validation_loss": 1.075783133506775
+      },
+      {
+        "epoch": 3,
+        "train_loss": 0.9566641449928284,
+        "validation_loss": 0.9608126878738403
+      },
+      {
+        "epoch": 4,
+        "train_loss": 0.8605129718780518,
+        "validation_loss": 0.8885146379470825
+      },
+      {
+        "epoch": 5,
+        "train_loss": 0.7942100167274475,
+        "validation_loss": 0.8353649973869324
+      },
+      {
+        "epoch": 6,
+        "train_loss": 0.7417109608650208,
+        "validation_loss": 0.7892927527427673
+      },
+      {
+        "epoch": 7,
+        "train_loss": 0.695135235786438,
+        "validation_loss": 0.7454285621643066
+      },
+      {
+        "epoch": 8,
+        "train_loss": 0.6514549851417542,
+        "validation_loss": 0.7026910781860352
+      },
+      {
+        "epoch": 9,
+        "train_loss": 0.6100846529006958,
+        "validation_loss": 0.6614252924919128
+      },
+      {
+        "epoch": 10,
+        "train_loss": 0.5711797475814819,
+        "validation_loss": 0.622206449508667
+      },
+      {
+        "epoch": 11,
+        "train_loss": 0.5348628163337708,
+        "validation_loss": 0.5855057835578918
+      },
+      {
+        "epoch": 12,
+        "train_loss": 0.5013580918312073,
+        "validation_loss": 0.5518061518669128
+      },
+      {
+        "epoch": 13,
+        "train_loss": 0.4708487093448639,
+        "validation_loss": 0.5214855670928955
+      },
+      {
+        "epoch": 14,
+        "train_loss": 0.4435197710990906,
+        "validation_loss": 0.49478769302368164
+      },
+      {
+        "epoch": 15,
+        "train_loss": 0.41944223642349243,
+        "validation_loss": 0.47167789936065674
+      },
+      {
+        "epoch": 16,
+        "train_loss": 0.3985215425491333,
+        "validation_loss": 0.4516938328742981
+      },
+      {
+        "epoch": 17,
+        "train_loss": 0.3804023861885071,
+        "validation_loss": 0.4342299997806549
+      },
+      {
+        "epoch": 18,
+        "train_loss": 0.3645763397216797,
+        "validation_loss": 0.4186483919620514
+      },
+      {
+        "epoch": 19,
+        "train_loss": 0.3504156470298767,
+        "validation_loss": 0.4043087065219879
+      },
+      {
+        "epoch": 20,
+        "train_loss": 0.33738550543785095,
+        "validation_loss": 0.3907760977745056
+      },
+      {
+        "epoch": 21,
+        "train_loss": 0.3250499367713928,
+        "validation_loss": 0.3778422176837921
+      },
+      {
+        "epoch": 22,
+        "train_loss": 0.31320130825042725,
+        "validation_loss": 0.3654864430427551
+      },
+      {
+        "epoch": 23,
+        "train_loss": 0.3017560839653015,
+        "validation_loss": 0.35384613275527954
+      },
+      {
+        "epoch": 24,
+        "train_loss": 0.2907449007034302,
+        "validation_loss": 0.34309151768684387
+      },
+      {
+        "epoch": 25,
+        "train_loss": 0.28028053045272827,
+        "validation_loss": 0.3333302140235901
+      },
+      {
+        "epoch": 26,
+        "train_loss": 0.27047115564346313,
+        "validation_loss": 0.32459160685539246
+      },
+      {
+        "epoch": 27,
+        "train_loss": 0.26138514280319214,
+        "validation_loss": 0.3168223798274994
+      },
+      {
+        "epoch": 28,
+        "train_loss": 0.25308388471603394,
+        "validation_loss": 0.3099185824394226
+      },
+      {
+        "epoch": 29,
+        "train_loss": 0.24554716050624847,
+        "validation_loss": 0.30370038747787476
+      },
+      {
+        "epoch": 30,
+        "train_loss": 0.2386731207370758,
+        "validation_loss": 0.2979782819747925
+      }
+    ]
+  },
+  "inspection_test": {
+    "designation": "test; never used for fitting or threshold selection",
+    "event_counts": {
+      "cough": 44,
+      "laugh": 45,
+      "throat_clear": 41
+    },
+    "temporal_head": {
+      "segment_f1": {
+        "f1": 0.7284768211920529,
+        "true_positive": 165,
+        "false_positive": 59,
+        "false_negative": 64,
+        "segment_ms": 1000
+      },
+      "collar_event_metrics": {
+        "f1": 0.46366782006920415,
+        "true_positive": 67,
+        "false_positive": 92,
+        "false_negative": 63,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": 74.32835820895522,
+        "matched_offset_mae_ms": 94.92537313432835
+      }
+    },
+    "whole_clip_oracle_tag_baseline": {
+      "definition": "uses each clip's known label set but assigns every event 0..10000 ms; this is deliberately not localization",
+      "segment_f1": {
+        "f1": 0.3182765809589993,
+        "true_positive": 229,
+        "false_positive": 981,
+        "false_negative": 0,
+        "segment_ms": 1000
+      },
+      "collar_event_metrics": {
+        "f1": 0.0,
+        "true_positive": 0,
+        "false_positive": 121,
+        "false_negative": 130,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": null,
+        "matched_offset_mae_ms": null
+      }
+    },
+    "beats_whole_clip_on_segment_f1": true,
+    "beats_whole_clip_on_collar_event_f1": true
+  },
+  "cascade_wiring": {
+    "clear_segment_f1_margin_required": 0.05,
+    "margin_observed": 0.4102002402330536,
+    "eligible_for_wiring": true,
+    "timestamps_wired": true,
+    "runtime_head": "attune.models.temporal_probe.FrozenTemporalProbeHead",
+    "policy": "wire decoded DCASE-overlap event spans only when held-out segment F1 is at least the declared margin above the whole-clip oracle-tag comparator",
+    "reason": "result clears the predeclared metric gate; gated cascade integration enabled"
+  },
+  "runtime": {
+    "device": "cpu",
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130"
+  },
+  "limitations": [
+    "The scenes are synthetic office mixtures, not in-the-wild speech.",
+    "Frame boundaries are approximate because SenseVoice LFR geometry is about 60 ms.",
+    "Only laugh, cough, and throat-clear overlap the Attune ontology.",
+    "The result does not localize the existing VocalSound/FSD50K clip labels."
+  ]
+}

@@ -2,10 +2,12 @@
 
 ## Decision
 
-The timing gate remains **closed**. Event and style bounds in the cascade still
-mean utterance scope. A provisional `0..duration` span is not localization and
-must not be scored or described as such. No Phase 3 joint training is
-authorized by this work.
+The frame timing integration gate passed, but the scientific gold gate remains
+**closed**. When the held-out-gated temporal checkpoint is configured, cascade
+`laugh`, `cough`, and `throat_clear` events use frame-decoded spans. Other
+event/style bounds still mean utterance scope. A provisional `0..duration` span
+is not localization and must not be scored or described as such. No Phase 3
+joint training is authorized by this work.
 
 Machine-readable status is in `research/timing-holes-results.json`.
 
@@ -41,18 +43,31 @@ audio, so removing them does not justify shifting every acoustic timestamp by
 four hops.
 
 The revised DCASE script trains a 66,051-parameter `512 -> 128 -> 3` multi-label
-BCE head over every frame. Development train/validation files remain disjoint;
+BCE head over every frame. Development train/validation scenes and files remain disjoint;
 the existing public test remains source-disjoint and untouched. The threshold
 is selected on development validation. Evaluation reports official-style 1 s
 segment F1, DCASE-style 200 ms onset/duration-aware offset collar F1, and the
 same oracle-tag/whole-clip comparator. Cascade wiring requires at least `+0.05`
 absolute held-out segment F1 over that comparator.
 
-This VM contains neither `data/raw/dcase2016-localization` nor local SenseVoice
-weights. No download was started. Therefore the frame retry is **blocked**, has
-no new metric, and is not wired. The full protocol and frame decoding/gating
-are fixture-tested. The old 0.3183 whole-clip comparator is context, not a
-substitute frame result.
+Jerry authorized the bounded reviewed DCASE and official SenseVoice fetch.
+Archive MD5s, derived-clip SHA-256 values, and the pinned SenseVoice `model.pt`
+SHA-256 were verified before training. On the same untouched 100-clip public
+test:
+
+| Method | 1 s segment F1 | 200 ms collar event F1 |
+|---|---:|---:|
+| Frame head | **0.7285** | **0.4637** |
+| Whole-clip oracle tags | 0.3183 | 0.0000 |
+
+The absolute segment-F1 margin is `+0.4102`, well above the predeclared `+0.05`
+gate. The threshold is `0.95`, selected only on the 48-clip development
+validation partition after fitting on 168 development clips. The runtime
+checkpoint records the held-out scores and refuses loading if the gate did not
+pass. Consequently the cascade now prefers frame spans for the three
+DCASE-overlap labels when this gitignored checkpoint is explicitly configured.
+It may emit multiple localized occurrences of one event. VocalSound/FSD50K-only
+labels and styles keep honest utterance scope.
 
 ## Word alignment
 
@@ -60,9 +75,9 @@ The SenseVoice adapter requests token and sentence timestamps and accepts
 alignment only when FunASR returns token/word text with explicit boundaries.
 The official model's `[token, start_seconds, end_seconds]` shape and structured
 word millisecond shape are supported. A bare boundary array without an
-unambiguous token mapping is not promoted. The
-official SenseVoice weights were not local for verification; absent such a
-result, `transcript.words` stays empty.
+unambiguous token mapping is not promoted. Official SenseVoice weights were
+used for frozen frame extraction, but the ASR word-output route was not rerun;
+absent explicit model output, `transcript.words` stays empty.
 
 Whisper-Small now uses the official Transformers ASR pipeline with
 `return_timestamps="word"`. Returned second-based word chunks are validated and

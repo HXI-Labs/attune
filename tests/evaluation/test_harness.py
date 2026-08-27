@@ -233,6 +233,61 @@ def test_modular_cascade_unions_probes_without_collapsing_scream_to_shout() -> N
     ]
 
 
+def test_gated_frame_spans_replace_only_matching_utterance_scope() -> None:
+    class ClipProbe:
+        name = "clip-probe"
+
+        def availability(self):
+            return True, None
+
+        def predict(self, audio_path):
+            del audio_path
+            return ProbePrediction(
+                annotations=(
+                    ProbeAnnotation("event", EventLabel.COUGH, 0.8),
+                    ProbeAnnotation("event", EventLabel.SCREAM, 0.7),
+                ),
+                elapsed_seconds=0.01,
+                diagnostics={},
+            )
+
+    class FrameProbe:
+        name = "frame-probe"
+
+        def availability(self):
+            return True, None
+
+        def predict(self, audio_path):
+            del audio_path
+            return ProbePrediction(
+                annotations=(
+                    ProbeAnnotation("event", EventLabel.COUGH, 0.9, 10, 30),
+                    ProbeAnnotation("event", EventLabel.COUGH, 0.85, 50, 80),
+                ),
+                elapsed_seconds=0.01,
+                diagnostics={"gate": {"passed": True}},
+            )
+
+    prediction = ModularCascade(
+        asr=TranscriptSentimentAdapter(),
+        affect=TranscriptSentimentAdapter(),
+        event_heads=(ClipProbe(), FrameProbe()),
+    ).predict(
+        BaselineInput(
+            FIXTURES / "explicit_match_joy.wav",
+            transcript_hint="I am happy about this",
+        )
+    )
+
+    coughs = [event for event in prediction.output.events if event.label == "cough"]
+    scream = next(event for event in prediction.output.events if event.label == "scream")
+    assert [(event.start_ms, event.end_ms) for event in coughs] == [(10, 30), (50, 80)]
+    assert (scream.start_ms, scream.end_ms) == (
+        0,
+        prediction.output.audio.duration_ms,
+    )
+
+
 def test_modular_cascade_abstaining_probe_preserves_aed_only() -> None:
     class AbstainingProbe:
         name = "abstaining-probe"

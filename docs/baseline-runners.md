@@ -112,6 +112,8 @@ export ATTUNE_SENSEVOICE_SMALL_PATH=/absolute/path/to/SenseVoiceSmall
 export ATTUNE_EMOTION2VEC_PLUS_PATH=/absolute/path/to/emotion2vec_plus_base
 export ATTUNE_VOCALSOUND_PROBE_PATH=/absolute/path/to/vocalsound-head.pt
 export ATTUNE_FSD50K_PROBE_PATH=/absolute/path/to/fsd50k-head.pt
+# Optional: enables gated frame spans for laugh/cough/throat-clear only.
+export ATTUNE_TEMPORAL_HEAD_PATH=/absolute/path/to/frame-head.pt
 
 uv run python scripts/infer.py sample.wav
 uv run python scripts/infer.py a.wav b.wav --output artifacts/inference-json
@@ -126,8 +128,8 @@ object; multiple inputs print JSON Lines. With multiple inputs, `--output` and
 file: `--output sample.attune.json --xml-output -`. XML is rendered only from a
 validated `AttuneOutput`; metadata is never concatenated into transcript text.
 SenseVoice accepts only explicit token/word spans returned by FunASR, including
-the official model's token-plus-second-boundaries shape; this VM had no local
-weight run, so absence remains an honest empty list. Whisper uses the official Transformers
+the official model's token-plus-second-boundaries shape. The timing run used
+SenseVoice for encoder frames, not an ASR word-alignment claim. Whisper uses the official Transformers
 `return_timestamps="word"` path when local weights are available. Both reject
 an incomplete alignment rather than filling gaps. The cascade passes valid
 words through unchanged.
@@ -147,12 +149,13 @@ PY
 uv run python scripts/infer.py /tmp/attune-fixture.wav --fixture-mode
 ```
 
-All cascade event/style bounds denote utterance scope only. A `0..duration`
-span with null word anchors is not frame localization. The failed DCASE
-eight-bin result remains authoritative for that pooled head. A separate
-frame-level retry protocol now consumes every frozen 512-dimensional acoustic
-frame, but this VM had no local DCASE cache and produced no new metric; it is
-not wired. See `research/timing-holes.md`.
+Cascade `laugh`, `cough`, and `throat_clear` events use frame spans only when a
+checkpoint carrying the passed held-out gate is explicitly configured. The
+frame head scores 0.7285 segment F1 versus 0.3183 for whole-clip oracle tags and
+0.4637 versus 0 collar event F1. All other `0..duration` event/style spans still
+denote utterance scope and are not localization. The failed DCASE eight-bin
+result remains authoritative for that pooled head. See
+`research/timing-holes.md`.
 If timing work resumes, the bounded next candidate is a pre-existing,
 hash-verified STARSS23 slice only. STARSS23 is the MIT natural-spatial-audio
 dataset with 100 ms labels; its metadata does not permit filtering for English,

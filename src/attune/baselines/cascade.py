@@ -22,6 +22,7 @@ from attune.models.probe_inference import (
     FrozenLinearProbeHead,
     ProbePrediction,
 )
+from attune.models.temporal_probe import FrozenTemporalProbeHead
 from attune.schema.output import AttuneOutput, EventLabel, Status, StyleLabel
 
 
@@ -104,6 +105,8 @@ class ModularCascade(BaselineAdapter):
                             "channel": annotation.channel,
                             "label": annotation.label.value,
                             "confidence": annotation.confidence,
+                            "start_ms": annotation.start_ms,
+                            "end_ms": annotation.end_ms,
                         }
                         for annotation in prediction.annotations
                     ],
@@ -142,11 +145,14 @@ class ModularCascade(BaselineAdapter):
                     "event/style is emitted. Non-abstaining probes fill missing labels and "
                     "duplicate labels are suppressed. Scream is a discrete event and never "
                     "becomes shouting. Sob is a discrete event and never becomes "
-                    "crying_speech. All spans cover the utterance and are provisional."
+                    "crying_speech. A held-out-gated temporal source replaces utterance "
+                    "scope for the same event label and may emit multiple spans. All spans "
+                    "are provisional."
                 ),
                 "timestamp_policy": (
-                    "event/style spans remain utterance-level; genuine ASR word alignment "
-                    "passes through when available and is never inferred"
+                    "DCASE-overlap events use gated frame spans when configured; other "
+                    "event/style spans remain utterance-level. Genuine ASR word alignment "
+                    "passes through when available and is never inferred."
                 ),
                 "note": (
                     "Cascade output uses emotion2vec+ acoustic affect; transcript lexicon "
@@ -168,6 +174,7 @@ class AttuneCascade(ModularCascade):
         fsd50k_probe_checkpoint: Path,
         embedding_cache: Path,
         calibration_path: Path | None = None,
+        temporal_head_checkpoint: Path | None = None,
     ) -> None:
         vocalsound_calibration = (
             load_calibration(calibration_path, component="vocalsound_probe")
@@ -180,7 +187,7 @@ class AttuneCascade(ModularCascade):
             else None
         )
         encoder = FrozenEncoderProvider(sensevoice_checkpoint, embedding_cache)
-        heads = (
+        heads: tuple[EventStyleHead, ...] = (
             FrozenLinearProbeHead(
                 name="vocalsound-frozen-linear-probe",
                 checkpoint=vocalsound_probe_checkpoint,
@@ -196,6 +203,15 @@ class AttuneCascade(ModularCascade):
                 calibration=fsd50k_calibration,
             ),
         )
+        if temporal_head_checkpoint is not None:
+            heads = (
+                *heads,
+                FrozenTemporalProbeHead(
+                    checkpoint=temporal_head_checkpoint,
+                    sensevoice_checkpoint=sensevoice_checkpoint,
+                    frame_cache=embedding_cache,
+                ),
+            )
         super().__init__(
             asr=SenseVoiceSmallAdapter(checkpoint=sensevoice_checkpoint),
             affect=Emotion2VecPlusAdapter(
@@ -219,7 +235,11 @@ class AttuneCascade(ModularCascade):
             ),
             event_heads=heads,
         )
-        self.name = "attune-cascade:sensevoice+emotion2vec+aed+vocalsound-probe+fsd50k-probe"
+        temporal_suffix = "+dcase-frame-temporal" if temporal_head_checkpoint is not None else ""
+        self.name = (
+            "attune-cascade:sensevoice+emotion2vec+aed+vocalsound-probe+fsd50k-probe"
+            f"{temporal_suffix}"
+        )
 
 
 def _asr_annotations(output: AttuneOutput, source_name: str) -> dict[str, object]:
@@ -249,8 +269,8 @@ def _merge_annotations(
     *,
     duration_ms: int,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, str]]]:
-    """Merge component sets in precedence order and materialize whole-clip spans."""
-    selected: dict[tuple[str, str], tuple[float, str]] = {}
+    """Merge labels while preferring gated frame spans over utterance scope."""
+    selected: dict[tuple[str, str], list[tuple[dict[str, object], str]]] = {}
     decisions: list[dict[str, str]] = []
     for component in components:
         source = str(component["name"])
@@ -263,48 +283,73 @@ def _merge_annotations(
             channel = str(annotation["channel"])
             label = str(annotation["label"])
             key = (channel, label)
-            if key in selected:
+            start_ms = annotation.get("start_ms")
+            end_ms = annotation.get("end_ms")
+            if (start_ms is None) != (end_ms is None):
+                raise ValueError("timed annotations require both start_ms and end_ms")
+            timed = start_ms is not None
+            existing = selected.get(key)
+            if existing is None:
+                selected[key] = [(annotation, source)]
+                continue
+            existing_timed = existing[0][0].get("start_ms") is not None
+            if timed and not existing_timed:
                 decisions.append(
                     {
                         "channel": channel,
                         "label": label,
-                        "kept_source": selected[key][1],
-                        "suppressed_duplicate_source": source,
+                        "kept_source": source,
+                        "replaced_utterance_source": existing[0][1],
                     }
                 )
+                selected[key] = [(annotation, source)]
                 continue
-            selected[key] = (float(annotation["confidence"]), source)
+            if timed and existing_timed and existing[0][1] == source:
+                existing.append((annotation, source))
+                continue
+            decisions.append(
+                {
+                    "channel": channel,
+                    "label": label,
+                    "kept_source": existing[0][1],
+                    "suppressed_duplicate_source": source,
+                }
+            )
 
     events: list[dict[str, object]] = []
     styles: list[dict[str, object]] = []
-    for (channel, label), (confidence, _source) in selected.items():
-        if channel == "event":
-            EventLabel(label)
-            events.append(
-                {
-                    "id": f"e{len(events) + 1}",
-                    "label": label,
-                    "start_ms": 0,
-                    "end_ms": duration_ms,
-                    "after_word_id": None,
-                    "confidence": confidence,
-                    "status": Status.PROVISIONAL.value,
-                }
-            )
-        elif channel == "style":
-            StyleLabel(label)
-            styles.append(
-                {
-                    "id": f"s{len(styles) + 1}",
-                    "label": label,
-                    "start_ms": 0,
-                    "end_ms": duration_ms,
-                    "start_word_id": None,
-                    "end_word_id": None,
-                    "confidence": confidence,
-                    "status": Status.PROVISIONAL.value,
-                }
-            )
-        else:
-            raise ValueError(f"unsupported annotation channel: {channel}")
+    for (channel, label), annotations in selected.items():
+        for annotation, _source in annotations:
+            confidence = float(annotation["confidence"])
+            start_ms = annotation.get("start_ms")
+            end_ms = annotation.get("end_ms")
+            if channel == "event":
+                EventLabel(label)
+                events.append(
+                    {
+                        "id": f"e{len(events) + 1}",
+                        "label": label,
+                        "start_ms": 0 if start_ms is None else int(start_ms),
+                        "end_ms": duration_ms if end_ms is None else int(end_ms),
+                        "after_word_id": None,
+                        "confidence": confidence,
+                        "status": Status.PROVISIONAL.value,
+                    }
+                )
+            elif channel == "style":
+                StyleLabel(label)
+                styles.append(
+                    {
+                        "id": f"s{len(styles) + 1}",
+                        "label": label,
+                        "start_ms": 0 if start_ms is None else int(start_ms),
+                        "end_ms": duration_ms if end_ms is None else int(end_ms),
+                        "start_word_id": None,
+                        "end_word_id": None,
+                        "confidence": confidence,
+                        "status": Status.PROVISIONAL.value,
+                    }
+                )
+            else:
+                raise ValueError(f"unsupported annotation channel: {channel}")
     return events, styles, decisions

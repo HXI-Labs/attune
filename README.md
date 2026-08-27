@@ -73,9 +73,11 @@ event/style, preserving AED-only output. Run the combined original-150 plus
 licence-clean-160 inspection with
 `scripts/evaluate_attune_cascade.py` after preparing the bounded datasets,
 reviewed local model paths, and gitignored heads. The encoder remains frozen,
-all event/style annotations are utterance-level and provisional, and the gate
-is closed. The frame-level DCASE retry protocol and its blocked result are in
-`research/timing-holes.md`; `0..duration` is never localization.
+all annotations remain provisional, and the scientific gold gate is closed.
+The frame-level DCASE retry scores 0.7285 segment F1 versus 0.3183 whole-clip
+and enables gated frame spans for laugh/cough/throat-clear when its gitignored
+checkpoint is configured. Other `0..duration` event/style spans remain
+utterance scope, never localization. Details are in `research/timing-holes.md`.
 For one or more local WAV files, `scripts/infer.py` emits authoritative JSON
 and optional deterministic XML; exact offline commands are in
 `docs/baseline-runners.md`.

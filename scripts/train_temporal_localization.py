@@ -314,6 +314,7 @@ def main() -> None:
         float(temporal_segment["f1"]),
         float(baseline_segment["f1"]),
     )
+    margin_observed = float(temporal_segment["f1"]) - float(baseline_segment["f1"])
     arguments.checkpoint_output.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
         {
@@ -326,6 +327,13 @@ def main() -> None:
             "frame_hop_ms_approx": encoder.frame_hop_ms,
             "first_frame_center_ms_approx": encoder.first_frame_center_ms,
             "encoder_frozen": True,
+            "gate": {
+                "passed": wire_timestamps,
+                "margin_required": CLEAR_SEGMENT_F1_MARGIN,
+                "margin_observed": margin_observed,
+                "temporal_segment_f1": float(temporal_segment["f1"]),
+                "whole_clip_segment_f1": float(baseline_segment["f1"]),
+            },
         },
         arguments.checkpoint_output,
     )
@@ -336,6 +344,16 @@ def main() -> None:
         "task": "DCASE 2016 Task 2 synthetic strong-label event localization",
         "labels": LABELS,
         "label_status": "synthetic strong onset/offset; not reviewed Attune gold",
+        "manifests": {
+            "training": {
+                "path": str(arguments.training_manifest),
+                "sha256": digest(arguments.training_manifest),
+            },
+            "inspection_test": {
+                "path": str(arguments.inspection_manifest),
+                "sha256": digest(arguments.inspection_manifest),
+            },
+        },
         "encoder": encoder.metadata(),
         "encoder_frozen": True,
         "head": {
@@ -383,15 +401,16 @@ def main() -> None:
         },
         "cascade_wiring": {
             "clear_segment_f1_margin_required": CLEAR_SEGMENT_F1_MARGIN,
-            "margin_observed": temporal_segment["f1"] - baseline_segment["f1"],
+            "margin_observed": margin_observed,
             "eligible_for_wiring": wire_timestamps,
-            "timestamps_wired": False,
+            "timestamps_wired": wire_timestamps,
+            "runtime_head": "attune.models.temporal_probe.FrozenTemporalProbeHead",
             "policy": (
                 "wire decoded DCASE-overlap event spans only when held-out segment F1 "
                 "is at least the declared margin above the whole-clip oracle-tag comparator"
             ),
             "reason": (
-                "result clears the predeclared metric gate; cascade integration is still required"
+                "result clears the predeclared metric gate; gated cascade integration enabled"
                 if wire_timestamps
                 else "result does not clear the predeclared metric gate"
             ),

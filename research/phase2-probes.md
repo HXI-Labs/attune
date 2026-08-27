@@ -84,23 +84,26 @@ It is not a model result. Exact real and fixture commands are in
 The original Phase 2 ASR adapter had utterance text but no reviewed alignment,
 so the authoritative `transcript.words` list was empty. The timing follow-up
 now preserves only explicit model-returned SenseVoice/Whisper word alignment;
-it never fabricates missing spans. Events and styles still use
-provisional null-anchored `0..duration` bounds solely to encode utterance scope;
-those bounds are not presented as localization.
+it never fabricates missing spans. A later gated frame head localizes only
+`laugh`, `cough`, and `throat_clear`; remaining event/style `0..duration`
+bounds solely encode utterance scope and are not presented as localization.
 
 ## Timing boundary
 
 The DCASE 2016 eight-bin temporal MLP remains a negative result: segment F1 0.1943 versus
 0.3183 for the whole-clip comparator, with 0 collar event F1 for both. It is not
 wired into cascade timestamps. A later frame-level retry protocol is documented
-in `research/timing-holes.md`; it was blocked by the absent local DCASE cache
-and likewise did not change cascade timestamps.
+in `research/timing-holes.md`: segment F1 0.7285 versus 0.3183 whole-clip and
+200 ms collar F1 0.4637 versus 0. The +0.4102 segment margin clears the
+predeclared +0.05 gate, so only its three overlapping event labels may use
+frame spans when the gated checkpoint is configured.
 
 No small pre-cached, hash-verified natural-audio timing slice was present.
 STARSS23 is therefore only the next Phase-2-adjacent candidate: it is the MIT
 natural-spatial-audio dataset with 100 ms labels, English cannot be selected
 from its metadata, and licence/privacy review is required for natural
-recordings. No STARSS23 or DCASE download was started for this package.
+recordings. The authorized timing follow-up fetched DCASE only; STARSS23 was
+not downloaded.
 
 ## What Phase 2 established
 
@@ -113,7 +116,8 @@ recordings. No STARSS23 or DCASE download was started for this package.
   withhold low-confidence labels through the authoritative schema.
 - A complete offline local-cascade CLI can preserve trusted structured
   channels without a product UI or model downloads.
-- The attempted frozen temporal head did not justify finer timestamps.
+- Acoustic frames justify bounded timing for three synthetic-DCASE overlap
+  labels; they do not localize other cascade labels or establish natural gold.
 
 ## What still requires Phase 3 evidence
 
