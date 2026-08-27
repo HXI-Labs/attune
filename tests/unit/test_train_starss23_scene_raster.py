@@ -197,17 +197,21 @@ def test_hysteresis_spans_rejects_min_duration_ms_kwarg() -> None:
         )
 
 
-def test_main_keeps_inspection_out_of_pos_weight_and_decoder_search() -> None:
+def test_main_keeps_inspection_out_of_boundary_weights_and_uses_predeclared_decoder() -> None:
     script = load_script()
     source = inspect.getsource(script.main)
-    assert "positive_class_weight_from_train_frames(train_targets)" in source
+    assert "boundary_weights_from_train_clips(train_y, torch=torch)" in source
     assert "gold_event_durations_ms(train_rows)" in source
-    assert "select_hysteresis_decoder(" in source
+    assert "PREDECLARED_DECODER" in source
+    assert "select_hysteresis_decoder(" not in source
+    assert "iter_hysteresis_decoder_candidates" not in source
+    assert "BCEWithLogitsLoss(pos_weight" not in source
     assert "validation_probabilities" in source
     assert "references_validation" in source
     assert "decode_spans(" in source
     assert "frame_targets(inspection" not in source
     assert "gold_event_durations_ms(inspection" not in source
+    assert "boundary_weights_from_train_clips(inspection" not in source
     assert "positive_class_weight_from_train_frames(inspection" not in source
     assert "select_hysteresis_decoder(\n        inspection" not in source
     assert "hysteresis_spans(\n        inspection_probabilities,\n        **decoder," not in source
@@ -309,3 +313,53 @@ def test_apply_onset_shift_moves_predicted_start_earlier() -> None:
         0,
     )
     assert dropped[0][0]["start_ms"] == 100
+
+
+def test_boundary_weights_ignore_inspection() -> None:
+    torch = pytest.importorskip("torch")
+    script = load_script()
+    train = torch.tensor([[1.0], [0.0], [0.0], [0.0], [0.0]])
+    inspection = torch.ones((200, 1))
+    train_weights = script.boundary_weights_from_train_clips([train], torch=torch)
+    leaked = script.boundary_weights_from_train_clips([inspection], torch=torch)
+    assert train_weights.shape == train.shape
+    assert leaked.shape != train_weights.shape
+    assert float(train_weights[0, 0]) == script.BOUNDARY_WEIGHT
+    assert float(train_weights[1, 0]) == script.BOUNDARY_NEIGHBOR_WEIGHT
+    with pytest.raises(TypeError):
+        script.boundary_weights_from_train_clips([train], inspection, torch=torch)
+
+
+def test_boundary_weights_mark_first_and_last_active_frames() -> None:
+    torch = pytest.importorskip("torch")
+    script = load_script()
+    clip = torch.tensor([[0.0], [1.0], [1.0], [1.0], [0.0], [0.0], [1.0], [0.0]])
+    weights = script.boundary_weights_from_train_clips([clip], torch=torch).reshape(-1).tolist()
+    assert weights[1] == script.BOUNDARY_WEIGHT
+    assert weights[3] == script.BOUNDARY_WEIGHT
+    assert weights[6] == script.BOUNDARY_WEIGHT
+    assert weights[0] == script.BOUNDARY_NEIGHBOR_WEIGHT
+    assert weights[2] == script.BOUNDARY_NEIGHBOR_WEIGHT
+    assert weights[4] == script.BOUNDARY_NEIGHBOR_WEIGHT
+    assert weights[5] == script.BOUNDARY_NEIGHBOR_WEIGHT
+    assert weights[7] == script.BOUNDARY_NEIGHBOR_WEIGHT
+
+
+def test_predeclared_decoder_matches_0a27733() -> None:
+    script = load_script()
+    assert script.PREDECLARED_DECODER == {
+        "high_threshold": 0.95,
+        "low_threshold": 0.855,
+        "max_gap_frames": 0,
+        "min_active_frames": 1,
+        "median_filter_frames": 3,
+        "onset_shift_ms": 0,
+    }
+    assert script.PRIOR_BEST_PASS["decoder"] == script.PREDECLARED_DECODER
+    assert pytest.approx(0.13953488372093023) == script.PRIOR_BEST_COLLAR_F1
+    assert script.keep_prior_best_checkpoint(0.1395) is True
+    assert script.keep_prior_best_checkpoint(0.13953488372093023) is True
+    assert script.keep_prior_best_checkpoint(0.1396) is False
+    source = inspect.getsource(script.main)
+    assert "PREDECLARED_DECODER" in source
+    assert "select_hysteresis_decoder(" not in source

@@ -1,6 +1,6 @@
 {
   "report_version": "1",
-  "generated_at_utc": "2026-08-27T11:28:33.767092Z",
+  "generated_at_utc": "2026-08-27T11:39:17.487187Z",
   "gate_decision": "closed",
   "encoder_frozen": true,
   "data_verification": {
@@ -64,7 +64,7 @@
     "checkpoint_committed": false
   },
   "cascade_timestamps": {
-    "event_style_policy": "gated DCASE laugh/cough/throat_clear frame spans when configured; STARSS23 laugh timing is unwired after the 60s scene raster onset-shift pass; all other event/style labels remain utterance-scoped",
+    "event_style_policy": "gated DCASE laugh/cough/throat_clear frame spans when configured; STARSS23 laugh timing is unwired after the 60s scene raster boundary-weighted BCE pass; reported best remains the 40-epoch decoder-validity collar 0.1395; all other event/style labels remain utterance-scoped",
     "zero_to_duration_is_localization": false,
     "changed_in_this_pr": true
   },
@@ -134,7 +134,7 @@
     },
     "eligible_for_cascade_wiring": false,
     "timestamps_wired": false,
-    "decision": "60s scene raster onset-shift pass still fails collar F1 >= 0.25; STARSS23 laugh timing remains unwired",
+    "decision": "60s scene raster boundary-weighted BCE pass still fails collar F1 >= 0.25; STARSS23 laugh timing remains unwired; reported best remains 0.1395",
     "english_metadata_filter_available": false,
     "language": "unverified",
     "merge_quality_localization": false,
@@ -156,12 +156,12 @@
       "trainable_parameters": 32897,
       "seed": 0,
       "inspection_evaluations": 1,
-      "segment_f1": 0.37163814180929094,
+      "segment_f1": 0.3673469387755102,
       "whole_clip_segment_f1": 0.17212490479817213,
-      "segment_f1_margin": 0.1995132370111188,
-      "collar_event_f1": 0.05853658536585366,
+      "segment_f1_margin": 0.1952220339773381,
+      "collar_event_f1": 0.058823529411764705,
       "whole_clip_oracle_tag_collar_event_f1": 0.0,
-      "collar_true_positive": 6,
+      "collar_true_positive": 2,
       "reference_event_count": 48,
       "wiring_gate": {
         "segment_margin_required": 0.05,
@@ -181,14 +181,14 @@
         "collar_false_negative": 40,
         "reference_event_count": 48
       },
-      "epochs_completed": 40,
-      "collar_false_positive": 151,
-      "collar_false_negative": 42,
-      "false_positives_are_short_fragments": false,
-      "remaining_error": "dominant miss is predicted-but-collar-failed (32/42 FN, median overlapping onset error 360 ms); 10/42 gold events the head never fires; 0 decoder-suppressed",
+      "epochs_completed": 214,
+      "collar_false_positive": 18,
+      "collar_false_negative": 46,
+      "false_positives_are_short_fragments": true,
+      "remaining_error": "dominant miss is head-never-fires (29/46 FN); 12/46 predicted-but-collar-failed (median overlapping onset error 300 ms, MAE 366.7 ms vs prior-best 200 ms); 5/46 decoder-suppressed",
       "duration_table": "research/error-analysis/starss23-scene-raster-durations.json",
       "chosen_checkpoint": "40_epoch_unweighted",
-      "retrained": false,
+      "retrained": true,
       "decoder_ablation": "research/error-analysis/starss23-onset-shift-ablation.json",
       "prior_posweight_decoder_pass": {
         "epochs_completed": 73,
@@ -216,6 +216,24 @@
         "false_positives_are_short_fragments": true,
         "remaining_error": "dominant miss is predicted-but-collar-failed (24/39 FN, median overlapping onset error 200 ms); 14/39 gold events the head never fires",
         "decoder_ablation": "research/error-analysis/starss23-decoder-ablation.json"
+      },
+      "loss": "boundary_weighted_BCEWithLogitsLoss",
+      "reported_best_collar_event_f1": 0.13953488372093023,
+      "this_pass_replaced_reported_best": false,
+      "prior_onset_shift_pass": {
+        "chosen_checkpoint": "40_epoch_unweighted",
+        "retrained": false,
+        "segment_f1": 0.37163814180929094,
+        "whole_clip_segment_f1": 0.17212490479817213,
+        "segment_f1_margin": 0.1995132370111188,
+        "collar_event_f1": 0.05853658536585366,
+        "collar_true_positive": 6,
+        "collar_false_positive": 151,
+        "collar_false_negative": 42,
+        "reference_event_count": 48,
+        "false_positives_are_short_fragments": false,
+        "remaining_error": "dominant miss is predicted-but-collar-failed (32/42 FN, median overlapping onset error 360 ms); 10/42 gold events the head never fires; 0 decoder-suppressed",
+        "decoder_ablation": "research/error-analysis/starss23-onset-shift-ablation.json"
       }
     }
   },

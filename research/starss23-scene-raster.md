@@ -84,6 +84,20 @@ onset shift `-120` ms. Collar F1 and recall tied across shifts; `-120` wins
 on segment F1. Banning `low_ratio` 0.9 and locking median to 1 dropped
 validation collar F1 from 0.1000 to 0.0215.
 
+## Boundary-weighted BCE pass
+
+Hypothesis: 200 ms collar misses are late onsets from uniform BCE, not a
+global clock. One retrain of the same two-layer MLP, frozen encoder, seed 0.
+The one change is onset/boundary-weighted BCE on TRAIN frames only: first and
+last active gold frames get weight 5, ±1 neighbours get weight 3, interior
+and background stay 1. No 44× class `pos_weight`. Early-stop on unweighted
+validation BCE, patience 25, cap 400 epochs. Inspection decoding used the
+predeclared 0a27733 decoder (high 0.95, low 0.855, gap 0, min-active 1,
+median 3, onset shift 0). No decoder grid. Inspection unused for weights.
+
+Training stopped at **214** epochs. Validation sanity with the fixed decoder
+was collar 0.25 (2/0/12); that score did not select a decoder.
+
 ## Held-out official test rooms
 
 | Pass | 1 s segment F1 | whole-clip segment F1 | 200 ms collar F1 | TP/FP/FN |
@@ -91,15 +105,19 @@ validation collar F1 from 0.1000 to 0.0215.
 | Frozen frame MLP, 40 epochs, old decoder | 0.4794 | 0.1721 | 0.1074 | 8/93/40 |
 | Frozen frame MLP, 73 epochs + 900 ms decoder | 0.3974 | 0.1721 | 0.0303 | 1/17/47 |
 | Frozen frame MLP, 40 epochs + repaired decoder | 0.5124 | 0.1721 | 0.1395 | 9/72/39 |
-| Frozen frame MLP, 40 epochs + onset-shift decoder | **0.3716** | 0.1721 | **0.0585** | 6/151/42 |
+| Frozen frame MLP, 40 epochs + onset-shift decoder | 0.3716 | 0.1721 | 0.0585 | 6/151/42 |
+| Frozen frame MLP, 214-epoch boundary-weighted BCE | **0.3673** | 0.1721 | **0.0588** | 2/18/46 |
 | Whole-clip oracle tags | 0.1721 | 0.1721 | 0.0000 | 0/20/48 |
 
-This pass segment margin is `+0.1995` (clears `+0.05`). Collar F1 **fails**
-`>= 0.25`. STARSS23 laugh timestamps therefore remain **unwired**. DCASE
-wiring is unchanged. Whole-clip `0..60000` tags are not localization.
+This pass segment margin is `+0.1952` (clears `+0.05`). Collar F1 **fails**
+`>= 0.25` and is worse than the 0.1395 decoder-validity pass, so the reported
+cascade decoder/checkpoint remains that 40-epoch config. STARSS23 laugh
+timestamps therefore remain **unwired**. DCASE wiring is unchanged.
+Whole-clip `0..60000` tags are not localization.
 
-Of 42 false negatives: (a) 32 overlap a prediction that fails the 200 ms
-collar (median overlapping onset error 360 ms); (b) 10 are gold events the
-head never fires; (c) 0 are decoder-suppressed. False positives are not
-short fragments (median 780 ms versus gold p25 600 ms). Stopped after this
-one inspection eval. No new architecture.
+Of 46 false negatives: (a) 12 overlap a prediction that fails the 200 ms
+collar (median overlapping onset error 300 ms, MAE 366.7 ms; did **not**
+improve vs the 0.1395 pass median 200 ms); (b) 29 are gold events the head
+never fires; (c) 5 are decoder-suppressed. False positives are short
+fragments (median 420 ms versus gold p25 600 ms). Stopped after this one
+inspection eval. No new architecture. No further decoder grid.

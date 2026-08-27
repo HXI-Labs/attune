@@ -83,10 +83,11 @@ localization. A separate natural-scene STARSS23 laughter head on 10 s crops scor
 segment F1 versus 0.4894 whole-clip, but only 0.1159 collar F1. A 60 s scene
 raster MLP scores 0.4794 versus 0.1721 whole-clip and 0.1074 collar F1 at 40
 epochs, 0.3974 / 0.0303 after a longer decoder pass, 0.5124 / 0.1395 after a
-validation-only decoder repair, then 0.3716 / 0.0585 after an onset-shift
-decoder pass of the 40-epoch head; the segment margin clears +0.05 but collar
-F1 fails the fixed 0.25 gate, so STARSS23 timestamps stay unwired. Details
-are in `research/timing-holes.md`.
+validation-only decoder repair, 0.3716 / 0.0585 after an onset-shift decoder
+pass, then 0.3673 / 0.0588 after a 214-epoch boundary-weighted BCE retrain
+with the predeclared 0.1395 decoder; the segment margin clears +0.05 but
+collar F1 fails the fixed 0.25 gate, so STARSS23 timestamps stay unwired and
+the reported best remains 0.1395. Details are in `research/timing-holes.md`.
 For one or more local WAV files, `scripts/infer.py` emits authoritative JSON
 and optional deterministic XML; exact offline commands are in
 `docs/baseline-runners.md`.

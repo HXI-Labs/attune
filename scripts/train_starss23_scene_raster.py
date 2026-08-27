@@ -60,6 +60,51 @@ OLD_DECODER = {
 }
 CHECKPOINT_UNWEIGHTED = "40_epoch_unweighted"
 CHECKPOINT_POSWEIGHT = "posweight_73_epoch"
+PREDECLARED_DECODER = {
+    "high_threshold": 0.95,
+    "low_threshold": 0.855,
+    "max_gap_frames": 0,
+    "min_active_frames": 1,
+    "median_filter_frames": 3,
+    "onset_shift_ms": 0,
+}
+BOUNDARY_WEIGHT = 5.0
+BOUNDARY_NEIGHBOR_WEIGHT = 3.0
+BOUNDARY_NEIGHBOR_RADIUS = 1
+DEFAULT_FRAME_WEIGHT = 1.0
+PRIOR_BEST_COLLAR_F1 = 0.13953488372093023
+PRIOR_BEST_PASS = {
+    "id": "decoder_validity_0a27733",
+    "epochs_completed": 40,
+    "segment_f1": 0.512396694214876,
+    "whole_clip_segment_f1": 0.17212490479817213,
+    "collar_event_f1": PRIOR_BEST_COLLAR_F1,
+    "collar_true_positive": 9,
+    "collar_false_positive": 72,
+    "collar_false_negative": 39,
+    "reference_event_count": 48,
+    "checkpoint": "artifacts/starss23-scene-raster/frame-head-40epoch.pt",
+    "median_onset_error_ms_on_overlapping_misses": 200,
+    "decoder": dict(PREDECLARED_DECODER),
+}
+PRIOR_ONSET_SHIFT_PASS = {
+    "segment_f1": 0.37163814180929094,
+    "whole_clip_segment_f1": 0.17212490479817213,
+    "collar_event_f1": 0.05853658536585366,
+    "collar_true_positive": 6,
+    "collar_false_positive": 151,
+    "collar_false_negative": 42,
+    "reference_event_count": 48,
+    "median_onset_error_ms_on_overlapping_misses": 360,
+    "decoder": {
+        "high_threshold": 0.9,
+        "low_threshold": 0.63,
+        "max_gap_frames": 8,
+        "min_active_frames": 1,
+        "median_filter_frames": 1,
+        "onset_shift_ms": -120,
+    },
+}
 
 
 def should_wire_starss23_timestamps(
@@ -107,6 +152,62 @@ def positive_class_weight_from_train_frames(train_targets: Any) -> Any:
     positives = train_targets.sum()
     negatives = train_targets.numel() - positives
     return (negatives / positives.clamp_min(1)).reshape(1)
+
+
+def keep_prior_best_checkpoint(this_collar_f1: float) -> bool:
+    """Keep the 0.1395 40-epoch report unless this inspection strictly beats it."""
+    return float(this_collar_f1) <= PRIOR_BEST_COLLAR_F1
+
+
+def _active_runs(flags: list[bool]) -> list[tuple[int, int]]:
+    runs = []
+    start = None
+    for index, active in enumerate([*flags, False]):
+        if active and start is None:
+            start = index
+        elif not active and start is not None:
+            runs.append((start, index - 1))
+            start = None
+    return runs
+
+
+def boundary_weights_from_train_clips(train_targets: list[Any], *, torch: Any) -> Any:
+    """Per-frame BCE weights from TRAIN gold event boundaries only.
+
+    First and last active frame of each contiguous gold run get BOUNDARY_WEIGHT.
+    Frames within BOUNDARY_NEIGHBOR_RADIUS of those boundaries get
+    BOUNDARY_NEIGHBOR_WEIGHT. Interior active frames and background stay at
+    DEFAULT_FRAME_WEIGHT. Inspection is not an argument and must not be passed.
+    """
+    if not train_targets:
+        raise ValueError("train_targets must not be empty")
+    weights = []
+    for clip in train_targets:
+        if clip.ndim != 2 or clip.shape[1] != 1:
+            raise ValueError("each train clip must have shape (frames, 1)")
+        values = clip[:, 0]
+        weight = torch.full((values.shape[0], 1), DEFAULT_FRAME_WEIGHT, dtype=values.dtype)
+        for start, end in _active_runs((values > 0.5).tolist()):
+            weight[start, 0] = max(float(weight[start, 0]), BOUNDARY_WEIGHT)
+            weight[end, 0] = max(float(weight[end, 0]), BOUNDARY_WEIGHT)
+            for offset in range(1, BOUNDARY_NEIGHBOR_RADIUS + 1):
+                for index in (start - offset, start + offset, end - offset, end + offset):
+                    if 0 <= index < values.shape[0]:
+                        weight[index, 0] = max(float(weight[index, 0]), BOUNDARY_NEIGHBOR_WEIGHT)
+        weights.append(weight)
+    return torch.cat(weights)
+
+
+def bce_with_logits(logits: Any, targets: Any, torch: Any, *, weight: Any | None = None) -> Any:
+    """Mean BCE with logits; optional per-frame weights, never class pos_weight."""
+    per_frame = torch.nn.functional.binary_cross_entropy_with_logits(
+        logits,
+        targets,
+        reduction="none",
+    )
+    if weight is None:
+        return per_frame.mean()
+    return (per_frame * weight).mean()
 
 
 def gold_event_durations_ms(rows: list[dict[str, Any]]) -> list[int]:
@@ -650,6 +751,7 @@ def miss_mechanism(
     false_negative = never_fired + decoder_suppressed + predicted_but_collar_failed
     ordered = sorted(onset_errors_ms)
     median_onset = None if not ordered else ordered[len(ordered) // 2]
+    mean_onset = None if not ordered else sum(onset_errors_ms) / len(onset_errors_ms)
     counts = {
         "head_never_fires": never_fired,
         "decoder_suppressed": decoder_suppressed,
@@ -660,6 +762,7 @@ def miss_mechanism(
         "false_negative": false_negative,
         **counts,
         "median_onset_error_ms_on_overlapping_misses": median_onset,
+        "mean_onset_error_ms_on_overlapping_misses": mean_onset,
         "dominant_miss": dominant,
         "interpretation": (
             "most missed gold events have no head fire inside the gold span"
@@ -1421,8 +1524,7 @@ def main() -> None:
     train_matrix = (train_matrix - mean) / scale
     validation_matrix = (validation_matrix - mean) / scale
     inspection_matrix = (inspection_matrix - mean) / scale
-    pos_weight = positive_class_weight_from_train_frames(train_targets)
-    loss_function = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    train_weights = boundary_weights_from_train_clips(train_y, torch=torch)
     head = torch.nn.Sequential(
         torch.nn.Linear(512, 64),
         torch.nn.ReLU(),
@@ -1436,12 +1538,19 @@ def main() -> None:
     for epoch in range(1, arguments.epochs + 1):
         head.train()
         optimizer.zero_grad()
-        train_loss = loss_function(head(train_matrix), train_targets)
+        train_loss = bce_with_logits(
+            head(train_matrix),
+            train_targets,
+            torch,
+            weight=train_weights,
+        )
         train_loss.backward()
         optimizer.step()
         head.eval()
         with torch.inference_mode():
-            validation_loss = loss_function(head(validation_matrix), validation_targets).item()
+            validation_loss = float(
+                bce_with_logits(head(validation_matrix), validation_targets, torch).item()
+            )
         history.append(
             {
                 "epoch": epoch,
@@ -1472,9 +1581,17 @@ def main() -> None:
         "frame_hop_ms": encoder.frame_hop_ms,
     }
     train_gold_durations = gold_event_durations_ms(train_rows)
-    min_active_frames = min_active_frames_from_gold(
-        train_gold_durations,
-        frame_hop_ms=encoder.frame_hop_ms,
+    decoder = {
+        **PREDECLARED_DECODER,
+        "min_duration_ms": round(
+            int(PREDECLARED_DECODER["min_active_frames"]) * encoder.frame_hop_ms
+        ),
+    }
+    validation_eval = evaluate_decoder(
+        validation_probabilities,
+        references_validation,
+        decoder,
+        **span_arguments,
     )
     thresholds = [index / 20 for index in range(1, 20)]
     threshold = max(
@@ -1487,12 +1604,6 @@ def main() -> None:
     )
     references = [row["events"] for row in inspection]
     direct_predictions = spans(inspection_probabilities, threshold, **span_arguments)
-    decoder = select_hysteresis_decoder(
-        validation_probabilities,
-        references_validation,
-        min_active_frames=min_active_frames,
-        **span_arguments,
-    )
     predictions = decode_spans(
         inspection_probabilities,
         decoder,
@@ -1517,6 +1628,14 @@ def main() -> None:
         collar_f1=collar_f1,
     )
     durations = duration_error_table(references, predictions)
+    misses = miss_mechanism(
+        references,
+        predictions,
+        inspection_probabilities,
+        high_threshold=float(decoder["high_threshold"]),
+        **span_arguments,
+    )
+    keep_prior = keep_prior_best_checkpoint(collar_f1)
     gate = {
         "passed": gate_passed,
         "segment_margin_required": SEGMENT_MARGIN_REQUIRED,
@@ -1547,10 +1666,61 @@ def main() -> None:
     )
     train_positive_frames = int(train_targets.sum().item())
     train_total_frames = int(train_targets.numel())
+    if keep_prior:
+        reported_best = {
+            **PRIOR_BEST_PASS,
+            "reason": (
+                "this pass collar F1 did not beat 0.1395; "
+                "keep 40-epoch repaired decoder as reported best"
+            ),
+        }
+        wiring_decision = (
+            "wire STARSS23 laugh timing from the 60s scene raster"
+            if gate_passed
+            else (
+                "leave STARSS23 unwired; boundary-weighted BCE did not clear "
+                "the collar gate; reported best remains 0.1395"
+            )
+        )
+    else:
+        reported_best = {
+            "id": "boundary_weighted_bce",
+            "epochs_completed": len(history),
+            "segment_f1": float(temporal_segment["f1"]),
+            "whole_clip_segment_f1": float(baseline_segment["f1"]),
+            "collar_event_f1": collar_f1,
+            "collar_true_positive": int(temporal_collar["true_positive"]),
+            "collar_false_positive": int(temporal_collar["false_positive"]),
+            "collar_false_negative": int(temporal_collar["false_negative"]),
+            "reference_event_count": sum(len(row["events"]) for row in inspection),
+            "checkpoint": str(arguments.checkpoint_output),
+            "median_onset_error_ms_on_overlapping_misses": misses[
+                "median_onset_error_ms_on_overlapping_misses"
+            ],
+            "decoder": dict(decoder),
+            "reason": "this pass collar F1 beat the 0.1395 decoder-validity pass",
+        }
+        wiring_decision = (
+            "wire STARSS23 laugh timing from the 60s scene raster"
+            if gate_passed
+            else (
+                "leave STARSS23 unwired; boundary-weighted BCE improved collar "
+                "but still failed the 0.25 gate"
+            )
+        )
+    overlapping_onset = {
+        "prior_best_median_ms": PRIOR_BEST_PASS["median_onset_error_ms_on_overlapping_misses"],
+        "this_pass_median_ms": misses["median_onset_error_ms_on_overlapping_misses"],
+        "this_pass_mae_ms": misses["mean_onset_error_ms_on_overlapping_misses"],
+        "improved_vs_200ms": (
+            misses["median_onset_error_ms_on_overlapping_misses"] is not None
+            and misses["median_onset_error_ms_on_overlapping_misses"] < 200
+        ),
+    }
     payload = {
         "report_version": "1",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
-        "gate_decision": "closed",
+        "gate_decision": "closed" if not gate_passed else "open",
         "inspection_evaluations": 1,
         "protocol": "first_60s_scene_raster",
         "task": "STARSS23 v1.1 60-second scene-raster laughter localization",
@@ -1575,6 +1745,8 @@ def main() -> None:
             "threshold": threshold,
             "threshold_selected_on": "development validation rooms",
             "checkpoint_committed": False,
+            "source_checkpoint": str(arguments.checkpoint_output),
+            "retrained": True,
         },
         "partitions": {
             "train_clips": len(train_rows),
@@ -1593,23 +1765,38 @@ def main() -> None:
             "seed": arguments.seed,
             "epochs_completed": len(history),
             "patience": arguments.patience,
-            "loss": "BCEWithLogitsLoss",
-            "positive_class_weight_source": "train_frames_only",
+            "loss": "boundary_weighted_BCEWithLogitsLoss",
+            "positive_class_weight": None,
+            "positive_class_weight_source": "unused; 44x pos_weight banned",
+            "boundary_weight": BOUNDARY_WEIGHT,
+            "boundary_neighbor_weight": BOUNDARY_NEIGHBOR_WEIGHT,
+            "boundary_neighbor_radius": BOUNDARY_NEIGHBOR_RADIUS,
+            "default_frame_weight": DEFAULT_FRAME_WEIGHT,
+            "boundary_weight_source": "train_gold_event_boundaries_only",
             "train_positive_frames": train_positive_frames,
             "train_total_frames": train_total_frames,
             "train_positive_frame_prior": train_positive_frames / train_total_frames,
-            "positive_class_weight": float(pos_weight.reshape(())),
+            "early_stop_on": "unweighted_validation_bce",
             "history": history,
+            "retrained": True,
         },
         "decoder_search": {
-            "selected_on": "development validation rooms",
-            "min_duration_source": "train gold length percentiles; inspection unused",
-            "gold_duration_percentiles": list(GOLD_DURATION_PERCENTILES),
-            "train_gold_duration_ms": duration_summary(train_gold_durations),
-            "min_active_frames_candidates": list(min_active_frames),
-            "max_gap_frames_candidates": list(DECODER_GAP_FRAMES),
-            "median_filter_frames_candidates": list(DECODER_MEDIAN_WINDOWS),
+            "performed": False,
+            "reason": "decoder-grid path is exhausted; predeclared 0a27733 decoder",
+            "selected_on": "not searched; frozen from decoder-validity inspection winner",
+            "decoder": json_safe_decoder(decoder),
             "inspection_used": False,
+            "train_gold_duration_ms": duration_summary(train_gold_durations),
+        },
+        "validation_sanity": {
+            "decoder": json_safe_decoder(decoder),
+            "collar_f1": validation_eval["collar_f1"],
+            "recall": validation_eval["recall"],
+            "segment_f1": validation_eval["segment_f1"],
+            "true_positive": validation_eval["true_positive"],
+            "false_positive": validation_eval["false_positive"],
+            "false_negative": validation_eval["false_negative"],
+            "note": "fixed 0a27733 decoder scored on validation rooms; not used to pick a decoder",
         },
         "inspection_test": {
             "designation": "official dev-test rooms; never used for fitting or threshold selection",
@@ -1623,8 +1810,10 @@ def main() -> None:
                 "segment_f1": direct_segment,
                 "collar_event_metrics": direct_collar,
             },
-            "validation_selected_hysteresis_decoder": decoder,
+            "predeclared_hysteresis_decoder": json_safe_decoder(decoder),
             "duration_error_table": durations,
+            "miss_mechanism": misses,
+            "overlapping_onset_error_vs_prior_best": overlapping_onset,
             "whole_clip_oracle_tag_baseline": {
                 "definition": (
                     "uses each scene's known laughter presence but assigns 0..60000 ms; "
@@ -1635,6 +1824,38 @@ def main() -> None:
             },
         },
         "prior_40_epoch_pass": PRIOR_40_EPOCH_PASS,
+        "prior_posweight_decoder_pass": {
+            "epochs_completed": 73,
+            "segment_f1": 0.3974358974358974,
+            "whole_clip_segment_f1": 0.17212490479817213,
+            "collar_event_f1": 0.030303030303030304,
+            "collar_true_positive": 1,
+            "collar_false_positive": 17,
+            "collar_false_negative": 47,
+            "reference_event_count": 48,
+            "decoder": {
+                "high_threshold": 0.95,
+                "low_threshold": 0.855,
+                "max_gap_frames": 0,
+                "min_active_frames": 15,
+                "median_filter_frames": 5,
+            },
+        },
+        "prior_decoder_validity_pass": {
+            "chosen_checkpoint": CHECKPOINT_UNWEIGHTED,
+            "segment_f1": 0.512396694214876,
+            "whole_clip_segment_f1": 0.17212490479817213,
+            "collar_event_f1": PRIOR_BEST_COLLAR_F1,
+            "collar_true_positive": 9,
+            "collar_false_positive": 72,
+            "collar_false_negative": 39,
+            "reference_event_count": 48,
+            "decoder": dict(PREDECLARED_DECODER),
+        },
+        "prior_onset_shift_pass": PRIOR_ONSET_SHIFT_PASS,
+        "prior_best": PRIOR_BEST_PASS,
+        "reported_best": reported_best,
+        "this_pass_replaced_reported_best": not keep_prior,
         "cascade_wiring": {
             **gate,
             "timestamps_wired": gate_passed,
@@ -1642,11 +1863,7 @@ def main() -> None:
                 "wire STARSS23 laugh timestamps only if collar F1 >= 0.25 "
                 "and segment margin >= 0.05"
             ),
-            "decision": (
-                "wire STARSS23 laugh timing from the 60s scene raster"
-                if gate_passed
-                else "leave STARSS23 unwired; 60s scene raster did not clear the collar gate"
-            ),
+            "decision": wiring_decision,
         },
         "runtime": {
             "device": "cpu",
@@ -1665,28 +1882,65 @@ def main() -> None:
     error_payload = {
         "report_version": "1",
         "generated_at_utc": payload["generated_at_utc"],
-        "gate_decision": "closed",
+        "gate_decision": payload["gate_decision"],
         "label_status": "human 100 ms activity label; not reviewed Attune gold",
         "language": "unverified",
         "protocol": "first_60s_scene_raster",
         "partition": "official_dev_test_inspection",
         "audio_committed": False,
+        "loss": "boundary_weighted_BCEWithLogitsLoss",
+        "epochs_completed": len(history),
+        "predeclared_decoder": json_safe_decoder(decoder),
         "this_pass": durations,
         "this_pass_collar": {
             "true_positive": int(temporal_collar["true_positive"]),
             "false_positive": int(temporal_collar["false_positive"]),
             "false_negative": int(temporal_collar["false_negative"]),
             "f1": collar_f1,
+            "segment_f1": float(temporal_segment["f1"]),
+            "whole_clip_segment_f1": float(baseline_segment["f1"]),
         },
-    }
-    error_payload["previous_40_epoch_pass"] = {
-        "collar_true_positive": PRIOR_40_EPOCH_PASS["collar_true_positive"],
-        "collar_false_positive": PRIOR_40_EPOCH_PASS["collar_false_positive"],
-        "collar_false_negative": PRIOR_40_EPOCH_PASS["collar_false_negative"],
-        "collar_event_f1": PRIOR_40_EPOCH_PASS["collar_event_f1"],
-        "segment_f1": PRIOR_40_EPOCH_PASS["segment_f1"],
-        "whole_clip_segment_f1": PRIOR_40_EPOCH_PASS["whole_clip_segment_f1"],
-        "note": "40-epoch pass did not write a duration table; collar counts only",
+        "miss_mechanism": misses,
+        "overlapping_onset_error_vs_prior_best": overlapping_onset,
+        "reported_best": reported_best,
+        "this_pass_replaced_reported_best": not keep_prior,
+        "previous_40_epoch_pass": {
+            "collar_true_positive": PRIOR_40_EPOCH_PASS["collar_true_positive"],
+            "collar_false_positive": PRIOR_40_EPOCH_PASS["collar_false_positive"],
+            "collar_false_negative": PRIOR_40_EPOCH_PASS["collar_false_negative"],
+            "collar_event_f1": PRIOR_40_EPOCH_PASS["collar_event_f1"],
+            "segment_f1": PRIOR_40_EPOCH_PASS["segment_f1"],
+            "whole_clip_segment_f1": PRIOR_40_EPOCH_PASS["whole_clip_segment_f1"],
+            "note": "40-epoch pass did not write a duration table; collar counts only",
+        },
+        "previous_posweight_decoder_pass": {
+            "collar_true_positive": 1,
+            "collar_false_positive": 17,
+            "collar_false_negative": 47,
+            "collar_event_f1": 0.030303030303030304,
+            "segment_f1": 0.3974358974358974,
+            "false_positives_are_short_fragments": False,
+            "note": "73-epoch pos-weight pass with 900 ms min-active; remaining error was misses",
+        },
+        "previous_decoder_validity_pass": {
+            "collar_true_positive": 9,
+            "collar_false_positive": 72,
+            "collar_false_negative": 39,
+            "collar_event_f1": PRIOR_BEST_COLLAR_F1,
+            "segment_f1": 0.512396694214876,
+            "whole_clip_segment_f1": 0.17212490479817213,
+            "median_onset_error_ms_on_overlapping_misses": 200,
+            "note": "best inspection so far; 40-epoch unweighted MLP with predeclared decoder",
+        },
+        "previous_onset_shift_pass": {
+            "collar_true_positive": 6,
+            "collar_false_positive": 151,
+            "collar_false_negative": 42,
+            "collar_event_f1": 0.05853658536585366,
+            "segment_f1": 0.37163814180929094,
+            "median_onset_error_ms_on_overlapping_misses": 360,
+            "note": "onset-shift decoder search regressed; not reported best",
+        },
     }
     arguments.duration_error_output.parent.mkdir(parents=True, exist_ok=True)
     arguments.duration_error_output.write_text(
@@ -1695,6 +1949,14 @@ def main() -> None:
     )
     print(f"Wrote {arguments.output}")
     print(f"Wrote {arguments.duration_error_output}")
+    print(
+        "boundary-weighted train epochs "
+        f"{len(history)}; inspection collar {collar_f1:.4f} TP/FP/FN "
+        f"{temporal_collar['true_positive']}/"
+        f"{temporal_collar['false_positive']}/"
+        f"{temporal_collar['false_negative']}; "
+        f"wired={gate_passed}; keep_prior_best={keep_prior}"
+    )
 
 
 if __name__ == "__main__":
