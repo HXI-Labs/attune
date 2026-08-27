@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "dataset": "STARSS23 v1.1 development set",
+  "record": "https://zenodo.org/records/7880637",
+  "doi": "10.5281/zenodo.7880637",
+  "licence": "MIT",
+  "licence_file_md5": "1c11108eda7c915172b10c48276cc189",
+  "metadata_archive_md5": "e73af95a6d5f3f7e009ac6a70804f44a",
+  "microphone_development_archive_md5": "06967bcc8def1580c2425fabc311dbd2",
+  "protocol": "first_60s_scene_raster",
+  "selection": "first 60 seconds of every official development recording whose annotated extent is at least 60 s and whose excerpt contains no Music class 8; official dev-train vs dev-test rooms and files remain disjoint; no laughter-centered cropping or per-recording window cap",
+  "mapping": {
+    "4_laughter": "laugh"
+  },
+  "source_identity_mapping": "simultaneous source-specific laughter frames are unioned because Attune events do not carry source identity; non-contiguous bursts stay distinct",
+  "unmapped_classes": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+  ],
+  "music_class_excluded": 8,
+  "language": "unverified; STARSS23 metadata has no language field",
+  "source_format": {
+    "sample_rate_hz": 24000,
+    "channels": 4,
+    "format": "MIC"
+  },
+  "derived_format": {
+    "sample_rate_hz": 16000,
+    "channels": 1
+  },
+  "development_manifest": "data/manifests/starss23-scene-raster-development.jsonl",
+  "development_rows": 62,
+  "development_manifest_sha256": "c55193b8793d7571d7713adee714d679d4c37a06d12c02cd42a0ddac7fec35cc",
+  "inspection_manifest": "data/manifests/starss23-scene-raster-inspection.jsonl",
+  "inspection_rows": 49,
+  "inspection_manifest_sha256": "adf5b80322c8d23beb1218b97e44acb47c8d8aa29050aa5fb7e3062f31fde981",
+  "audio_committed": false,
+  "privacy_consent": "Natural participant recordings; collection included consent and published face-blurring procedures, but this operational review is not independent consent verification. Use only for bounded research.",
+  "attribution": "STARSS23 by Politis, Shimada, Sudarsanam, Hakala, Takahashi, Krause, Adavanne, Koyama, Uchida, Mitsufuji, Virtanen, and collaborators."
+}

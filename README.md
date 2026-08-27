@@ -79,11 +79,11 @@ validation-selected hysteresis trades segment F1 to 0.7059 while improving
 collar F1 to 0.5279, versus 0.3183 / 0 for whole-clip. It enables gated frame
 spans for laugh/cough/throat-clear when its gitignored checkpoint is configured.
 Other `0..duration` event/style spans remain utterance scope, never
-localization. A separate natural-scene STARSS23 laughter head scores 0.7381
-segment F1 versus 0.4894 whole-clip, but only 0.1159 collar F1; it is therefore
-not merge-quality boundary alignment. A single temporal Conv1d follow-up scores
-0.7113 / 0.0282 and fails the fixed collar gate, so STARSS23 timestamps are
-unwired. Details are in `research/timing-holes.md`.
+localization. A separate natural-scene STARSS23 laughter head on 10 s crops scores 0.7381
+segment F1 versus 0.4894 whole-clip, but only 0.1159 collar F1. A 60 s scene
+raster MLP scores 0.4794 versus 0.1721 whole-clip and 0.1074 collar F1; the
+segment margin clears +0.05 but collar F1 fails the fixed 0.25 gate, so
+STARSS23 timestamps stay unwired. Details are in `research/timing-holes.md`.
 For one or more local WAV files, `scripts/infer.py` emits authoritative JSON
 and optional deterministic XML; exact offline commands are in
 `docs/baseline-runners.md`.

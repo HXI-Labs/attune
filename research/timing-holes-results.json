@@ -64,7 +64,7 @@
     "checkpoint_committed": false
   },
   "cascade_timestamps": {
-    "event_style_policy": "gated DCASE laugh/cough/throat_clear frame spans when configured; STARSS23 laugh timing is unwired; all other event/style labels remain utterance-scoped",
+    "event_style_policy": "gated DCASE laugh/cough/throat_clear frame spans when configured; STARSS23 laugh timing is unwired after the 60s scene raster; all other event/style labels remain utterance-scoped",
     "zero_to_duration_is_localization": false,
     "changed_in_this_pr": true
   },
@@ -134,7 +134,7 @@
     },
     "eligible_for_cascade_wiring": false,
     "timestamps_wired": false,
-    "decision": "natural-scene boundaries remain unsolved; prior segment-only gate superseded",
+    "decision": "60s scene raster still fails collar F1 >= 0.25; STARSS23 laugh timing remains unwired",
     "english_metadata_filter_available": false,
     "language": "unverified",
     "merge_quality_localization": false,
@@ -143,7 +143,34 @@
       "collar event F1 is weak despite the segment-F1 gate passing",
       "natural participant recordings require ongoing privacy and consent care",
       "human activity labels are not independently reviewed Attune gold"
-    ]
+    ],
+    "scene_raster_60s": {
+      "status": "completed",
+      "protocol": "first_60s_scene_raster",
+      "result": "research/starss23-scene-raster-results.json",
+      "development_scenes": 62,
+      "inspection_test_scenes": 49,
+      "development_manifest_sha256": "c55193b8793d7571d7713adee714d679d4c37a06d12c02cd42a0ddac7fec35cc",
+      "inspection_manifest_sha256": "adf5b80322c8d23beb1218b97e44acb47c8d8aa29050aa5fb7e3062f31fde981",
+      "architecture": "two-layer binary MLP over frozen 512-d acoustic frames",
+      "trainable_parameters": 32897,
+      "seed": 0,
+      "inspection_evaluations": 1,
+      "segment_f1": 0.4794007490636704,
+      "whole_clip_segment_f1": 0.17212490479817213,
+      "segment_f1_margin": 0.30727584426549825,
+      "collar_event_f1": 0.10738255033557047,
+      "whole_clip_oracle_tag_collar_event_f1": 0.0,
+      "collar_true_positive": 8,
+      "reference_event_count": 48,
+      "wiring_gate": {
+        "segment_margin_required": 0.05,
+        "collar_f1_required": 0.25,
+        "passed": false
+      },
+      "eligible_for_cascade_wiring": false,
+      "timestamps_wired": false
+    }
   },
   "claims": {
     "dcase_labels": "synthetic strong labels; not Attune gold",
