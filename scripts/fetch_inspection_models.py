@@ -21,6 +21,14 @@ MODELS = {
             "FunASR Model Open Source License Agreement v1.1."
         ),
     },
+    "emotion2vec-plus": {
+        "repository": "emotion2vec/emotion2vec_plus_base",
+        "revision": "b318240bfe67db81a8c572ecb37ce9c3759b81c9",
+        "attribution": (
+            "emotion2vec+ base by emotion2vec and FunASR/FunAudioLLM; "
+            "FunASR Model Open Source License Agreement."
+        ),
+    },
 }
 
 

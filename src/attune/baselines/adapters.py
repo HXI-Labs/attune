@@ -15,7 +15,11 @@ from pathlib import Path
 from typing import Any
 
 from attune.audio.contracts import placeholder_quality_probabilities
-from attune.baselines.sensevoice import build_utterance_spans, parse_sensevoice_output
+from attune.baselines.sensevoice import (
+    build_utterance_spans,
+    parse_sensevoice_output,
+    sensevoice_affect_trace,
+)
 from attune.evaluation.report import RuntimeMetrics
 from attune.schema.output import AffectCategory, AttuneOutput
 
@@ -47,6 +51,7 @@ class BaselineInput:
 class BaselinePrediction:
     output: AttuneOutput
     runtime: RuntimeMetrics
+    diagnostics: dict[str, Any] | None = None
 
 
 class BaselineAdapter(ABC):
@@ -97,6 +102,12 @@ class TranscriptSentimentAdapter(BaselineAdapter):
                 audio_seconds=output.audio.duration_ms / 1000,
                 elapsed_seconds=elapsed,
             ),
+            diagnostics={
+                "affect_source": "transcript_lexicon",
+                "raw_affect_label": None,
+                "schema_affect_label": category.value,
+                "note": "No acoustic affect model ran; this is a lexical fallback.",
+            },
         )
 
     def classify(self, text: str) -> tuple[AffectCategory, dict[AffectCategory, float]]:
@@ -179,6 +190,13 @@ class WhisperSmallAdapter(BaselineAdapter):
             RuntimeMetrics.measured(
                 audio_seconds=output.audio.duration_ms / 1000, elapsed_seconds=elapsed
             ),
+            diagnostics={
+                "affect_source": "transcript_lexicon",
+                "raw_model_output": {"transcript": transcript},
+                "raw_affect_label": None,
+                "schema_affect_label": category.value,
+                "note": "Whisper has no affect head; affect is a transcript-lexicon fallback.",
+            },
         )
 
 
@@ -228,6 +246,7 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
                 input=str(item.audio_path), cache={}, language="auto"
             )
         parsed = parse_sensevoice_output(result)
+        affect_trace = sensevoice_affect_trace(result)
         if parsed.affect:
             category = parsed.affect[0].label
             if not isinstance(category, AffectCategory):
@@ -258,6 +277,22 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
             RuntimeMetrics.measured(
                 audio_seconds=output.audio.duration_ms / 1000, elapsed_seconds=elapsed
             ),
+            diagnostics={
+                "affect_source": (
+                    "sensevoice_ser" if affect_trace else "transcript_lexicon_fallback"
+                ),
+                "raw_model_output": _diagnostic_value(result),
+                "raw_affect_label": (
+                    str(affect_trace[0]["raw_label"]) if affect_trace else None
+                ),
+                "schema_affect_label": category.value,
+                "affect_mapping": affect_trace,
+                "note": (
+                    "SenseVoice SER/rich-transcription affect was mapped directly."
+                    if affect_trace
+                    else "SenseVoice emitted no mapped SER label; transcript lexicon was used."
+                ),
+            },
         )
 
 
@@ -301,6 +336,7 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
                 input=str(item.audio_path), granularity="utterance"
             )
         category, distribution = _map_emotion2vec_result(result)
+        emotion_diagnostics = _emotion2vec_diagnostics(result, category)
         output = build_partial_output(
             item,
             model_name=self.name,
@@ -314,6 +350,7 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
             RuntimeMetrics.measured(
                 audio_seconds=output.audio.duration_ms / 1000, elapsed_seconds=elapsed
             ),
+            diagnostics=emotion_diagnostics,
         )
 
 
@@ -451,3 +488,33 @@ def _map_emotion2vec_result(
     distribution = {category: score / total for category, score in distribution.items()}
     category = max(distribution, key=distribution.__getitem__)
     return category, distribution
+
+
+def _emotion2vec_diagnostics(
+    result: Any, category: AffectCategory
+) -> dict[str, Any]:
+    row = result[0]
+    labels = row["labels"]
+    scores = row["scores"]
+    raw_index = max(range(len(scores)), key=lambda index: float(scores[index]))
+    return {
+        "affect_source": "emotion2vec_plus_ser",
+        "raw_model_output": _diagnostic_value(result),
+        "raw_affect_label": str(labels[raw_index]),
+        "raw_affect_score": float(scores[raw_index]),
+        "schema_affect_label": category.value,
+        "mapping_rule": "published emotion2vec+ label aliases; disgust maps to Attune other",
+    }
+
+
+def _diagnostic_value(value: Any) -> Any:
+    """Convert model output containers to bounded JSON-compatible values."""
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+    if isinstance(value, dict):
+        return {str(key): _diagnostic_value(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_diagnostic_value(item) for item in value]
+    if hasattr(value, "tolist"):
+        return _diagnostic_value(value.tolist())
+    return repr(value)

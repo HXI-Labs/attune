@@ -26,6 +26,9 @@ class FakeSenseVoiceModel(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.encoder = FakeEncoder()
+        self.embed = torch.nn.Embedding(4, 560)
+        self.lid_dict = {"auto": 0}
+        self.textnorm_dict = {"woitn": 3}
 
 
 class FakeAutoModel:
@@ -34,10 +37,7 @@ class FakeAutoModel:
         self.kwargs = {"frontend": torch.nn.Identity()}
 
     def generate(self, **_kwargs: object) -> list[dict[str, str]]:
-        features = torch.ones(1, 12, 560)
-        lengths = torch.tensor([12])
-        self.model.encoder(features, lengths)
-        return [{"text": ""}]
+        raise AssertionError("embedding extraction must not call generate()")
 
 
 def write_tone(path: Path) -> None:
@@ -50,6 +50,12 @@ def write_tone(path: Path) -> None:
         handle.setsampwidth(2)
         handle.setframerate(16_000)
         handle.writeframes(samples.tobytes())
+
+
+def fake_feature_loader(
+    _audio_path: Path, _frontend: object, _torch: object
+) -> tuple[object, object]:
+    return torch.ones(1, 8, 560), torch.tensor([8], dtype=torch.int32)
 
 
 @pytest.mark.integration
@@ -68,6 +74,7 @@ def test_fake_encoder_is_frozen_and_embeddings_are_cached(
         tmp_path / "cache",
         torch,
         model_factory=FakeAutoModel,
+        feature_loader=fake_feature_loader,
     )
     first = extractor(audio)
     second = extractor(audio)

@@ -17,7 +17,14 @@ from typing import Any
 
 from prepare_licence_clean_inspection import load_manifest, verify
 
-from attune.baselines.adapters import BaselineInput, SenseVoiceSmallAdapter, WhisperSmallAdapter
+from attune.baselines.adapters import (
+    BaselineAdapter,
+    BaselineInput,
+    Emotion2VecPlusAdapter,
+    SenseVoiceSmallAdapter,
+    WhisperSmallAdapter,
+)
+from attune.baselines.cascade import ModularCascade
 from attune.evaluation.metrics import corpus_character_error_rate, corpus_word_error_rate
 
 MODEL_METADATA = {
@@ -30,6 +37,13 @@ MODEL_METADATA = {
         "attribution": (
             "SenseVoiceSmall by FunASR/FunAudioLLM; "
             "FunASR Model Open Source License Agreement v1.1."
+        ),
+    },
+    "emotion2vec-plus": {
+        "revision": "b318240bfe67db81a8c572ecb37ce9c3759b81c9",
+        "attribution": (
+            "emotion2vec+ base by emotion2vec and FunASR/FunAudioLLM; "
+            "FunASR Model Open Source License Agreement."
         ),
     },
 }
@@ -102,21 +116,31 @@ def categorical_metrics(references: list[str], predictions: list[str]) -> dict[s
 
 
 def evaluate_crema(
-    runner: WhisperSmallAdapter | SenseVoiceSmallAdapter,
+    runner: BaselineAdapter,
     rows: list[dict[str, Any]],
     cache_root: Path,
+    *,
+    score_asr: bool,
 ) -> dict[str, Any]:
     references: list[str] = []
     hypotheses: list[str] = []
     affect_references: list[str] = []
     affect_predictions: list[str] = []
     failures: list[dict[str, str]] = []
+    raw_affect_counts: Counter[str] = Counter()
+    affect_source_counts: Counter[str] = Counter()
+    mapping_examples: list[dict[str, Any]] = []
+    examples_by_source: Counter[str] = Counter()
     elapsed = 0.0
     audio_seconds = 0.0
     for index, row in enumerate(rows, 1):
         try:
             prediction = runner.predict(
-                BaselineInput(audio_path=cache_root / row["cache_path"], language_hint="en")
+                BaselineInput(
+                    audio_path=cache_root / row["cache_path"],
+                    transcript_hint=row["transcript"],
+                    language_hint="en",
+                )
             )
         except Exception as error:
             failures.append(
@@ -131,6 +155,23 @@ def evaluate_crema(
         hypotheses.append(normalize_asr(prediction.output.transcript.text))
         affect_references.append(row["intended_attune_labels"]["affect"][0])
         affect_predictions.append(prediction.output.affect.top_label.value)
+        diagnostics = prediction.diagnostics or {}
+        raw_label = diagnostics.get("raw_affect_label")
+        raw_affect_counts[str(raw_label) if raw_label is not None else "<not_emitted>"] += 1
+        affect_source_counts[str(diagnostics.get("affect_source", "unreported"))] += 1
+        source_emotion = row["intended_attune_labels"]["source_emotion"]
+        if examples_by_source[source_emotion] < 2:
+            mapping_examples.append(
+                {
+                    "clip_id": row["clip_id"],
+                    "source_emotion": source_emotion,
+                    "reference_schema_label": row["intended_attune_labels"]["affect"][0],
+                    "raw_affect_label": raw_label,
+                    "mapped_schema_label": prediction.output.affect.top_label.value,
+                    "diagnostics": diagnostics,
+                }
+            )
+            examples_by_source[source_emotion] += 1
         elapsed += prediction.runtime.elapsed_seconds
         audio_seconds += prediction.runtime.audio_seconds
         print(f"{runner.name} CREMA-D {index}/{len(rows)}", flush=True)
@@ -138,11 +179,19 @@ def evaluate_crema(
         "status": "completed" if not failures else ("partial_failure" if references else "failed"),
         "evaluated_clips": len(references),
         "failed_clips": len(failures),
-        "asr": {
-            "wer": corpus_word_error_rate(references, hypotheses) if references else None,
-            "cer": corpus_character_error_rate(references, hypotheses) if references else None,
-            "normalization": "lowercase alphanumeric tokens; punctuation removed",
-        },
+        "asr": (
+            {
+                "wer": corpus_word_error_rate(references, hypotheses) if references else None,
+                "cer": corpus_character_error_rate(references, hypotheses) if references else None,
+                "normalization": "lowercase alphanumeric tokens; punctuation removed",
+            }
+            if score_asr
+            else {
+                "wer": None,
+                "cer": None,
+                "note": "Not applicable: this runner is an acoustic affect-only model.",
+            }
+        ),
         "categorical_affect": (
             categorical_metrics(affect_references, affect_predictions)
             if affect_references
@@ -153,6 +202,16 @@ def evaluate_crema(
             "elapsed_seconds": elapsed,
             "real_time_factor": elapsed / audio_seconds if audio_seconds else None,
             "device": "cpu",
+        },
+        "affect_wiring_diagnostics": {
+            "affect_source_counts": dict(sorted(affect_source_counts.items())),
+            "raw_label_counts": dict(sorted(raw_affect_counts.items())),
+            "schema_label_counts": dict(sorted(Counter(affect_predictions).items())),
+            "raw_to_schema_examples": mapping_examples,
+            "disgust_mapping": (
+                "CREMA-D DIS remains Attune `other`. It is not remapped to distress; "
+                "a runner that never emits `other` has structurally zero DIS/other recall."
+            ),
         },
         "failures": failures,
     }
@@ -309,6 +368,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--whisper-path", type=Path, required=True)
     parser.add_argument("--sensevoice-path", type=Path, required=True)
+    parser.add_argument("--emotion2vec-path", type=Path, required=True)
     parser.add_argument("--probe-checkpoint", type=Path)
     parser.add_argument(
         "--embedding-cache",
@@ -341,9 +401,19 @@ def main() -> None:
     started = time.time()
     whisper = WhisperSmallAdapter(checkpoint=arguments.whisper_path)
     sensevoice = SenseVoiceSmallAdapter(checkpoint=arguments.sensevoice_path)
+    emotion2vec = Emotion2VecPlusAdapter(checkpoint=arguments.emotion2vec_path)
+    runners = (
+        (whisper, True),
+        (sensevoice, True),
+        (emotion2vec, False),
+        (ModularCascade(asr=whisper, affect=emotion2vec), True),
+        (ModularCascade(asr=sensevoice, affect=emotion2vec), True),
+    )
     crema_results = {
-        runner.name: evaluate_crema(runner, crema_rows, arguments.cache_dir)
-        for runner in (whisper, sensevoice)
+        runner.name: evaluate_crema(
+            runner, crema_rows, arguments.cache_dir, score_asr=score_asr
+        )
+        for runner, score_asr in runners
     }
     payload = {
         "report_version": "1",
@@ -371,6 +441,7 @@ def main() -> None:
         "checkpoint_hashes": {
             "whisper-small": checkpoint_hashes(arguments.whisper_path),
             "sensevoice-small": checkpoint_hashes(arguments.sensevoice_path),
+            "emotion2vec-plus": checkpoint_hashes(arguments.emotion2vec_path),
         },
         "crema_d_expansion": crema_results,
         "sensevoice_aed": evaluate_sensevoice_aed(
@@ -390,6 +461,10 @@ def main() -> None:
             "Crying_and_sobbing maps to sob, not crying_speech without clip-level speech review.",
             "CREMA-D intensity is metadata only and is not mapped to shouting or whispering.",
             "CREMA-D contains no surprise source category.",
+            (
+                "CREMA-D DIS maps to Attune other, never distress. Models without an "
+                "other/disgust output therefore have structurally zero DIS recall."
+            ),
             "No calibration, localization, abstention, OOD threshold, or gold review is completed.",
         ],
     }

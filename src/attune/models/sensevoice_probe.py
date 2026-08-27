@@ -54,6 +54,7 @@ class FrozenSenseVoiceEncoder:
         torch: Any,
         *,
         model_factory: Callable[..., Any] | None = None,
+        feature_loader: Callable[[Path, Any, Any], tuple[Any, Any]] | None = None,
     ) -> None:
         if os.environ.get("ATTUNE_SENSEVOICE_LICENSE_REVIEWED") != "1":
             raise ProbeDataError(
@@ -87,6 +88,7 @@ class FrozenSenseVoiceEncoder:
         self.model_sha256 = file_sha256(model_file)
         self.cache_hits = 0
         self.cache_misses = 0
+        self.feature_loader = feature_loader or _load_fbank
 
         self.model = self.wrapper.model
         self.model.eval()
@@ -114,6 +116,7 @@ class FrozenSenseVoiceEncoder:
         digest = hashlib.sha256()
         digest.update(SENSEVOICE_EMBEDDING.encode())
         digest.update(b"frontend-dither=0")
+        digest.update(b"direct-encoder-v1")
         digest.update(self.model_sha256.encode())
         digest.update(file_sha256(audio_path).encode())
         return self.cache_dir / f"{digest.hexdigest()}.pt"
@@ -128,24 +131,32 @@ class FrozenSenseVoiceEncoder:
             self.cache_hits += 1
             return embedding
 
-        captured: list[Any] = []
-
-        def capture_encoder_output(_module: Any, _inputs: Any, output: Any) -> None:
-            captured.append(output)
-
-        hook = self.model.encoder.register_forward_hook(capture_encoder_output)
-        try:
-            self._assert_frozen()
-            with self.torch.inference_mode(), _offline_model_environment():
-                self.wrapper.generate(input=str(audio_path), cache={}, language="auto")
-        finally:
-            hook.remove()
-
-        if len(captured) != 1 or not isinstance(captured[0], tuple):
-            raise ProbeDataError(
-                f"SenseVoice encoder extraction produced {len(captured)} unexpected outputs"
+        self._assert_frozen()
+        with self.torch.inference_mode(), _offline_model_environment():
+            speech, speech_lengths = self.feature_loader(
+                audio_path, self.frontend, self.torch
             )
-        encoder_out, encoder_lengths = captured[0][:2]
+            speech = speech.to(device="cpu")
+            speech_lengths = speech_lengths.to(device="cpu")
+
+            language_query = self.model.embed(
+                self.torch.LongTensor([[self.model.lid_dict["auto"]]])
+            ).repeat(speech.size(0), 1, 1)
+            textnorm_query = self.model.embed(
+                self.torch.LongTensor([[self.model.textnorm_dict["woitn"]]])
+            ).repeat(speech.size(0), 1, 1)
+            speech = self.torch.cat((textnorm_query, speech), dim=1)
+            speech_lengths += 1
+            event_emo_query = self.model.embed(
+                self.torch.LongTensor([[1, 2]])
+            ).repeat(speech.size(0), 1, 1)
+            input_query = self.torch.cat((language_query, event_emo_query), dim=1)
+            speech = self.torch.cat((input_query, speech), dim=1)
+            speech_lengths += 3
+            encoder_out, encoder_lengths = self.model.encoder(speech, speech_lengths)
+            if isinstance(encoder_out, tuple):
+                encoder_out = encoder_out[0]
+
         length = int(encoder_lengths[0].item())
         if length <= QUERY_FRAMES:
             raise ProbeDataError(f"SenseVoice encoder returned no acoustic frames for {audio_path}")
@@ -182,8 +193,29 @@ class FrozenSenseVoiceEncoder:
             "total_parameters": sum(parameter.numel() for parameter in self.model.parameters()),
             "query_frames_excluded": QUERY_FRAMES,
             "frontend_dither": self.frontend.dither,
+            "extraction_route": "direct_frontend_and_frozen_encoder",
             "pooling": f"{TEMPORAL_BINS} temporal means plus acoustic-frame mean/std",
             "output_size": self.output_size,
             "cache_hits": self.cache_hits,
             "cache_misses": self.cache_misses,
         }
+
+
+def _load_fbank(audio_path: Path, frontend: Any, torch: Any) -> tuple[Any, Any]:
+    """Load one clip and run only the official deterministic FunASR frontend."""
+    try:
+        from funasr.utils.load_utils import extract_fbank, load_audio_text_image_video
+    except ImportError as error:
+        raise ProbeDataError(
+            "SenseVoice extraction requires the model-runners dependencies"
+        ) from error
+    audio = load_audio_text_image_video(
+        str(audio_path),
+        fs=frontend.fs,
+        audio_fs=16_000,
+        data_type="sound",
+    )
+    speech, speech_lengths = extract_fbank(
+        audio, data_type="sound", frontend=frontend
+    )
+    return speech.to(torch.float32), speech_lengths.to(torch.int32)
