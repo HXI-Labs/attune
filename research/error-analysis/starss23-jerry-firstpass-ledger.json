@@ -1,0 +1,462 @@
+{
+  "gold": false,
+  "status": "reviewer_labelled_first_pass",
+  "reviewer": "Jerry",
+  "n_clips": 6,
+  "n_retimes": 9,
+  "n_rejects": 1,
+  "n_true_negative_clips": 2,
+  "collar_ms": 200,
+  "starss23_100ms_vs_jerry_onset_collar": {
+    "note": "Jerry retimes are the reference. STARSS23 100ms onsets are the prediction. Onset-only 200 ms collar (offset ignored). Not a model score. Not gold. Not comparable to frozen-MLP 0.1395.",
+    "tp": 1,
+    "fp": 9,
+    "fn": 8,
+    "precision": 0.1,
+    "recall": 0.1111,
+    "f1": 0.1053,
+    "onset_abs_delta_ms_median": 392,
+    "onset_abs_delta_ms": [
+      339,
+      313,
+      420,
+      145,
+      392,
+      294,
+      596,
+      807,
+      830
+    ],
+    "offset_abs_delta_ms_median": 290
+  },
+  "clips": [
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room23_mix005-w000000",
+      "reviewer": "Jerry",
+      "reviewed_at_utc": "2026-08-27T14:34:09Z",
+      "true_negative_pack": false,
+      "pack_event_count": 4,
+      "spans": [
+        {
+          "decision": "retime",
+          "reviewed_label": "laugh",
+          "channel": "event",
+          "source_label": "laugh@11500-12700",
+          "start_ms": 11839,
+          "end_ms": 12988,
+          "source_start_ms": 11500,
+          "source_end_ms": 12700,
+          "onset_delta_ms": 339,
+          "offset_delta_ms": 288
+        },
+        {
+          "decision": "retime",
+          "reviewed_label": "laughing_speech",
+          "channel": "style",
+          "source_label": "laugh@20700-21500",
+          "start_ms": 21013,
+          "end_ms": 21748,
+          "source_start_ms": 20700,
+          "source_end_ms": 21500,
+          "onset_delta_ms": 313,
+          "offset_delta_ms": 248
+        },
+        {
+          "decision": "retime",
+          "reviewed_label": "laugh",
+          "channel": "event",
+          "source_label": "laugh@38100-40500",
+          "start_ms": 38520,
+          "end_ms": 40586,
+          "source_start_ms": 38100,
+          "source_end_ms": 40500,
+          "onset_delta_ms": 420,
+          "offset_delta_ms": 86
+        },
+        {
+          "decision": "retime",
+          "reviewed_label": "laugh",
+          "channel": "event",
+          "source_label": "laugh@54600-56100",
+          "start_ms": 54745,
+          "end_ms": 56377,
+          "source_start_ms": 54600,
+          "source_end_ms": 56100,
+          "onset_delta_ms": 145,
+          "offset_delta_ms": 277
+        }
+      ]
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room23_mix006-w000000",
+      "reviewer": "Jerry",
+      "reviewed_at_utc": "2026-08-27T14:38:22Z",
+      "true_negative_pack": false,
+      "pack_event_count": 2,
+      "spans": [
+        {
+          "decision": "retime",
+          "reviewed_label": "laugh",
+          "channel": "event",
+          "source_label": "laugh@15700-16900",
+          "start_ms": 16092,
+          "end_ms": 17190,
+          "source_start_ms": 15700,
+          "source_end_ms": 16900,
+          "onset_delta_ms": 392,
+          "offset_delta_ms": 290
+        },
+        {
+          "decision": "retime",
+          "reviewed_label": "laughing_speech",
+          "channel": "style",
+          "source_label": "laugh@31800-32400",
+          "start_ms": 32094,
+          "end_ms": 32861,
+          "source_start_ms": 31800,
+          "source_end_ms": 32400,
+          "onset_delta_ms": 294,
+          "offset_delta_ms": 461
+        }
+      ]
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room23_mix007-w000000",
+      "reviewer": "Jerry",
+      "reviewed_at_utc": "2026-08-27T14:43:18Z",
+      "true_negative_pack": false,
+      "pack_event_count": 2,
+      "spans": [
+        {
+          "decision": "retime",
+          "reviewed_label": "laugh",
+          "channel": "event",
+          "source_label": "laugh@14100-16700",
+          "start_ms": 14696,
+          "end_ms": 15661,
+          "source_start_ms": 14100,
+          "source_end_ms": 16700,
+          "onset_delta_ms": 596,
+          "offset_delta_ms": -1039
+        },
+        {
+          "decision": "retime",
+          "reviewed_label": "laughing_speech",
+          "channel": "style",
+          "source_label": "laugh@53700-56800",
+          "start_ms": 52893,
+          "end_ms": 59293,
+          "source_start_ms": 53700,
+          "source_end_ms": 56800,
+          "onset_delta_ms": -807,
+          "offset_delta_ms": 2493
+        }
+      ]
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room23_mix010-w000000",
+      "reviewer": "Jerry",
+      "reviewed_at_utc": "2026-08-27T14:44:56Z",
+      "true_negative_pack": true,
+      "pack_event_count": 0,
+      "spans": []
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room23_mix011-w000000",
+      "reviewer": "Jerry",
+      "reviewed_at_utc": "2026-08-27T14:46:08Z",
+      "true_negative_pack": true,
+      "pack_event_count": 0,
+      "spans": []
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room24_mix004-w000000",
+      "reviewer": "Jerry",
+      "reviewed_at_utc": "2026-08-27T14:48:58Z",
+      "true_negative_pack": false,
+      "pack_event_count": 2,
+      "spans": [
+        {
+          "decision": "retime",
+          "reviewed_label": "laugh",
+          "channel": "event",
+          "source_label": "laugh@19000-20900",
+          "start_ms": 19830,
+          "end_ms": 21629,
+          "source_start_ms": 19000,
+          "source_end_ms": 20900,
+          "onset_delta_ms": 830,
+          "offset_delta_ms": 729
+        },
+        {
+          "decision": "reject",
+          "reviewed_label": "laugh",
+          "channel": "event",
+          "source_label": "laugh@50600-51000",
+          "start_ms": null,
+          "end_ms": null,
+          "source_treated_as": "false_positive_vs_reviewer"
+        }
+      ]
+    }
+  ],
+  "comparable_to_reported_best_0.1395": false,
+  "encoder_frozen": true,
+  "trained": false,
+  "wired": false,
+  "merged": false,
+  "collar_gate_0.25_unchanged": true,
+  "label_status": "human_100ms_activity_not_attune_gold; one-pass reviewer_labelled, not Attune gold",
+  "n_laugh_clips": 4,
+  "protocol_note": "Jerry first-pass listen on 6 first-60s STARSS23 inspection clips (4 laugh clips + 2 true negatives). Rejects are not events. Laugh and laughing_speech retimes are both scored as laugh for the event-collar diagnostic because the frozen MLP only emits laugh. This is not gold and is not comparable to frozen-MLP 0.1395 on the 48-event first-60s set.",
+  "frozen_40epoch_mlp_eval": {
+    "ran": true,
+    "diagnostic_only": true,
+    "gold": false,
+    "comparable_to_reported_best_0.1395": false,
+    "subset_resembles_0.1395_regime": false,
+    "subset_note": "Inspection-style collar on these 6 clips is 0.0 vs STARSS23 100ms (A) and 0.0 vs Jerry (B). This 6-clip subset is not the 49-clip / 48-event first-60s control; 0.0 does not replace reported best 0.1395.",
+    "checkpoint": {
+      "path": "artifacts/starss23-scene-raster/frame-head-40epoch.pt",
+      "sha256": "5374e598f5d1007b84c0805ab1b3ec51f8b2f421587743cf7429bc04ab6e002a",
+      "family": "0a27733",
+      "epochs_completed": 40,
+      "architecture": "mlp",
+      "hidden_size": 64,
+      "encoder_frozen": true,
+      "loaded_from": "/workspace/attune/artifacts/starss23-scene-raster/frame-head-40epoch.pt"
+    },
+    "embeddings": {
+      "namespace": "artifacts/starss23-scene-raster/embeddings/sensevoice-small-encoder-frames-v1",
+      "protocol": "first_60s_mean_of_4_tetrahedral_mic",
+      "loaded_without_encoder": true,
+      "extracted": false,
+      "cache_hits": 6,
+      "cache_misses": 0,
+      "audio": "artifacts/gold-review/starss23-first60s/audio (hash-matched, not committed)"
+    },
+    "decoder": {
+      "id": "locked_0a27733",
+      "high_threshold": 0.95,
+      "low_threshold": 0.855,
+      "max_gap_frames": 0,
+      "min_active_frames": 1,
+      "median_filter_frames": 3,
+      "onset_shift_ms": 0,
+      "gridded": false
+    },
+    "A_model_vs_starss23_100ms": {
+      "gold_definition": "STARSS23 class-4 100ms activity on the 6 reviewed clips, including the rejected source span and the 2 true-negative clips",
+      "note": "Control. Inspection-style onset+offset collar. Not 0.1395. Not gold.",
+      "collar_f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "true_positive": 0,
+      "false_positive": 20,
+      "false_negative": 10,
+      "reference_event_count": 10,
+      "predicted_event_count": 20,
+      "segment_f1": 0.5161290322580645,
+      "whole_clip_segment_f1": 0.18181818181818182,
+      "segment_margin": 0.3343108504398827,
+      "collar_event_metrics": {
+        "f1": 0.0,
+        "true_positive": 0,
+        "false_positive": 20,
+        "false_negative": 10,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": null,
+        "matched_offset_mae_ms": null
+      },
+      "onset_only_200ms_diagnostic_not_gate": {
+        "note": "Offset ignored. Explains mechanism; not an inspection collar and not 0.1395.",
+        "true_positive": 5,
+        "false_positive": 15,
+        "false_negative": 5,
+        "precision": 0.25,
+        "recall": 0.5,
+        "f1": 0.4
+      }
+    },
+    "B_model_vs_jerry_retime": {
+      "gold_definition": "Jerry retime onsets/offsets (9); reject = no event; 2 true-negative clips included so model false positives can score",
+      "note": "Inspection-style onset+offset collar vs one-pass reviewer labels. Not gold. Not comparable to 0.1395.",
+      "collar_f1": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "true_positive": 0,
+      "false_positive": 20,
+      "false_negative": 9,
+      "reference_event_count": 9,
+      "predicted_event_count": 20,
+      "segment_f1": 0.47619047619047616,
+      "whole_clip_segment_f1": 0.18867924528301888,
+      "segment_margin": 0.2875112309074573,
+      "true_negative_model_false_positives": 0,
+      "collar_event_metrics": {
+        "f1": 0.0,
+        "true_positive": 0,
+        "false_positive": 20,
+        "false_negative": 9,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": null,
+        "matched_offset_mae_ms": null
+      },
+      "onset_only_200ms_diagnostic_not_gate": {
+        "note": "Offset ignored. Jerry onsets sit ~300-800 ms after STARSS23 100ms; the MLP tracks the 100ms overlay more than Jerry. Not 0.1395.",
+        "true_positive": 0,
+        "false_positive": 20,
+        "false_negative": 9,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      }
+    },
+    "per_clip_model_spans": [
+      {
+        "clip_id": "starss23-scene-inspection_test-fold4_room23_mix005-w000000",
+        "true_negative_pack": false,
+        "max_prob": 0.9992376565933228,
+        "model_spans": [
+          {
+            "label": "laugh",
+            "start_ms": 11460,
+            "end_ms": 12120
+          },
+          {
+            "label": "laugh",
+            "start_ms": 38820,
+            "end_ms": 39420
+          },
+          {
+            "label": "laugh",
+            "start_ms": 54960,
+            "end_ms": 55860
+          }
+        ]
+      },
+      {
+        "clip_id": "starss23-scene-inspection_test-fold4_room23_mix006-w000000",
+        "true_negative_pack": false,
+        "max_prob": 0.9995009899139404,
+        "model_spans": [
+          {
+            "label": "laugh",
+            "start_ms": 15540,
+            "end_ms": 16620
+          },
+          {
+            "label": "laugh",
+            "start_ms": 24000,
+            "end_ms": 24420
+          },
+          {
+            "label": "laugh",
+            "start_ms": 30840,
+            "end_ms": 32100
+          },
+          {
+            "label": "laugh",
+            "start_ms": 38820,
+            "end_ms": 39060
+          },
+          {
+            "label": "laugh",
+            "start_ms": 43980,
+            "end_ms": 45360
+          },
+          {
+            "label": "laugh",
+            "start_ms": 53760,
+            "end_ms": 54180
+          },
+          {
+            "label": "laugh",
+            "start_ms": 57060,
+            "end_ms": 57240
+          }
+        ]
+      },
+      {
+        "clip_id": "starss23-scene-inspection_test-fold4_room23_mix007-w000000",
+        "true_negative_pack": false,
+        "max_prob": 0.9998424053192139,
+        "model_spans": [
+          {
+            "label": "laugh",
+            "start_ms": 3960,
+            "end_ms": 4380
+          },
+          {
+            "label": "laugh",
+            "start_ms": 13920,
+            "end_ms": 14820
+          },
+          {
+            "label": "laugh",
+            "start_ms": 38220,
+            "end_ms": 38820
+          },
+          {
+            "label": "laugh",
+            "start_ms": 47460,
+            "end_ms": 48060
+          },
+          {
+            "label": "laugh",
+            "start_ms": 53520,
+            "end_ms": 55260
+          },
+          {
+            "label": "laugh",
+            "start_ms": 59100,
+            "end_ms": 60000
+          }
+        ]
+      },
+      {
+        "clip_id": "starss23-scene-inspection_test-fold4_room23_mix010-w000000",
+        "true_negative_pack": true,
+        "max_prob": 0.2387220561504364,
+        "model_spans": []
+      },
+      {
+        "clip_id": "starss23-scene-inspection_test-fold4_room23_mix011-w000000",
+        "true_negative_pack": true,
+        "max_prob": 0.2213824987411499,
+        "model_spans": []
+      },
+      {
+        "clip_id": "starss23-scene-inspection_test-fold4_room24_mix004-w000000",
+        "true_negative_pack": false,
+        "max_prob": 0.9997654557228088,
+        "model_spans": [
+          {
+            "label": "laugh",
+            "start_ms": 18960,
+            "end_ms": 20220
+          },
+          {
+            "label": "laugh",
+            "start_ms": 45900,
+            "end_ms": 46140
+          },
+          {
+            "label": "laugh",
+            "start_ms": 49500,
+            "end_ms": 49740
+          },
+          {
+            "label": "laugh",
+            "start_ms": 52380,
+            "end_ms": 52680
+          }
+        ]
+      }
+    ]
+  }
+}
