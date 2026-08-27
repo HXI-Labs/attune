@@ -73,7 +73,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--calibration",
         type=Path,
-        default=Path("configs/calibration/phase1.json"),
+        default=Path("configs/calibration/phase2.json"),
     )
     parser.add_argument(
         "--calibration-records-output",
