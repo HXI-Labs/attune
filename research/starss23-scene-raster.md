@@ -13,21 +13,71 @@ FunASR/FunAudioLLM under the FunASR Model Open Source License Agreement v1.1.
 
 ## Protocol
 
-The 10-second laughter-centered crop was the suspected collar killer. This
-protocol takes the **first 60 seconds** of every official STARSS23 v1.1
-development recording that is at least 60 s and has no Music class 8 in that
-excerpt. Labels stay at 100 ms. Only class 4 laughter maps to Attune `laugh`.
-Overlapping laughter sources are unioned per frame; non-contiguous bursts stay
-distinct. Official `dev-train` vs `dev-test` rooms and files remain disjoint.
-Audio, embeddings, and checkpoints are gitignored.
+This pass replaces first-60s-only scenes with **non-overlapping 60 s tiles**.
+A tile is kept only when **both** WAV duration and CSV annotated extent cover
+the full 60 s. Music class 8 is skipped. Unlabeled WAV tails past the
+annotation and remainders under 60 s are not padded or tiled. Clip IDs include
+`window_start_ms` (`…-w000000`, `…-w060000`, …). Downmix is the **mean of the
+four unlabeled tetrahedral MIC capsules** over the whole window (omni, not
+FOA W, not max-RMS, no in-window channel switch), then 24 kHz → 16 kHz mono.
+New audio cache: `data/raw/starss23-scene-raster-tiled`. New embedding cache:
+`artifacts/starss23-scene-raster/embeddings-tiled`. First-60s embeddings were
+not reused.
 
-Development yielded 62 scenes and inspection 49 scenes. Room-disjoint
-validation used `sony-room21` and `tau-room6` (43/19). Frozen-frame MLP
-passes (`sensevoice-small-encoder-frames-v1`, dither 0, seed 0) were
-exhausted first. This pass trains one predeclared 1-layer bidirectional GRU
-(hidden 64, Linear 128→1, 222,081 params) on padded clip sequences with a
-loss mask. Inspection was scored once with the locked 0a27733 decoder. No
-Conv1d, attention, CRF, or TCN. The encoder stayed frozen.
+Laugh events that span a 60 s cut are dropped from train targets and from
+scored gold on **later tiles only** (`window_start_ms > 0`). On the first tile
+(`window_start_ms == 0`) truncated-at-60 s events are **kept**, so the
+first-60s inspection subset remains the matched **48-event** control. Whole
+files stay in one split. Validation rooms stay `sony-room21` and `tau-room6`.
+Tiles from one file are correlated, not extra i.i.d. N.
+
+Development: **150** tiles / **195** events (**11** later-tile spanning drops).
+Inspection: **109** tiles / **108** events (**7** spanning drops). Room-disjoint
+validation used `sony-room21` and `tau-room6` (**111/39** tiles, **175/20**
+events, **10/1** spanning drops). First-60s subset of those splits remains
+43/19/49 clips and 51/14/48 events.
+
+This pass trains the same two-layer MLP (`512→64→1`, **32,897** params), seed
+0, unweighted BCE, early-stop val BCE patience 25, cap 400. Encoder frozen.
+Decoder **locked** to 0a27733: high 0.95, low 0.855, gap 0, min-active 1,
+median 3, onset shift 0. **No decoder grid.** Dual eval: (A) tiled inspection
+is the wiring gate (new gold; do not treat 0.1395 as the same comparator);
+(B) first-60s subset (`window_start_ms == 0`) with the same decoder, reported
+separately vs the old 48-event set.
+
+## Tiled mean-of-4 MLP pass
+
+Training stopped at **217** epochs (best val BCE 0.043739 near epoch 192).
+Validation sanity with the fixed decoder was collar 0.1739 (2/1/18); that
+score did not select a decoder.
+
+### Tiled inspection (wiring gate; 109 clips / 108 events)
+
+| Method | 1 s segment F1 | whole-clip segment F1 | 200 ms collar F1 | TP/FP/FN |
+|---|---:|---:|---:|---:|
+| Frozen frame MLP, 217-epoch tiled mean-of-4 | 0.3143 | 0.1538 | **0.0148** | 1/26/107 |
+| Whole-clip oracle tags | 0.1538 | 0.1538 | 0.0000 | — |
+
+Segment margin is `+0.1604` (**passes** `+0.05`). Collar F1 **fails** `>=0.25`.
+Of 107 false negatives: (a) 22 overlap a prediction that fails the 200 ms
+collar (median overlapping onset error 380 ms, MAE 390 ms; did **not**
+improve vs the first-60s 0.1395 pass median 200 ms); (b) 83 are gold events
+the head never fires; (c) 2 are decoder-suppressed. STARSS23 laugh timestamps
+remain **unwired**. DCASE wiring is unchanged. Stopped after this one tiled
+inspection eval.
+
+### First-60s subset (matched 48-event control)
+
+| Method | 1 s segment F1 | whole-clip segment F1 | 200 ms collar F1 | TP/FP/FN |
+|---|---:|---:|---:|---:|
+| This pass, `window_start_ms == 0` only | 0.3741 | 0.1721 | 0.0308 | 1/16/47 |
+| Prior best first-60s (40-epoch + repaired decoder) | 0.5124 | 0.1721 | **0.1395** | 9/72/39 |
+| Whole-clip oracle tags | 0.1721 | 0.1721 | 0.0000 | 0/20/48 |
+
+Same locked decoder. First-60s gold is 49 clips / 48 events / 0 spanning
+drops, including three events truncated at t=60 s. Collar 0.0308 is worse
+than 0.1395 on that control; tiling later windows into train did not help
+the matched first-60s set. This subset is **not** the wiring gate.
 
 ## Decoder-validity pass
 
@@ -115,7 +165,10 @@ Training stopped at **86** epochs (best masked val at 61). Trainable params
 **222,081**. Validation sanity with the fixed decoder was collar 0.25
 (2/0/12); that score did not select a decoder.
 
-## Held-out official test rooms
+## Held-out official test rooms (first-60s gold, 48 events)
+
+These rows share the first-60s 49-clip / 48-event inspection set. The tiled
+pass is **not** in this table; see dual eval above.
 
 | Pass | 1 s segment F1 | whole-clip segment F1 | 200 ms collar F1 | TP/FP/FN |
 |---|---:|---:|---:|---:|
@@ -124,18 +177,11 @@ Training stopped at **86** epochs (best masked val at 61). Trainable params
 | Frozen frame MLP, 40 epochs + repaired decoder | 0.5124 | 0.1721 | 0.1395 | 9/72/39 |
 | Frozen frame MLP, 40 epochs + onset-shift decoder | 0.3716 | 0.1721 | 0.0585 | 6/151/42 |
 | Frozen frame MLP, 214-epoch boundary-weighted BCE | 0.3673 | 0.1721 | 0.0588 | 2/18/46 |
-| Frozen frame BiGRU, 86-epoch masked BCE | **0.2121** | 0.1721 | **0.0339** | 1/10/47 |
+| Frozen frame BiGRU, 86-epoch masked BCE | 0.2121 | 0.1721 | 0.0339 | 1/10/47 |
+| This pass first-60s subset (tiled-trained MLP) | 0.3741 | 0.1721 | 0.0308 | 1/16/47 |
 | Whole-clip oracle tags | 0.1721 | 0.1721 | 0.0000 | 0/20/48 |
 
-This pass segment margin is `+0.0400` (**fails** `+0.05`). Collar F1 **fails**
-`>= 0.25` and is worse than the 0.1395 decoder-validity pass, so the reported
-cascade decoder/checkpoint remains that 40-epoch config. STARSS23 laugh
-timestamps therefore remain **unwired**. DCASE wiring is unchanged.
-Whole-clip `0..60000` tags are not localization.
-
-Of 47 false negatives: (a) 8 overlap a prediction that fails the 200 ms
-collar (median overlapping onset error 300 ms, MAE 960 ms; did **not**
-improve vs the 0.1395 pass median 200 ms); (b) 39 are gold events the head
-never fires; (c) 0 are decoder-suppressed. False positives are short
-fragments (median 480 ms versus gold p25 600 ms). Stopped after this one
-inspection eval. No second temporal architecture. No further decoder grid.
+Wiring uses tiled inspection only. Collar there is 0.0148 < 0.25, so STARSS23
+laugh timestamps remain **unwired**. DCASE wiring is unchanged. Whole-clip
+`0..60000` tags are not localization. Gold remains closed. Language
+unverified.

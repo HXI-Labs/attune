@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a 60-second STARSS23 natural-scene raster (not laughter-centered crops)."""
+"""Build a tiled 60-second STARSS23 natural-scene raster (not laughter-centered crops)."""
 
 from __future__ import annotations
 
@@ -21,6 +21,10 @@ SCENE_MS = 60_000
 LABEL_FRAME_MS = 100
 LAUGHTER_CLASS = 4
 MUSIC_CLASS = 8
+SOURCE_CHANNELS = 4
+SOURCE_RATE_HZ = 24_000
+TARGET_RATE_HZ = 16_000
+PROTOCOL = "tiled_60s_mean4_mic"
 _ROOM_PATTERN = re.compile(r"_room(?P<room>\d+)_")
 
 
@@ -42,15 +46,40 @@ def metadata_rows(path: Path) -> list[tuple[int, int, int]]:
     return rows
 
 
-def laughter_events(
-    rows: list[tuple[int, int, int]], *, window_start_ms: int
-) -> list[dict[str, Any]]:
-    """Union source-specific activity because Attune events have no source ID."""
-    window_start_frame = window_start_ms // LABEL_FRAME_MS
-    window_end_frame = (window_start_ms + SCENE_MS) // LABEL_FRAME_MS
+def wav_duration_ms(path: Path) -> int:
+    """Return WAV duration in whole milliseconds from header nframes/rate."""
+    with wave.open(str(path), "rb") as reader:
+        rate = reader.getframerate()
+        frames = reader.getnframes()
+    if rate <= 0:
+        raise RuntimeError(f"invalid sample rate in {path}")
+    return (frames * 1000) // rate
+
+
+def window_starts_ms(annotated_extent_ms: int, wav_ms: int) -> list[int]:
+    """Non-overlapping full 60 s tiles covered by BOTH wav duration and CSV extent.
+
+    Unlabeled wav tails past the annotation and CSV remainders under 60 s are
+    never padded or tiled.
+    """
+    covered_ms = min(annotated_extent_ms, wav_ms)
+    if covered_ms < SCENE_MS:
+        return []
+    return list(range(0, covered_ms - SCENE_MS + 1, SCENE_MS))
+
+
+def event_spans_60s_cut(start_ms: int, end_ms: int) -> bool:
+    """True when an absolute event crosses a 60 s tile boundary."""
+    if end_ms <= start_ms:
+        return False
+    return start_ms // SCENE_MS != (end_ms - 1) // SCENE_MS
+
+
+def absolute_laughter_events(rows: list[tuple[int, int, int]]) -> list[dict[str, Any]]:
+    """Union source-specific laughter into contiguous events in recording time."""
     sources_by_frame: dict[int, set[int]] = defaultdict(set)
     for frame, class_index, source_index in rows:
-        if class_index == LAUGHTER_CLASS and window_start_frame <= frame < window_end_frame:
+        if class_index == LAUGHTER_CLASS:
             sources_by_frame[frame].add(source_index)
 
     events = []
@@ -70,11 +99,8 @@ def laughter_events(
         events.append(
             {
                 "label": "laugh",
-                "start_ms": max(0, start * LABEL_FRAME_MS - window_start_ms),
-                "end_ms": min(
-                    SCENE_MS,
-                    (previous + 1) * LABEL_FRAME_MS - window_start_ms,
-                ),
+                "start_ms": start * LABEL_FRAME_MS,
+                "end_ms": (previous + 1) * LABEL_FRAME_MS,
                 "source_class": LAUGHTER_CLASS,
                 "source_indices": sorted(active_sources),
             }
@@ -84,7 +110,72 @@ def laughter_events(
     return events
 
 
-def candidates(metadata_root: Path) -> list[dict[str, Any]]:
+def laughter_events(
+    rows: list[tuple[int, int, int]], *, window_start_ms: int
+) -> list[dict[str, Any]]:
+    """Clip absolute laughter events to one 60 s window, truncating at the edges.
+
+    This is the first-60s control behaviour: events that span t=60 s stay as
+    truncated gold on window_start_ms == 0.
+    """
+    window_end_ms = window_start_ms + SCENE_MS
+    clipped = []
+    for event in absolute_laughter_events(rows):
+        if event["end_ms"] <= window_start_ms or event["start_ms"] >= window_end_ms:
+            continue
+        clipped.append(
+            {
+                "label": event["label"],
+                "start_ms": max(0, event["start_ms"] - window_start_ms),
+                "end_ms": min(SCENE_MS, event["end_ms"] - window_start_ms),
+                "source_class": event["source_class"],
+                "source_indices": event["source_indices"],
+            }
+        )
+    return clipped
+
+
+def scored_laughter_events(
+    rows: list[tuple[int, int, int]], *, window_start_ms: int
+) -> tuple[list[dict[str, Any]], int]:
+    """Window gold after Kyoto spanning-drop.
+
+    First tile (window_start_ms == 0): keep truncated-at-60s events so the
+    48-event first-60s control stays intact. Later tiles: drop fragments that
+    span a 60 s cut; they are not train targets and not scored gold.
+    """
+    window_end_ms = window_start_ms + SCENE_MS
+    scored = []
+    dropped = 0
+    for event in absolute_laughter_events(rows):
+        if event["end_ms"] <= window_start_ms or event["start_ms"] >= window_end_ms:
+            continue
+        spans = event_spans_60s_cut(event["start_ms"], event["end_ms"])
+        if spans and window_start_ms > 0:
+            dropped += 1
+            continue
+        scored.append(
+            {
+                "label": event["label"],
+                "start_ms": max(0, event["start_ms"] - window_start_ms),
+                "end_ms": min(SCENE_MS, event["end_ms"] - window_start_ms),
+                "source_class": event["source_class"],
+                "source_indices": event["source_indices"],
+            }
+        )
+    return scored, dropped
+
+
+def clip_id_for(role: str, source_recording: str, window_start_ms: int) -> str:
+    """Stable per-tile ID; sequential role-index names overwrite across tiles."""
+    stem = Path(source_recording).stem
+    return f"starss23-scene-{role}-{stem}-w{window_start_ms:06d}"
+
+
+def candidates(
+    metadata_root: Path,
+    audio_root: Path | None = None,
+) -> list[dict[str, Any]]:
     result = []
     for path in sorted(metadata_root.glob("**/*.csv")):
         rows = metadata_rows(path)
@@ -95,48 +186,69 @@ def candidates(metadata_root: Path) -> list[dict[str, Any]]:
             continue
         final_frame = max(frame for frame, _class_index, _source_index in rows)
         annotated_extent_ms = (final_frame + 1) * LABEL_FRAME_MS
-        if annotated_extent_ms < SCENE_MS:
-            continue
-        window_start_ms = 0
-        start_frame = window_start_ms // LABEL_FRAME_MS
-        end_frame = (window_start_ms + SCENE_MS) // LABEL_FRAME_MS
-        window_rows = [row for row in rows if start_frame <= row[0] < end_frame]
-        if not window_rows or any(row[1] == MUSIC_CLASS for row in window_rows):
-            continue
-        events = laughter_events(rows, window_start_ms=window_start_ms)
-        active_by_frame: dict[int, set[tuple[int, int]]] = defaultdict(set)
-        for frame, class_index, source_index in window_rows:
-            active_by_frame[frame].add((class_index, source_index))
-        overlap_frames = sum(len(active_sources) > 1 for active_sources in active_by_frame.values())
-        laughter_overlap_frames = sum(
-            any(class_index == LAUGHTER_CLASS for class_index, _ in active_sources)
-            and len(active_sources) > 1
-            for active_sources in active_by_frame.values()
-        )
         room_match = _ROOM_PATTERN.search(path.stem)
         if room_match is None:
             raise ValueError(f"cannot parse STARSS23 room from {path.name}")
-        result.append(
-            {
-                "metadata_path": path,
-                "official_partition": partition,
-                "source_recording": f"{path.stem}.wav",
-                "room": f"{partition.rsplit('-', 1)[-1]}-room{room_match.group('room')}",
-                "window_start_ms": window_start_ms,
-                "events": events,
-                "overlap_frames": overlap_frames,
-                "laughter_overlap_frames": laughter_overlap_frames,
-                "max_polyphony": max(map(len, active_by_frame.values())),
-                "active_classes": sorted({row[1] for row in window_rows}),
-            }
-        )
-    return sorted(result, key=lambda row: (row["official_partition"], row["source_recording"]))
+        room = f"{partition.rsplit('-', 1)[-1]}-room{room_match.group('room')}"
+        source_recording = f"{path.stem}.wav"
+        if audio_root is None:
+            wav_ms = annotated_extent_ms
+        else:
+            wav_path = audio_root / partition / source_recording
+            if not wav_path.is_file():
+                raise RuntimeError(f"missing STARSS23 wav for {source_recording}")
+            wav_ms = wav_duration_ms(wav_path)
+        for window_start_ms in window_starts_ms(annotated_extent_ms, wav_ms):
+            start_frame = window_start_ms // LABEL_FRAME_MS
+            end_frame = (window_start_ms + SCENE_MS) // LABEL_FRAME_MS
+            if end_frame * LABEL_FRAME_MS - window_start_ms != SCENE_MS:
+                raise RuntimeError(f"window crosses the 60 s boundary at {window_start_ms}")
+            window_rows = [row for row in rows if start_frame <= row[0] < end_frame]
+            if not window_rows or any(row[1] == MUSIC_CLASS for row in window_rows):
+                continue
+            events, clipped_count = scored_laughter_events(rows, window_start_ms=window_start_ms)
+            active_by_frame: dict[int, set[tuple[int, int]]] = defaultdict(set)
+            for frame, class_index, source_index in window_rows:
+                active_by_frame[frame].add((class_index, source_index))
+            overlap_frames = sum(
+                len(active_sources) > 1 for active_sources in active_by_frame.values()
+            )
+            laughter_overlap_frames = sum(
+                any(class_index == LAUGHTER_CLASS for class_index, _ in active_sources)
+                and len(active_sources) > 1
+                for active_sources in active_by_frame.values()
+            )
+            result.append(
+                {
+                    "metadata_path": path,
+                    "official_partition": partition,
+                    "source_recording": source_recording,
+                    "room": room,
+                    "window_start_ms": window_start_ms,
+                    "events": events,
+                    "clipped_spanning_event_count": clipped_count,
+                    "overlap_frames": overlap_frames,
+                    "laughter_overlap_frames": laughter_overlap_frames,
+                    "max_polyphony": max(map(len, active_by_frame.values())),
+                    "active_classes": sorted({row[1] for row in window_rows}),
+                    "annotated_extent_ms": annotated_extent_ms,
+                    "wav_duration_ms": wav_ms,
+                }
+            )
+    return sorted(
+        result,
+        key=lambda row: (
+            row["official_partition"],
+            row["source_recording"],
+            row["window_start_ms"],
+        ),
+    )
 
 
 def official_partitions(
     rows: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Keep every eligible first-60s scene; split on official room/file partitions."""
+    """Keep every eligible tiled 60 s scene; split on official room/file partitions."""
     development = [row for row in rows if "dev-train-" in row["official_partition"]]
     inspection = [row for row in rows if "dev-test-" in row["official_partition"]]
     if not development or not inspection:
@@ -151,11 +263,15 @@ def official_partitions(
 
 
 def downmix_window(source: Path, target: Path, start_ms: int) -> None:
-    """Cut the first 60 s 4-channel/24 kHz excerpt and write mono/16 kHz PCM16."""
+    """Cut one 60 s 4-channel/24 kHz excerpt, mean tetrahedral MIC capsules, write mono/16 kHz.
+
+    Mean-of-4 is the omni MIC mix. Do not pick a single channel, FOA W, or
+    switch channels inside the window.
+    """
     with wave.open(str(source), "rb") as reader:
         if (
-            reader.getframerate() != 24_000
-            or reader.getnchannels() != 4
+            reader.getframerate() != SOURCE_RATE_HZ
+            or reader.getnchannels() != SOURCE_CHANNELS
             or reader.getsampwidth() != 2
         ):
             raise RuntimeError(f"unexpected STARSS23 audio format: {source}")
@@ -168,14 +284,17 @@ def downmix_window(source: Path, target: Path, start_ms: int) -> None:
     mono = array(
         "h",
         (
-            max(-32768, min(32767, round(sum(samples[index : index + 4]) / 4)))
-            for index in range(0, len(samples), 4)
+            max(
+                -32768,
+                min(32767, round(sum(samples[index : index + SOURCE_CHANNELS]) / SOURCE_CHANNELS)),
+            )
+            for index in range(0, len(samples), SOURCE_CHANNELS)
         ),
     )
-    resampled, _state = audioop.ratecv(mono.tobytes(), 2, 1, 24_000, 16_000, None)
+    resampled, _state = audioop.ratecv(mono.tobytes(), 2, 1, SOURCE_RATE_HZ, TARGET_RATE_HZ, None)
     target.parent.mkdir(parents=True, exist_ok=True)
     with wave.open(str(target), "wb") as writer:
-        writer.setparams((1, 2, 16_000, 0, "NONE", "not compressed"))
+        writer.setparams((1, 2, TARGET_RATE_HZ, 0, "NONE", "not compressed"))
         writer.writeframes(resampled)
 
 
@@ -187,26 +306,29 @@ def materialize(
     role: str,
 ) -> list[dict[str, Any]]:
     manifest = []
-    for index, row in enumerate(rows, start=1):
+    for row in rows:
         source = audio_root / row["official_partition"] / row["source_recording"]
-        cache_path = f"{role}/starss23-scene-{role}-{index:03d}.wav"
+        clip_id = clip_id_for(role, row["source_recording"], row["window_start_ms"])
+        cache_path = f"{role}/{clip_id}.wav"
         target = cache_root / cache_path
         downmix_window(source, target, row["window_start_ms"])
         manifest.append(
             {
-                "clip_id": target.stem,
+                "clip_id": clip_id,
                 "cache_path": cache_path,
                 "sha256": digest(target),
                 "duration_ms": SCENE_MS,
-                "sample_rate_hz": 16_000,
+                "sample_rate_hz": TARGET_RATE_HZ,
                 "channels": 1,
-                "source_sample_rate_hz": 24_000,
-                "source_channels": 4,
+                "source_sample_rate_hz": SOURCE_RATE_HZ,
+                "source_channels": SOURCE_CHANNELS,
+                "downmix": "mean_of_4_tetrahedral_mic",
                 "source_recording": row["source_recording"],
                 "source_window_start_ms": row["window_start_ms"],
                 "official_partition": row["official_partition"],
                 "room": row["room"],
                 "events": row["events"],
+                "clipped_spanning_event_count": row["clipped_spanning_event_count"],
                 "natural_overlap": row["overlap_frames"] > 0,
                 "laughter_overlap_frames": row["laughter_overlap_frames"],
                 "max_polyphony": row["max_polyphony"],
@@ -215,7 +337,7 @@ def materialize(
                 "label_status": "STARSS23 human activity label; not reviewed Attune gold",
                 "licence": "MIT",
                 "attribution": "STARSS23 v1.1, Politis et al. and Shimada et al.",
-                "protocol": "first_60s_scene_raster",
+                "protocol": PROTOCOL,
             }
         )
     return manifest
@@ -312,7 +434,7 @@ def main() -> None:
     parser.add_argument(
         "--cache-dir",
         type=Path,
-        default=Path("data/raw/starss23-scene-raster"),
+        default=Path("data/raw/starss23-scene-raster-tiled"),
     )
     parser.add_argument(
         "--development-manifest",
@@ -345,7 +467,7 @@ def main() -> None:
             "error: STARSS23 development metadata/audio are missing; rerun with --download"
         )
 
-    all_candidates = candidates(arguments.metadata_root)
+    all_candidates = candidates(arguments.metadata_root, arguments.audio_root)
     development, inspection = official_partitions(all_candidates)
     development_manifest = materialize(
         development,
@@ -361,6 +483,10 @@ def main() -> None:
     )
     write_jsonl(arguments.development_manifest, development_manifest)
     write_jsonl(arguments.inspection_manifest, inspection_manifest)
+    development_events = sum(len(row["events"]) for row in development_manifest)
+    inspection_events = sum(len(row["events"]) for row in inspection_manifest)
+    development_clipped = sum(row["clipped_spanning_event_count"] for row in development_manifest)
+    inspection_clipped = sum(row["clipped_spanning_event_count"] for row in inspection_manifest)
     provenance = {
         "schema_version": 1,
         "dataset": "STARSS23 v1.1 development set",
@@ -370,12 +496,17 @@ def main() -> None:
         "licence_file_md5": "1c11108eda7c915172b10c48276cc189",
         "metadata_archive_md5": "e73af95a6d5f3f7e009ac6a70804f44a",
         "microphone_development_archive_md5": "06967bcc8def1580c2425fabc311dbd2",
-        "protocol": "first_60s_scene_raster",
+        "protocol": PROTOCOL,
         "selection": (
-            "first 60 seconds of every official development recording whose "
-            "annotated extent is at least 60 s and whose excerpt contains no "
-            "Music class 8; official dev-train vs dev-test rooms and files remain "
-            "disjoint; no laughter-centered cropping or per-recording window cap"
+            "non-overlapping 60-second tiles where BOTH wav duration and CSV annotated "
+            "extent cover the full 60 s; skip Music class 8; do not tile unlabeled wav "
+            "tails or pad remainders; official dev-train vs dev-test rooms and files "
+            "remain disjoint; later-tile laugh fragments that span a 60 s cut are dropped"
+        ),
+        "downmix": (
+            "mean of the four unlabeled tetrahedral MIC capsules over the whole 60 s "
+            "window (omni, not FOA W, not max-RMS, no in-window channel switching); "
+            "resample 24 kHz to 16 kHz mono"
         ),
         "mapping": {"4_laughter": "laugh"},
         "source_identity_mapping": (
@@ -385,14 +516,21 @@ def main() -> None:
         "unmapped_classes": list(range(13)),
         "music_class_excluded": 8,
         "language": "unverified; STARSS23 metadata has no language field",
-        "source_format": {"sample_rate_hz": 24_000, "channels": 4, "format": "MIC"},
-        "derived_format": {"sample_rate_hz": 16_000, "channels": 1},
+        "source_format": {
+            "sample_rate_hz": SOURCE_RATE_HZ,
+            "channels": SOURCE_CHANNELS,
+            "format": "MIC",
+        },
+        "derived_format": {"sample_rate_hz": TARGET_RATE_HZ, "channels": 1},
         "development_manifest": str(arguments.development_manifest),
         "development_rows": len(development_manifest),
+        "development_events": development_events,
+        "development_clipped_spanning_events": development_clipped,
         "development_manifest_sha256": digest(arguments.development_manifest),
         "inspection_manifest": str(arguments.inspection_manifest),
         "inspection_rows": len(inspection_manifest),
-        "inspection_manifest_sha256": digest(arguments.inspection_manifest),
+        "inspection_events": inspection_events,
+        "inspection_clipped_spanning_events": inspection_clipped,
         "audio_committed": False,
         "privacy_consent": (
             "Natural participant recordings; collection included consent and published "
@@ -410,8 +548,9 @@ def main() -> None:
         encoding="utf-8",
     )
     print(
-        f"Wrote {len(development_manifest)} development and "
-        f"{len(inspection_manifest)} inspection STARSS23 60s scenes"
+        f"Wrote {len(development_manifest)} development ({development_events} events, "
+        f"{development_clipped} clipped) and {len(inspection_manifest)} inspection "
+        f"({inspection_events} events, {inspection_clipped} clipped) STARSS23 60s tiles"
     )
 
 

@@ -167,6 +167,27 @@ Natural-scene event boundaries remain unsolved. Stopped after this inspection
 eval. No second temporal architecture. No further decoder grid. DCASE wiring
 is unchanged.
 
+A follow-up tiled every eligible recording into non-overlapping 60 s windows
+covered by both WAV duration and CSV extent (no unlabeled-tail tiles, no
+remainder padding, Music class 8 skipped). Downmix stayed mean-of-4 MIC omni.
+Later-tile laugh fragments that span a 60 s cut were dropped; first-60s
+truncated-at-60 s events were kept so the 48-event control stayed intact.
+Clip IDs include `window_start_ms`. New audio and embedding caches. Same
+32,897-param MLP, seed 0, unweighted BCE, early-stop 217 epochs, locked
+0a27733 decoder, no decoder grid. Validation rooms unchanged. Whole files
+stay in one split.
+
+| STARSS23 tiled 60 s mean-of-4 | clips / events | 1 s segment F1 | 200 ms collar F1 | TP/FP/FN |
+|---|---:|---:|---:|---:|
+| Tiled inspection (wiring gate) | 109 / 108 | 0.3143 | **0.0148** | 1/26/107 |
+| First-60s subset (matched control) | 49 / 48 | 0.3741 | 0.0308 | 1/16/47 |
+| Whole-clip oracle tags (tiled / first-60s) | — | 0.1538 / 0.1721 | 0.0000 | — |
+
+Tiled segment margin `+0.1604` clears `+0.05`, but collar F1 fails `>=0.25`.
+Do not treat 0.1395 as the tiled comparator. First-60s subset collar 0.0308
+is also below 0.1395 on the same 48 events. STARSS23 remains **unwired**.
+DCASE wiring is unchanged. Stopped after the one tiled inspection eval.
+
 STARSS23 metadata has no language field and its README states that speech spans
 multiple languages. Language is therefore `unverified`; no English claim or
 filter was invented. These are natural participant recordings. The dataset
