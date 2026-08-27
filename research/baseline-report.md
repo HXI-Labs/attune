@@ -665,6 +665,23 @@ committed 100-clip public-test manifest covers the Attune-overlapping laugh,
 cough, and throat-clear labels. It does not retrofit timestamps onto
 VocalSound/FSD50K or claim natural speech coverage.
 
+The frozen-encoder temporal MLP uses eight 1.25-second SenseVoice bins, 66,051
+trainable head parameters, dither `0.0`, and no encoder updates. Its threshold
+0.75 is selected on 48 development-validation clips after fitting on 168
+development clips. On the source-disjoint 100-clip public test:
+
+| Timing method | 1 s segment F1 | 200 ms collar event F1 |
+|---|---:|---:|
+| Temporal head | 0.1943 | 0.0000 |
+| Whole-clip oracle-tag baseline | 0.3183 | 0.0000 |
+
+The temporal head **does not beat** the whole-clip baseline. The eight-bin
+representation is too coarse for the 200 ms collar, and its lower segment F1
+does not support integrating predicted timestamps into Attune JSON. The
+experiment is committed as a negative result in
+`research/dcase-localization-results.json`; production/cascade spans remain
+honestly utterance-level.
+
 ## Gold review, errors, ethics, and non-goals
 
 `attune.data.gold_review.GoldReviewRecord` defines a strict append-only review
