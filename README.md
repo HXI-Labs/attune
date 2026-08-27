@@ -87,10 +87,12 @@ validation-only decoder repair, 0.3716 / 0.0585 after an onset-shift decoder
 pass, 0.3673 / 0.0588 after a 214-epoch boundary-weighted BCE retrain, then
 0.2121 / 0.0339 after an 86-epoch frozen BiGRU with the predeclared 0.1395
 decoder, then 0.3143 / 0.0148 on tiled inspection (1/26/107 on 108 gold)
-after a mean-of-4 tiled MLP (first-60s control 0.0308 vs 0.1395); the tiled
-collar gate fails, so STARSS23 timestamps stay unwired and the reported
-best remains 0.1395. `data/raw/starss23-scene-raster-v2` is max-RMS audio
-only and was not this eval.
+after a mean-of-4 tiled MLP (first-60s control 0.0308 vs 0.1395), then
+0.3143 / 0.0296 on tiled inspection (2/25/106) after a Kyoto first-60s-val
+retrain (first-60s control 0.03125 vs 0.1395); the tiled collar gate fails,
+so STARSS23 timestamps stay unwired and the reported best remains 0.1395.
+`data/raw/starss23-scene-raster-v2` is max-RMS audio only and was not this
+eval.
 Details are in `research/timing-holes.md`.
 For one or more local WAV files, `scripts/infer.py` emits authoritative JSON
 and optional deterministic XML; exact offline commands are in

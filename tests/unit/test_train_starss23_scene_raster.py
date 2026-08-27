@@ -120,7 +120,8 @@ def test_main_trains_mlp_with_unweighted_bce_and_locked_decoder() -> None:
     assert "first_60s_subset" in source or "first60_index" in source
     assert "frame_targets(inspection" not in source
     assert "gold_event_durations_ms(inspection" not in source
-    assert 'default=Path("artifacts/starss23-scene-raster/frame-head-tiled.pt")' in source
+    new_ckpt = 'default=Path("artifacts/starss23-scene-raster/frame-head-tiled-valfirst60s.pt")'
+    assert new_ckpt in source
     assert 'default=Path("artifacts/starss23-scene-raster/frame-head-40epoch.pt")' in source
     assert 'default=Path("artifacts/starss23-scene-raster/embeddings-tiled")' in source
     assert 'default=Path("data/raw/starss23-scene-raster-tiled")' in source
@@ -135,6 +136,16 @@ def test_main_trains_mlp_with_unweighted_bce_and_locked_decoder() -> None:
     assert script.HEADLINE.startswith("mean-4 tiled MLP negative")
     assert "do not replace reported best 0.1395" in script.HEADLINE
     assert script.AUDIO_CACHE_SCORED == "data/raw/starss23-scene-raster-tiled"
+    assert "kyoto_train_val_split" in source
+    assert "assert_early_stop_is_first_60s_val" in source
+    assert "assert_no_val_room_later_tiles_in_train" in source
+    assert "assert_first_60s_inspection_gold" in source
+    assert "assert_checkpoint_does_not_overwrite_40epoch" in source
+    assert script.SPLIT_PROTOCOL == "kyoto_val_first60s"
+    assert script.NEW_CHECKPOINT.name == "frame-head-tiled-valfirst60s.pt"
+    assert "frame-head-tiled-valfirst60s.pt" in source
+    assert script.FIRST_60S_INSPECTION_EVENTS == 48
+    assert script.FIRST_60S_VAL_CLIPS == 19
     assert script.AUDIO_CACHE_V2_MAX_RMS == "data/raw/starss23-scene-raster-v2"
     assert script.AUDIO_CACHES["v2_max_rms_audio_only"]["downmix"] == "max_rms_channel"
 
@@ -313,8 +324,10 @@ def test_train_val_inspection_rooms_are_disjoint_in_main() -> None:
     script = load_script()
     source = inspect.getsource(script.main)
     assert "inspection rooms overlap development" in source
-    assert "validation rooms drifted" in source
+    assert "assert_early_stop_is_first_60s_val" in source
     assert "VALIDATION_ROOMS" in source
+    helper = inspect.getsource(script.assert_early_stop_is_first_60s_val)
+    assert "early-stop val drifted" in helper
 
 
 def test_first_60s_subset_keeps_window_zero_only() -> None:
@@ -362,3 +375,145 @@ def test_wiring_gate_and_decoder_constants_stay_locked() -> None:
     assert "PREDECLARED_DECODER" in source
     assert "select_hysteresis_decoder(" not in source
     assert script.PROTOCOL == "tiled_60s_mean4_mic"
+
+
+def _tile(
+    *,
+    clip_id: str,
+    room: str,
+    recording: str,
+    window_start_ms: int,
+    events: list[dict] | None = None,
+) -> dict:
+    return {
+        "clip_id": clip_id,
+        "room": room,
+        "source_recording": recording,
+        "source_window_start_ms": window_start_ms,
+        "events": events or [],
+    }
+
+
+def test_kyoto_split_keeps_val_room_later_tiles_out_of_train() -> None:
+    script = load_script()
+    development = [
+        _tile(clip_id="train-0", room="tau-room4", recording="a.wav", window_start_ms=0),
+        _tile(clip_id="train-1", room="tau-room4", recording="a.wav", window_start_ms=60_000),
+        _tile(clip_id="val-0", room="sony-room21", recording="b.wav", window_start_ms=0),
+        _tile(clip_id="val-later", room="sony-room21", recording="b.wav", window_start_ms=60_000),
+        _tile(clip_id="val2-0", room="tau-room6", recording="c.wav", window_start_ms=0),
+        _tile(clip_id="val2-later", room="tau-room6", recording="c.wav", window_start_ms=120_000),
+    ]
+    train, early_stop, unused = script.kyoto_train_val_split(development)
+    assert [row["clip_id"] for row in train] == ["train-0", "train-1"]
+    assert [row["clip_id"] for row in early_stop] == ["val-0", "val2-0"]
+    assert [row["clip_id"] for row in unused] == ["val-later", "val2-later"]
+    script.assert_no_val_room_later_tiles_in_train(train, unused)
+    script.assert_early_stop_is_first_60s_val(early_stop, expected_clips=2)
+    leaked = train + unused[:1]
+    with pytest.raises(RuntimeError, match="val-room windows leaked into train"):
+        script.assert_no_val_room_later_tiles_in_train(leaked, unused)
+    with pytest.raises(RuntimeError, match="early-stop val includes later tiles"):
+        script.assert_early_stop_is_first_60s_val(early_stop + unused[:1], expected_clips=3)
+
+
+def test_first_60s_inspection_gold_stays_48() -> None:
+    script = load_script()
+    inspection = [
+        _tile(
+            clip_id=f"insp-{index}",
+            room="sony-room1",
+            recording=f"i{index}.wav",
+            window_start_ms=0,
+            events=[{"start_ms": 0, "end_ms": 1000, "label": "laugh"}] if index == 0 else [],
+        )
+        for index in range(49)
+    ]
+    inspection.append(
+        _tile(
+            clip_id="insp-later",
+            room="sony-room1",
+            recording="later.wav",
+            window_start_ms=60_000,
+            events=[{"start_ms": 0, "end_ms": 400, "label": "laugh"}],
+        )
+    )
+    # 1 event on first-60s is not 48
+    with pytest.raises(RuntimeError, match="first-60s inspection gold"):
+        script.assert_first_60s_inspection_gold(inspection, clips=49, events=48)
+    gold = []
+    for index in range(48):
+        gold.append(
+            _tile(
+                clip_id=f"g{index}",
+                room="tau-room1",
+                recording=f"g{index}.wav",
+                window_start_ms=0,
+                events=[{"start_ms": 0, "end_ms": 60000 if index < 3 else 800, "label": "laugh"}],
+            )
+        )
+    gold.append(_tile(clip_id="empty", room="tau-room1", recording="empty.wav", window_start_ms=0))
+    gold.append(
+        _tile(
+            clip_id="later",
+            room="tau-room1",
+            recording="later2.wav",
+            window_start_ms=60_000,
+            events=[{"start_ms": 0, "end_ms": 400, "label": "laugh"}],
+        )
+    )
+    script.assert_first_60s_inspection_gold(gold)
+    assert script.event_count(script.first_60s_subset(gold)) == 48
+    truncated = [
+        event
+        for row in script.first_60s_subset(gold)
+        for event in row["events"]
+        if event["end_ms"] == 60_000
+    ]
+    assert len(truncated) == 3
+
+
+def test_40epoch_checkpoint_path_is_not_the_output() -> None:
+    script = load_script()
+    frozen = Path("artifacts/starss23-scene-raster/frame-head-40epoch.pt")
+    with pytest.raises(RuntimeError, match="must not overwrite frame-head-40epoch.pt"):
+        script.assert_checkpoint_does_not_overwrite_40epoch(frozen, frozen)
+    script.assert_checkpoint_does_not_overwrite_40epoch(script.NEW_CHECKPOINT, frozen)
+    source = inspect.getsource(script.main)
+    assert "assert_checkpoint_does_not_overwrite_40epoch" in source
+    assert 'default=Path("artifacts/starss23-scene-raster/frame-head-40epoch.pt")' in source
+    new_ckpt = 'default=Path("artifacts/starss23-scene-raster/frame-head-tiled-valfirst60s.pt")'
+    assert new_ckpt in source
+    banned = script.BANNED_OVERWRITE_PATHS
+    assert any(path.name == "frame-head-40epoch.pt" for path in banned)
+    assert any("starss23-tiled-mean4-negative-results.json" in str(path) for path in banned)
+    assert any("starss23-40epoch-on-first60s-diagnostic.json" in str(path) for path in banned)
+    with pytest.raises(RuntimeError, match="must not overwrite frozen snapshot"):
+        script.assert_output_paths_are_not_banned([banned[1]])
+
+
+def test_keep_reported_best_requires_first60s_beat_and_tiled_gate() -> None:
+    script = load_script()
+    assert (
+        script.keep_reported_best_0_1395(first60s_collar_f1=0.10, tiled_gate_passed=True) is True
+    )
+    assert (
+        script.keep_reported_best_0_1395(first60s_collar_f1=0.20, tiled_gate_passed=False) is True
+    )
+    assert (
+        script.keep_reported_best_0_1395(first60s_collar_f1=0.1395, tiled_gate_passed=True)
+        is True
+    )
+    assert (
+        script.keep_reported_best_0_1395(first60s_collar_f1=0.15, tiled_gate_passed=False) is True
+    )
+    assert (
+        script.keep_reported_best_0_1395(first60s_collar_f1=0.15, tiled_gate_passed=True) is False
+    )
+    headline = script.result_headline(
+        first60s_collar_f1=0.03,
+        tiled_collar_f1=0.0148,
+        tiled_gate_passed=False,
+    )
+    assert "do not replace reported best 0.1395" in headline
+    assert "tiling vs decoder mismatch" in script.DECODER_LOCK_NOTE

@@ -11,14 +11,22 @@ The scientific gold gate remains **closed**. Language is unverified. The
 SenseVoiceSmall encoder stayed frozen. SenseVoiceSmall is by
 FunASR/FunAudioLLM under the FunASR Model Open Source License Agreement v1.1.
 
-**This pass is a negative mean-of-4 tiled MLP.** Tiled inspection collar F1
-is **0.0148** (1/26/107 on 108 gold). First-60s control is 0.0308 (1/16/47)
-versus prior best **0.1395**. Segment margin still clears +0.05; collar
-fails >=0.25. Gate **FAIL**. STARSS23 stays **unwired**. **0.1395 remains
-the reported best and must not be replaced.** Scored audio is mean-of-4 in
-`data/raw/starss23-scene-raster-tiled`. `data/raw/starss23-scene-raster-v2`
-is **max-RMS audio only** (259 files) and was **not** this eval; do not mix
-it into tiled embeddings.
+**This pass is the Kyoto first-60s-val mean-of-4 tiled MLP, and it is
+negative.** Train is 111 tiled windows from non-val rooms (**0** val-room
+later tiles in train). Early-stop is **only** the 19 first-60s clips in
+`sony-room21` / `tau-room6`. Later tiles of those rooms stay unused (same
+recording would leak if they entered train; they are not extra train N).
+Tiled inspection collar F1 is **0.0296** (2/25/106 on 108 gold). First-60s
+control is 0.03125 (1/15/47) versus prior best **0.1395**. Segment margin
+still clears +0.05; collar fails >=0.25. Gate **FAIL**. STARSS23 stays
+**unwired**. **0.1395 remains the reported best and must not be replaced.**
+Decoder locked to 0a27733; a miss cannot be blamed on tiling vs decoder
+mismatch. Stopped after this one tiled inspection eval. Scored audio is
+mean-of-4 in `data/raw/starss23-scene-raster-tiled`.
+`data/raw/starss23-scene-raster-v2` is **max-RMS audio only** (259 files)
+and was **not** this eval; do not mix it into tiled embeddings. Checkpoint
+wrote to `artifacts/starss23-scene-raster/frame-head-tiled-valfirst60s.pt`
+and did not touch `frame-head-40epoch.pt`.
 
 ## Protocol
 
@@ -44,19 +52,58 @@ Tiles from one file are correlated, not extra i.i.d. N.
 
 Development: **150** tiles / **195** events (**11** later-tile spanning drops).
 Inspection: **109** tiles / **108** events (**7** spanning drops). Room-disjoint
-validation used `sony-room21` and `tau-room6` (**111/39** tiles, **175/20**
-events, **10/1** spanning drops). First-60s subset of those splits remains
-43/19/49 clips and 51/14/48 events.
+validation rooms are `sony-room21` and `tau-room6`. **Kyoto split:** train
+keeps every tiled window except any window from those two rooms (**111**
+clips / **175** events). Early-stop / val loss uses **only** their 19
+first-60s clips (`window_start_ms == 0`, 14 events). Their later tiles
+(**20** clips / 6 events) stay unused. First-60s subset of inspection
+remains 49 clips / 48 events (three truncated-at-60 s events kept).
 
 This pass trains the same two-layer MLP (`512→64→1`, **32,897** params), seed
-0, unweighted BCE, early-stop val BCE patience 25, cap 400. Encoder frozen.
-Decoder **locked** to 0a27733: high 0.95, low 0.855, gap 0, min-active 1,
-median 3, onset shift 0. **No decoder grid.** Dual eval: (A) tiled inspection
-is the wiring gate (new gold; do not treat 0.1395 as the same comparator);
-(B) first-60s subset (`window_start_ms == 0`) with the same decoder, reported
-separately vs the old 48-event set.
+0, unweighted BCE, early-stop on first-60s val BCE patience 25, cap 400.
+Encoder frozen. Decoder **locked** to 0a27733: high 0.95, low 0.855, gap 0,
+min-active 1, median 3, onset shift 0. **No decoder grid.** Dual eval with
+that locked decoder: (A) first-60s inspection subset, gold 48, vs 0.1395
+control (9/72/39); (B) tiled inspection 108 events = wiring gate. A miss
+cannot be blamed on tiling vs decoder mismatch.
 
-## Tiled mean-of-4 MLP pass
+## Kyoto first-60s-val tiled MLP pass
+
+Training stopped at **226** epochs (best first-60s val BCE 0.049434 near
+epoch 201). Validation sanity with the fixed decoder was collar 0.2353
+(2/1/12 on 19 clips); that score did not select a decoder. Embedding cache
+hits 239 / misses 0.
+
+### Tiled inspection (wiring gate; 109 clips / 108 events)
+
+| Method | 1 s segment F1 | whole-clip segment F1 | 200 ms collar F1 | TP/FP/FN |
+|---|---:|---:|---:|---:|
+| Frozen frame MLP, 226-epoch Kyoto first-60s val | 0.3143 | 0.1538 | **0.0296** | 2/25/106 |
+| Whole-clip oracle tags | 0.1538 | 0.1538 | 0.0000 | — |
+
+Segment margin is `+0.1604` (**passes** `+0.05`). Collar F1 **fails** `>=0.25`.
+Of 106 false negatives: (a) 21 overlap a prediction that fails the 200 ms
+collar (median overlapping onset error 420 ms, MAE 412 ms; did **not**
+improve vs the first-60s 0.1395 pass median 200 ms); (b) 83 are gold events
+the head never fires; (c) 2 are decoder-suppressed. STARSS23 laugh timestamps
+remain **unwired**. DCASE wiring is unchanged. Stopped after this one tiled
+inspection eval.
+
+### First-60s subset (matched 48-event control)
+
+| Method | 1 s segment F1 | whole-clip segment F1 | 200 ms collar F1 | TP/FP/FN |
+|---|---:|---:|---:|---:|
+| This pass, `window_start_ms == 0` only | 0.3623 | 0.1721 | 0.03125 | 1/15/47 |
+| Prior best first-60s (40-epoch + repaired decoder) | 0.5124 | 0.1721 | **0.1395** | 9/72/39 |
+| Whole-clip oracle tags | 0.1721 | 0.1721 | 0.0000 | 0/20/48 |
+
+Same locked decoder. First-60s gold is 49 clips / 48 events / 0 spanning
+drops, including three events truncated at t=60 s. Collar 0.03125 is worse
+than 0.1395 on that control, so 0.1395 stays the reported best. Early-stopping
+on first-60s val instead of all 39 val-room tiles did not recover the 0.1395
+control. This subset is **not** the wiring gate.
+
+## Prior tiled mean-of-4 MLP pass (full tiled val)
 
 Training stopped at **217** epochs (best val BCE 0.043739 near epoch 192).
 Validation sanity with the fixed decoder was collar 0.1739 (2/1/18); that
@@ -189,11 +236,13 @@ pass is **not** in this table; see dual eval above.
 | Frozen frame MLP, 40 epochs + onset-shift decoder | 0.3716 | 0.1721 | 0.0585 | 6/151/42 |
 | Frozen frame MLP, 214-epoch boundary-weighted BCE | 0.3673 | 0.1721 | 0.0588 | 2/18/46 |
 | Frozen frame BiGRU, 86-epoch masked BCE | 0.2121 | 0.1721 | 0.0339 | 1/10/47 |
-| This pass first-60s subset (tiled-trained MLP) | 0.3741 | 0.1721 | 0.0308 | 1/16/47 |
+| Prior tiled MLP first-60s subset (full tiled val) | 0.3741 | 0.1721 | 0.0308 | 1/16/47 |
+| This pass first-60s subset (Kyoto first-60s val) | 0.3623 | 0.1721 | 0.03125 | 1/15/47 |
 | Whole-clip oracle tags | 0.1721 | 0.1721 | 0.0000 | 0/20/48 |
 
-Wiring uses tiled inspection only. Collar there is 0.0148 < 0.25, so STARSS23
-laugh timestamps remain **unwired**. This mean-4 tiled MLP is a **negative**
-result and **must not replace 0.1395**. DCASE wiring is unchanged. Whole-clip
-`0..60000` tags are not localization. Gold remains closed. Language
-unverified.
+Wiring uses tiled inspection only. Collar there is 0.0296 < 0.25, so STARSS23
+laugh timestamps remain **unwired**. This Kyoto first-60s-val mean-4 tiled MLP
+is a **negative** result and **must not replace 0.1395**. A miss cannot be
+blamed on tiling vs decoder mismatch (decoder locked to 0a27733). DCASE
+wiring is unchanged. Whole-clip `0..60000` tags are not localization. Gold
+remains closed. Language unverified.

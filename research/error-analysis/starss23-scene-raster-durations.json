@@ -1,15 +1,16 @@
 {
   "report_version": "1",
-  "generated_at_utc": "2026-08-27T12:51:05.096421Z",
+  "generated_at_utc": "2026-08-27T13:08:48.924602Z",
   "gate_decision": "closed",
   "label_status": "human 100 ms activity label; not reviewed Attune gold",
   "language": "unverified",
   "protocol": "tiled_60s_mean4_mic",
+  "split_protocol": "kyoto_val_first60s",
   "partition": "official_dev_test_inspection",
   "audio_committed": false,
   "loss": "unweighted_BCEWithLogitsLoss",
   "architecture": "mlp",
-  "epochs_completed": 217,
+  "epochs_completed": 226,
   "predeclared_decoder": {
     "high_threshold": 0.95,
     "low_threshold": 0.855,
@@ -34,40 +35,42 @@
     },
     "predicted": {
       "count": 27,
-      "min_ms": 300,
+      "min_ms": 360,
       "p25_ms": 480,
       "median_ms": 600,
       "p75_ms": 960,
-      "max_ms": 2400,
-      "mean_ms": 795.5555555555555,
+      "max_ms": 2460,
+      "mean_ms": 802.2222222222222,
       "shorter_than_300ms": 0,
       "shorter_than_600ms": 9
     },
     "true_positive": {
-      "count": 1,
+      "count": 2,
       "min_ms": 480,
       "p25_ms": 480,
       "median_ms": 480,
-      "p75_ms": 480,
-      "max_ms": 480,
-      "mean_ms": 480.0,
+      "p75_ms": 2460,
+      "max_ms": 2460,
+      "mean_ms": 1470.0,
       "shorter_than_300ms": 0,
       "shorter_than_600ms": 1,
       "gold_durations_ms": [
-        500
+        500,
+        3000
       ],
       "predicted_durations_ms": [
-        480
+        480,
+        2460
       ]
     },
     "false_positive": {
-      "count": 26,
-      "min_ms": 300,
+      "count": 25,
+      "min_ms": 360,
       "p25_ms": 480,
       "median_ms": 600,
       "p75_ms": 960,
-      "max_ms": 2400,
-      "mean_ms": 807.6923076923077,
+      "max_ms": 1560,
+      "mean_ms": 748.8,
       "shorter_than_300ms": 0,
       "shorter_than_600ms": 8,
       "durations_ms": [
@@ -75,7 +78,6 @@
         480,
         420,
         480,
-        300,
         1080,
         960,
         720,
@@ -86,12 +88,12 @@
         900,
         360,
         600,
-        1020,
+        360,
+        1080,
         420,
         600,
         600,
         720,
-        2400,
         600,
         960,
         420,
@@ -102,13 +104,13 @@
       "gold_p25_ms": 600
     },
     "false_negative": {
-      "count": 107,
+      "count": 106,
       "min_ms": 200,
       "p25_ms": 600,
       "median_ms": 1100,
       "p75_ms": 1700,
       "max_ms": 8100,
-      "mean_ms": 1390.6542056074766,
+      "mean_ms": 1375.4716981132076,
       "shorter_than_300ms": 1,
       "shorter_than_600ms": 22,
       "durations_ms": [
@@ -207,7 +209,6 @@
         1000,
         1000,
         1000,
-        3000,
         500,
         1000,
         3000,
@@ -224,10 +225,10 @@
     "false_positives_are_short_fragments": false
   },
   "this_pass_collar": {
-    "true_positive": 1,
-    "false_positive": 26,
-    "false_negative": 107,
-    "f1": 0.014814814814814815,
+    "true_positive": 2,
+    "false_positive": 25,
+    "false_negative": 106,
+    "f1": 0.02962962962962963,
     "segment_f1": 0.3142857142857143,
     "whole_clip_segment_f1": 0.15384615384615385
   },
@@ -237,16 +238,16 @@
     "event_count": 48,
     "clipped_spanning_event_count": 0,
     "segment_f1": {
-      "f1": 0.37410071942446044,
-      "true_positive": 26,
+      "f1": 0.36231884057971014,
+      "true_positive": 25,
       "false_positive": 0,
-      "false_negative": 87,
+      "false_negative": 88,
       "segment_ms": 1000
     },
     "collar_event_metrics": {
-      "f1": 0.03076923076923077,
+      "f1": 0.03125,
       "true_positive": 1,
-      "false_positive": 16,
+      "false_positive": 15,
       "false_negative": 47,
       "onset_collar_ms": 200,
       "offset_collar_ms": 200,
@@ -272,10 +273,10 @@
       "matched_onset_mae_ms": null,
       "matched_offset_mae_ms": null
     },
-    "segment_margin": 0.2019758146262883,
-    "collar_f1": 0.03076923076923077,
+    "segment_margin": 0.190193935781538,
+    "collar_f1": 0.03125,
     "true_positive": 1,
-    "false_positive": 16,
+    "false_positive": 15,
     "false_negative": 47,
     "decoder": {
       "high_threshold": 0.95,
@@ -289,30 +290,30 @@
     "miss_mechanism": {
       "false_negative": 47,
       "head_never_fires": 34,
-      "decoder_suppressed": 0,
-      "predicted_but_collar_failed": 13,
-      "median_onset_error_ms_on_overlapping_misses": 380,
-      "mean_onset_error_ms_on_overlapping_misses": 424.61538461538464,
+      "decoder_suppressed": 1,
+      "predicted_but_collar_failed": 12,
+      "median_onset_error_ms_on_overlapping_misses": 420,
+      "mean_onset_error_ms_on_overlapping_misses": 440.0,
       "dominant_miss": "head_never_fires",
       "interpretation": "most missed gold events have no head fire inside the gold span"
     },
     "prior_first_60s_collar_f1": 0.13953488372093023,
-    "note": "same decoder as tiled inspection; compare protocol vs the old 48-event set"
+    "note": "same locked 0a27733 decoder as tiled inspection; compare vs the old 48-event 0.1395 control. Decoder locked to 0a27733 (high=0.95, low=0.855, gap=0, min_active=1, median=3, shift=0). A miss cannot be blamed on tiling vs decoder mismatch."
   },
   "miss_mechanism": {
-    "false_negative": 107,
+    "false_negative": 106,
     "head_never_fires": 83,
     "decoder_suppressed": 2,
-    "predicted_but_collar_failed": 22,
-    "median_onset_error_ms_on_overlapping_misses": 380,
-    "mean_onset_error_ms_on_overlapping_misses": 390.0,
+    "predicted_but_collar_failed": 21,
+    "median_onset_error_ms_on_overlapping_misses": 420,
+    "mean_onset_error_ms_on_overlapping_misses": 412.3809523809524,
     "dominant_miss": "head_never_fires",
     "interpretation": "most missed gold events have no head fire inside the gold span"
   },
   "overlapping_onset_error_vs_prior_best": {
     "prior_best_median_ms": 200,
-    "this_pass_median_ms": 380,
-    "this_pass_mae_ms": 390.0,
+    "this_pass_median_ms": 420,
+    "this_pass_mae_ms": 412.3809523809524,
     "improved_vs_200ms": false
   },
   "clip_event_counts": {
@@ -324,9 +325,9 @@
       "first_60s_events": 51
     },
     "validation": {
-      "clips": 39,
-      "events": 20,
-      "clipped_spanning_events": 1,
+      "clips": 19,
+      "events": 14,
+      "clipped_spanning_events": 0,
       "first_60s_clips": 19,
       "first_60s_events": 14
     },
@@ -347,7 +348,7 @@
     "tiles_are_correlated_not_iid": true,
     "natural_overlap_clips": {
       "train": 101,
-      "validation": 37,
+      "validation": 18,
       "inspection_test": 84
     },
     "prior_first_60s_counts": {
@@ -358,6 +359,23 @@
       "validation_laugh_events": 14,
       "inspection_laugh_events": 48,
       "protocol": "first_60s_scene_raster"
+    },
+    "unused_val_room_later_tiles": {
+      "clips": 20,
+      "events": 6,
+      "clipped_spanning_events": 1,
+      "first_60s_clips": 0,
+      "first_60s_events": 0
+    },
+    "kyoto_split": {
+      "train_excludes_all_val_room_windows": true,
+      "early_stop_first_60s_val_only": true,
+      "val_room_later_tiles_unused": true,
+      "val_room_later_tiles_in_train": 0,
+      "train_clip_count": 111,
+      "early_stop_clip_count": 19,
+      "unused_later_clip_count": 20,
+      "note": "later tiles of sony-room21/tau-room6 stay unused; same recording would leak if they entered train; they are not extra train N"
     }
   },
   "prior_first_60s_counts": {
@@ -370,17 +388,18 @@
     "protocol": "first_60s_scene_raster"
   },
   "this_pass_summary": {
-    "id": "tiled_mean4_mlp",
-    "epochs_completed": 217,
+    "id": "tiled_mean4_mlp_kyoto_valfirst60s",
+    "split_protocol": "kyoto_val_first60s",
+    "epochs_completed": 226,
     "segment_f1": 0.3142857142857143,
     "whole_clip_segment_f1": 0.15384615384615385,
-    "collar_event_f1": 0.014814814814814815,
-    "collar_true_positive": 1,
-    "collar_false_positive": 26,
-    "collar_false_negative": 107,
+    "collar_event_f1": 0.02962962962962963,
+    "collar_true_positive": 2,
+    "collar_false_positive": 25,
+    "collar_false_negative": 106,
     "reference_event_count": 108,
-    "checkpoint": "artifacts/starss23-scene-raster/frame-head-tiled.pt",
-    "median_onset_error_ms_on_overlapping_misses": 380,
+    "checkpoint": "artifacts/starss23-scene-raster/frame-head-tiled-valfirst60s.pt",
+    "median_onset_error_ms_on_overlapping_misses": 420,
     "decoder": {
       "high_threshold": 0.95,
       "low_threshold": 0.855,
@@ -390,7 +409,11 @@
       "onset_shift_ms": 0,
       "min_duration_ms": 60
     },
-    "comparator_note": "tiled inspection gold is a new event set; do not treat 0.1395 as the same comparator"
+    "comparator_note": "tiled inspection gold is a new event set; do not treat 0.1395 as the same comparator",
+    "do_not_replace_reported_best": true,
+    "result_status": "negative",
+    "first_60s_collar_f1": 0.03125,
+    "decoder_lock_note": "Decoder locked to 0a27733 (high=0.95, low=0.855, gap=0, min_active=1, median=3, shift=0). A miss cannot be blamed on tiling vs decoder mismatch."
   },
   "previous_decoder_validity_pass": {
     "collar_true_positive": 9,

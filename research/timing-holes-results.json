@@ -1,6 +1,6 @@
 {
   "report_version": "1",
-  "generated_at_utc": "2026-08-27T12:02:10.698920Z",
+  "generated_at_utc": "2026-08-27T13:11:46.389616Z",
   "gate_decision": "closed",
   "encoder_frozen": true,
   "data_verification": {
@@ -64,7 +64,7 @@
     "checkpoint_committed": false
   },
   "cascade_timestamps": {
-    "event_style_policy": "gated DCASE laugh/cough/throat_clear frame spans when configured; STARSS23 laugh timing is unwired after the 60s scene raster BiGRU pass; reported best remains the 40-epoch decoder-validity collar 0.1395; all other event/style labels remain utterance-scoped",
+    "event_style_policy": "gated DCASE laugh/cough/throat_clear frame spans when configured; STARSS23 laugh timing is unwired after the Kyoto first-60s-val tiled MLP; reported best remains the 40-epoch decoder-validity collar 0.1395; all other event/style labels remain utterance-scoped",
     "zero_to_duration_is_localization": false,
     "changed_in_this_pr": true
   },
@@ -134,7 +134,7 @@
     },
     "eligible_for_cascade_wiring": false,
     "timestamps_wired": false,
-    "decision": "60s scene raster BiGRU pass still fails collar F1 >= 0.25 and the +0.05 segment margin; STARSS23 laugh timing remains unwired; reported best remains 0.1395",
+    "decision": "Kyoto first-60s-val tiled mean-4 MLP still fails tiled inspection collar F1 >= 0.25; STARSS23 laugh timing remains unwired; reported best remains 0.1395; a miss cannot be blamed on tiling vs decoder mismatch",
     "english_metadata_filter_available": false,
     "language": "unverified",
     "merge_quality_localization": false,
@@ -250,6 +250,76 @@
         "loss": "boundary_weighted_BCEWithLogitsLoss",
         "retrained": true
       }
+    },
+    "tiled_60s_mean4_kyoto_valfirst60s": {
+      "status": "completed",
+      "protocol": "tiled_60s_mean4_mic",
+      "split_protocol": "kyoto_val_first60s",
+      "result": "research/starss23-scene-raster-results.json",
+      "architecture": "two-layer binary MLP 512->64->1 over frozen 512-d acoustic frames",
+      "trainable_parameters": 32897,
+      "seed": 0,
+      "encoder_frozen": true,
+      "inspection_evaluations": 1,
+      "decoder": {
+        "id": "locked_0a27733",
+        "high_threshold": 0.95,
+        "low_threshold": 0.855,
+        "max_gap_frames": 0,
+        "min_active_frames": 1,
+        "median_filter_frames": 3,
+        "onset_shift_ms": 0,
+        "grid": false,
+        "note": "a miss cannot be blamed on tiling vs decoder mismatch"
+      },
+      "train_clips": 111,
+      "val_room_later_tiles_in_train": 0,
+      "early_stop_clips": 19,
+      "early_stop_on": "unweighted_bce_on_first60s_val_rooms_only",
+      "unused_val_room_later_tiles": 20,
+      "epochs_completed": 226,
+      "cache_misses": 0,
+      "tiled_inspection": {
+        "clips": 109,
+        "events": 108,
+        "segment_f1": 0.3142857142857143,
+        "whole_clip_segment_f1": 0.15384615384615385,
+        "segment_f1_margin": 0.16043956043956042,
+        "collar_event_f1": 0.02962962962962963,
+        "collar_true_positive": 2,
+        "collar_false_positive": 25,
+        "collar_false_negative": 106,
+        "wiring_gate": true
+      },
+      "first_60s_control": {
+        "clips": 49,
+        "events": 48,
+        "segment_f1": 0.36231884057971014,
+        "whole_clip_segment_f1": 0.17212490479817213,
+        "segment_f1_margin": 0.190193935781538,
+        "collar_event_f1": 0.03125,
+        "collar_true_positive": 1,
+        "collar_false_positive": 15,
+        "collar_false_negative": 47,
+        "prior_best_collar_event_f1": 0.13953488372093023,
+        "beats_0.1395": false
+      },
+      "wiring_gate": {
+        "segment_margin_required": 0.05,
+        "collar_f1_required": 0.25,
+        "segment_margin_observed": 0.16043956043956042,
+        "collar_f1_observed": 0.02962962962962963,
+        "passed": false,
+        "eval": "tiled_inspection"
+      },
+      "eligible_for_cascade_wiring": false,
+      "timestamps_wired": false,
+      "reported_best_collar_event_f1": 0.13953488372093023,
+      "this_pass_replaced_reported_best": false,
+      "checkpoint": "artifacts/starss23-scene-raster/frame-head-tiled-valfirst60s.pt",
+      "did_not_overwrite_40epoch": true,
+      "audio_cache": "data/raw/starss23-scene-raster-tiled",
+      "v2_max_rms_unused": true
     }
   },
   "claims": {

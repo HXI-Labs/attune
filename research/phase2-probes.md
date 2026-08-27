@@ -111,12 +111,13 @@ one longer train-only-weight and gold-percentile decoder pass, then 0.5124 /
 0.1395 after a validation-only decoder-validity repair, then 0.3716 / 0.0585
 after an onset-shift decoder pass of the 40-epoch head, then 0.3673 / 0.0588
 after a 214-epoch boundary-weighted BCE retrain with the predeclared decoder.
-All fail the replacement collar >=0.25 plus segment-margin >=0.05 gate, so
-STARSS23 timestamps are unwired and natural-scene boundaries remain unsolved.
-The reported best remains the 0.1395 decoder-validity pass. Remaining collar
-error on the boundary-weighted pass: 29/46 misses never fire, 12/46 fail the
-200 ms collar on a found event (median onset 300 ms, MAE 366.7 ms; did not
-improve vs 200 ms), and 5/46 are decoder-suppressed.
+A later mean-of-4 tiled MLP scores 0.3143 / 0.0148 on tiled inspection, then
+0.3143 / 0.0296 after a Kyoto first-60s-val retrain (first-60s control
+0.03125 vs 0.1395). All fail the replacement collar >=0.25 plus
+segment-margin >=0.05 wiring gate on tiled inspection, so STARSS23
+timestamps are unwired and natural-scene boundaries remain unsolved. The
+reported best remains the 0.1395 decoder-validity pass. Decoder locked to
+0a27733; a miss cannot be blamed on tiling vs decoder mismatch.
 
 ## What Phase 2 established
 

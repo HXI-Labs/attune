@@ -30,6 +30,23 @@ SEGMENT_MARGIN_REQUIRED = 0.05
 COLLAR_F1_REQUIRED = 0.25
 PROTOCOL = "tiled_60s_mean4_mic"
 HEADLINE = "mean-4 tiled MLP negative; do not replace reported best 0.1395"
+SPLIT_PROTOCOL = "kyoto_val_first60s"
+FIRST_60S_INSPECTION_CLIPS = 49
+FIRST_60S_INSPECTION_EVENTS = 48
+FIRST_60S_VAL_CLIPS = 19
+FROZEN_40EPOCH_CHECKPOINT = Path("artifacts/starss23-scene-raster/frame-head-40epoch.pt")
+NEW_CHECKPOINT = Path("artifacts/starss23-scene-raster/frame-head-tiled-valfirst60s.pt")
+BANNED_OVERWRITE_PATHS = (
+    FROZEN_40EPOCH_CHECKPOINT,
+    Path("research/error-analysis/starss23-tiled-mean4-negative-results.json"),
+    Path("research/error-analysis/starss23-tiled-mean4-negative-durations.json"),
+    Path("research/error-analysis/starss23-tiled-mean4-negative-index.json"),
+    Path("research/error-analysis/starss23-40epoch-on-first60s-diagnostic.json"),
+)
+DECODER_LOCK_NOTE = (
+    "Decoder locked to 0a27733 (high=0.95, low=0.855, gap=0, min_active=1, "
+    "median=3, shift=0). A miss cannot be blamed on tiling vs decoder mismatch."
+)
 AUDIO_CACHE_SCORED = "data/raw/starss23-scene-raster-tiled"
 AUDIO_CACHE_V2_MAX_RMS = "data/raw/starss23-scene-raster-v2"
 AUDIO_CACHES = {
@@ -761,6 +778,121 @@ def first_60s_subset(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [row for row in rows if int(row["source_window_start_ms"]) == 0]
 
 
+def kyoto_train_val_split(
+    development: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Train all non-val-room tiles; early-stop on first-60s val rooms only.
+
+    Later tiles from sony-room21 / tau-room6 stay unused. Putting them in train
+    would leak the same recording; they are not extra train N.
+    """
+    train_rows = [row for row in development if row["room"] not in VALIDATION_ROOMS]
+    val_room_rows = [row for row in development if row["room"] in VALIDATION_ROOMS]
+    early_stop_rows = first_60s_subset(val_room_rows)
+    unused_later_rows = [
+        row for row in val_room_rows if int(row["source_window_start_ms"]) != 0
+    ]
+    return train_rows, early_stop_rows, unused_later_rows
+
+
+def assert_no_val_room_later_tiles_in_train(
+    train_rows: list[dict[str, Any]],
+    unused_later_rows: list[dict[str, Any]],
+) -> None:
+    if any(row["room"] in VALIDATION_ROOMS for row in train_rows):
+        raise RuntimeError("STARSS23 val-room windows leaked into train")
+    train_ids = {row["clip_id"] for row in train_rows}
+    unused_ids = {row["clip_id"] for row in unused_later_rows}
+    overlap = train_ids & unused_ids
+    if overlap:
+        raise RuntimeError("STARSS23 val-room later tiles leaked into train")
+    train_files = {row["source_recording"] for row in train_rows}
+    unused_files = {row["source_recording"] for row in unused_later_rows}
+    if train_files & unused_files:
+        raise RuntimeError("STARSS23 val-room recordings leaked into train")
+
+
+def assert_early_stop_is_first_60s_val(
+    validation_rows: list[dict[str, Any]],
+    *,
+    expected_clips: int = FIRST_60S_VAL_CLIPS,
+) -> None:
+    if not validation_rows:
+        raise RuntimeError("STARSS23 early-stop validation is empty")
+    if any(int(row["source_window_start_ms"]) != 0 for row in validation_rows):
+        raise RuntimeError("STARSS23 early-stop val includes later tiles")
+    if any(row["room"] not in VALIDATION_ROOMS for row in validation_rows):
+        raise RuntimeError("STARSS23 early-stop val left the locked rooms")
+    if {row["room"] for row in validation_rows} != VALIDATION_ROOMS:
+        raise RuntimeError("STARSS23 early-stop val drifted from sony-room21/tau-room6")
+    if len(validation_rows) != expected_clips:
+        raise RuntimeError(
+            "STARSS23 early-stop val must be "
+            f"{expected_clips} first-60s clips, got {len(validation_rows)}"
+        )
+
+
+def assert_first_60s_inspection_gold(
+    inspection: list[dict[str, Any]],
+    *,
+    clips: int = FIRST_60S_INSPECTION_CLIPS,
+    events: int = FIRST_60S_INSPECTION_EVENTS,
+) -> None:
+    subset = first_60s_subset(inspection)
+    if len(subset) != clips:
+        raise RuntimeError(f"first-60s inspection clips {len(subset)} != {clips}")
+    counted = event_count(subset)
+    if counted != events:
+        raise RuntimeError(f"first-60s inspection gold {counted} != {events}")
+
+
+def assert_checkpoint_does_not_overwrite_40epoch(
+    checkpoint_output: Path,
+    frozen_40epoch: Path,
+) -> None:
+    if checkpoint_output.resolve() == frozen_40epoch.resolve():
+        raise RuntimeError("must not overwrite frame-head-40epoch.pt")
+    if checkpoint_output.name == "frame-head-40epoch.pt":
+        raise RuntimeError("must not write a file named frame-head-40epoch.pt")
+
+
+def assert_output_paths_are_not_banned(paths: list[Path]) -> None:
+    banned = {path.resolve() for path in BANNED_OVERWRITE_PATHS}
+    for path in paths:
+        if path.resolve() in banned:
+            raise RuntimeError(f"must not overwrite frozen snapshot {path}")
+
+
+def keep_reported_best_0_1395(
+    *,
+    first60s_collar_f1: float,
+    tiled_gate_passed: bool,
+) -> bool:
+    """Keep 0.1395 unless first-60s control beats it AND tiled gate passes."""
+    return not (bool(tiled_gate_passed) and float(first60s_collar_f1) > PRIOR_BEST_COLLAR_F1)
+
+
+def result_headline(
+    *,
+    first60s_collar_f1: float,
+    tiled_collar_f1: float,
+    tiled_gate_passed: bool,
+) -> str:
+    if keep_reported_best_0_1395(
+        first60s_collar_f1=first60s_collar_f1,
+        tiled_gate_passed=tiled_gate_passed,
+    ):
+        return (
+            "Kyoto first-60s-val tiled mean-4 MLP; "
+            f"tiled collar {tiled_collar_f1:.4f}; "
+            "do not replace reported best 0.1395"
+        )
+    return (
+        "Kyoto first-60s-val tiled mean-4 MLP beat 0.1395 on first-60s control "
+        "and passed the tiled inspection gate"
+    )
+
+
 def assert_whole_files_stay_in_one_split(
     train_rows: list[dict[str, Any]],
     validation_rows: list[dict[str, Any]],
@@ -807,7 +939,7 @@ def main() -> None:
     parser.add_argument(
         "--checkpoint-output",
         type=Path,
-        default=Path("artifacts/starss23-scene-raster/frame-head-tiled.pt"),
+        default=Path("artifacts/starss23-scene-raster/frame-head-tiled-valfirst60s.pt"),
     )
     parser.add_argument(
         "--output",
@@ -837,10 +969,20 @@ def main() -> None:
 
     os.environ["ATTUNE_SENSEVOICE_LICENSE_REVIEWED"] = "1"
     torch.manual_seed(arguments.seed)
+    assert_checkpoint_does_not_overwrite_40epoch(
+        arguments.checkpoint_output,
+        arguments.checkpoint_unweighted,
+    )
+    assert_output_paths_are_not_banned(
+        [
+            arguments.checkpoint_output,
+            arguments.output,
+            arguments.duration_error_output,
+        ]
+    )
     development = load_rows(arguments.development_manifest, arguments.cache_dir)
     inspection = load_rows(arguments.inspection_manifest, arguments.cache_dir)
-    train_rows = [row for row in development if row["room"] not in VALIDATION_ROOMS]
-    validation_rows = [row for row in development if row["room"] in VALIDATION_ROOMS]
+    train_rows, validation_rows, unused_val_later_rows = kyoto_train_val_split(development)
     if not train_rows or not validation_rows:
         raise RuntimeError("STARSS23 scene split produced an empty partition")
     if {row["room"] for row in train_rows} & {row["room"] for row in validation_rows}:
@@ -851,9 +993,11 @@ def main() -> None:
         raise RuntimeError("STARSS23 inspection files overlap development")
     if {row["room"] for row in development} & {row["room"] for row in inspection}:
         raise RuntimeError("STARSS23 inspection rooms overlap development")
-    if {row["room"] for row in validation_rows} != VALIDATION_ROOMS:
-        raise RuntimeError("STARSS23 validation rooms drifted from sony-room21/tau-room6")
+    assert_early_stop_is_first_60s_val(validation_rows)
+    assert_no_val_room_later_tiles_in_train(train_rows, unused_val_later_rows)
     assert_whole_files_stay_in_one_split(train_rows, validation_rows)
+    assert_whole_files_stay_in_one_split(train_rows, unused_val_later_rows)
+    assert_first_60s_inspection_gold(inspection)
 
     encoder = FrozenSenseVoiceFrameEncoder(
         arguments.sensevoice_path,
@@ -1037,6 +1181,16 @@ def main() -> None:
         high_threshold=float(decoder["high_threshold"]),
         **span_arguments,
     )
+    keep_best = keep_reported_best_0_1395(
+        first60s_collar_f1=first60_collar_f1,
+        tiled_gate_passed=gate_passed,
+    )
+    headline = result_headline(
+        first60s_collar_f1=first60_collar_f1,
+        tiled_collar_f1=collar_f1,
+        tiled_gate_passed=gate_passed,
+    )
+    result_status = "positive" if gate_passed else "negative"
     gate = {
         "passed": gate_passed,
         "segment_margin_required": SEGMENT_MARGIN_REQUIRED,
@@ -1046,7 +1200,10 @@ def main() -> None:
         "temporal_segment_f1": float(temporal_segment["f1"]),
         "whole_clip_segment_f1": float(baseline_segment["f1"]),
         "eval": "tiled_inspection",
-        "note": ("wiring gate is tiled inspection only; 0.1395 is not the same comparator"),
+        "note": (
+            "wiring gate is tiled inspection only; 0.1395 is not the same comparator; "
+            + DECODER_LOCK_NOTE
+        ),
     }
     arguments.checkpoint_output.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
@@ -1071,7 +1228,8 @@ def main() -> None:
     train_positive_frames = int(train_targets.sum().item())
     train_total_frames = int(train_targets.numel())
     this_pass = {
-        "id": "tiled_mean4_mlp",
+        "id": "tiled_mean4_mlp_kyoto_valfirst60s",
+        "split_protocol": SPLIT_PROTOCOL,
         "epochs_completed": len(history),
         "segment_f1": float(temporal_segment["f1"]),
         "whole_clip_segment_f1": float(baseline_segment["f1"]),
@@ -1088,8 +1246,10 @@ def main() -> None:
         "comparator_note": (
             "tiled inspection gold is a new event set; do not treat 0.1395 as the same comparator"
         ),
-        "do_not_replace_reported_best": True,
-        "result_status": "negative",
+        "do_not_replace_reported_best": keep_best,
+        "result_status": result_status,
+        "first_60s_collar_f1": first60_collar_f1,
+        "decoder_lock_note": DECODER_LOCK_NOTE,
     }
     wiring_decision = (
         "wire STARSS23 laugh timing from the tiled 60s scene raster"
@@ -1123,10 +1283,12 @@ def main() -> None:
         "gate_decision": "closed" if not gate_passed else "open",
         "inspection_evaluations": 1,
         "protocol": PROTOCOL,
+        "split_protocol": SPLIT_PROTOCOL,
         "task": "STARSS23 v1.1 tiled 60-second mean-of-4 MIC laughter localization",
-        "headline": HEADLINE,
-        "result_status": "negative",
-        "do_not_replace_reported_best_0.1395": True,
+        "headline": headline,
+        "result_status": result_status,
+        "do_not_replace_reported_best_0.1395": keep_best,
+        "decoder_lock_note": DECODER_LOCK_NOTE,
         "audio_caches": AUDIO_CACHES,
         "label_mapping": {"STARSS23 class 4 laughter": "Attune laugh"},
         "language": "unverified; STARSS23 metadata has no language field",
@@ -1149,7 +1311,7 @@ def main() -> None:
             "hidden_size": MLP_HIDDEN_SIZE,
             "trainable_parameters": trainable_parameters,
             "threshold": threshold,
-            "threshold_selected_on": "development validation rooms",
+            "threshold_selected_on": "first-60s development validation rooms only",
             "checkpoint_committed": False,
             "source_checkpoint": str(arguments.checkpoint_output),
             "control_mlp_checkpoint": str(arguments.checkpoint_unweighted),
@@ -1170,6 +1332,21 @@ def main() -> None:
                 "inspection_test": sum(row["natural_overlap"] for row in inspection),
             },
             "prior_first_60s_counts": prior_clip_event_counts,
+            "unused_val_room_later_tiles": split_counts(unused_val_later_rows),
+            "kyoto_split": {
+                "train_excludes_all_val_room_windows": True,
+                "early_stop_first_60s_val_only": True,
+                "val_room_later_tiles_unused": True,
+                "val_room_later_tiles_in_train": 0,
+                "train_clip_count": len(train_rows),
+                "early_stop_clip_count": len(validation_rows),
+                "unused_later_clip_count": len(unused_val_later_rows),
+                "note": (
+                    "later tiles of sony-room21/tau-room6 stay unused; "
+                    "same recording would leak if they entered train; "
+                    "they are not extra train N"
+                ),
+            },
         },
         "training": {
             "seed": arguments.seed,
@@ -1182,13 +1359,17 @@ def main() -> None:
             "train_positive_frames": train_positive_frames,
             "train_total_frames": train_total_frames,
             "train_positive_frame_prior": train_positive_frames / train_total_frames,
-            "early_stop_on": "unweighted_validation_bce",
+            "early_stop_on": "unweighted_bce_on_first60s_val_rooms_only",
+            "early_stop_clip_count": len(validation_rows),
+            "val_room_later_tiles_in_early_stop": 0,
+            "val_room_later_tiles_in_train": 0,
             "history": history,
             "retrained": True,
         },
         "decoder_search": {
             "performed": False,
             "reason": "decoder-grid path is exhausted; predeclared 0a27733 decoder",
+            "decoder_lock_note": DECODER_LOCK_NOTE,
             "selected_on": "not searched; frozen from decoder-validity inspection winner",
             "decoder": json_safe_decoder(decoder),
             "inspection_used": False,
@@ -1202,11 +1383,17 @@ def main() -> None:
             "true_positive": validation_eval["true_positive"],
             "false_positive": validation_eval["false_positive"],
             "false_negative": validation_eval["false_negative"],
-            "note": "fixed 0a27733 decoder scored on validation rooms; not used to pick a decoder",
+            "note": (
+                "fixed 0a27733 decoder scored on first-60s val rooms only; "
+                "not used to pick a decoder; later val-room tiles unused"
+            ),
+            "clip_count": len(validation_rows),
         },
         "inspection_test": {
             "designation": "official dev-test rooms; tiled windows; never used for fitting",
             "eval": "tiled_inspection",
+            "wiring_gate": True,
+            "decoder_lock_note": DECODER_LOCK_NOTE,
             "event_count": event_count(inspection),
             "clipped_spanning_event_count": clipped_event_count(inspection),
             "clip_count": len(inspection),
@@ -1252,7 +1439,11 @@ def main() -> None:
             "decoder": json_safe_decoder(decoder),
             "miss_mechanism": first60_misses,
             "prior_first_60s_collar_f1": PRIOR_BEST_COLLAR_F1,
-            "note": ("same decoder as tiled inspection; compare protocol vs the old 48-event set"),
+            "note": (
+                "same locked 0a27733 decoder as tiled inspection; compare vs the old "
+                "48-event 0.1395 control. "
+                + DECODER_LOCK_NOTE
+            ),
         },
         "prior_40_epoch_pass": PRIOR_40_EPOCH_PASS,
         "prior_decoder_validity_pass": {
@@ -1291,6 +1482,8 @@ def main() -> None:
             "Natural recordings require ongoing privacy and consent care.",
             "The bounded slice is not independently reviewed Attune gold.",
             "Tiled windows from one file are correlated and are not extra i.i.d. samples.",
+            DECODER_LOCK_NOTE,
+            "Val-room later tiles were unused for train and early-stop.",
         ],
     }
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
@@ -1302,6 +1495,7 @@ def main() -> None:
         "label_status": "human 100 ms activity label; not reviewed Attune gold",
         "language": "unverified",
         "protocol": PROTOCOL,
+        "split_protocol": SPLIT_PROTOCOL,
         "partition": "official_dev_test_inspection",
         "audio_committed": False,
         "loss": "unweighted_BCEWithLogitsLoss",
@@ -1345,6 +1539,7 @@ def main() -> None:
         "MLP train epochs "
         f"{len(history)}; params {trainable_parameters}; "
         f"clips train/val/insp {len(train_rows)}/{len(validation_rows)}/{len(inspection)}; "
+        f"unused-val-later {len(unused_val_later_rows)}; "
         f"laughs {event_count(train_rows)}/"
         f"{event_count(validation_rows)}/{event_count(inspection)}; "
         f"clipped {clipped_event_count(train_rows)}/"

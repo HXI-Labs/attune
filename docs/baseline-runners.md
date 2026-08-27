@@ -164,11 +164,15 @@ collar F1 at 40 epochs, 0.3974 / 0.0303 after a longer decoder pass, 0.5124 /
 0.1395 after a validation-only decoder repair, 0.3716 / 0.0585 after an
 onset-shift decoder pass, 0.3673 / 0.0588 after a 214-epoch boundary-weighted
 BCE retrain, then 0.2121 / 0.0339 after an 86-epoch frozen BiGRU with the
-predeclared 0.1395 decoder. Both the +0.05 segment margin and collar F1 >=
-0.25 fail, so STARSS23 timing stays unwired and the reported best remains
-0.1395; DCASE timing is unchanged. Remaining collar error is mostly gold
-events the head never fires (39/47), plus onset-collar failure on found
-events (median 300 ms, MAE 960 ms, not improved vs 200 ms).
+predeclared 0.1395 decoder, then 0.3143 / 0.0148 on tiled inspection after a
+mean-of-4 tiled MLP, then 0.3143 / 0.0296 (2/25/106) after a Kyoto
+first-60s-val retrain (first-60s control 0.03125 vs 0.1395). Tiled segment
+margin still clears +0.05 but collar F1 fails >=0.25, so STARSS23 timing
+stays unwired and the reported best remains 0.1395; DCASE timing is
+unchanged. Decoder locked to 0a27733; a miss cannot be blamed on tiling vs
+decoder mismatch. Remaining tiled misses are mostly gold events the head
+never fires (83/106), plus onset-collar failure on found events (median
+420 ms).
 Language remains unverified. STARSS23 is the MIT natural-spatial-audio dataset with 100 ms
 labels; its metadata does not permit filtering for English, it contains natural
 overlap, and its licence and natural-recording privacy/consent terms require
