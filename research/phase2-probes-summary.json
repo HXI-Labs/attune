@@ -1,0 +1,101 @@
+{
+  "report_version": "1",
+  "phase": 2,
+  "generated_at_utc": "2026-08-27T07:53:39.743947Z",
+  "gate_decision": "closed",
+  "label_status": "weak source / acted labels; not reviewed gold",
+  "encoder": {
+    "model": "SenseVoiceSmall by FunASR/FunAudioLLM",
+    "revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
+    "total_parameters": 233999167,
+    "trainable_parameters": 0,
+    "frozen": true,
+    "frontend_dither": 0.0,
+    "query_frames_excluded": 4,
+    "extraction_route": "direct_frontend_and_frozen_encoder",
+    "pooled_embedding_size": 5120
+  },
+  "probes": {
+    "vocalsound": {
+      "task": "laugh/sigh/cough/throat_clear/sneeze",
+      "head": "linear",
+      "trainable_parameters": 25605,
+      "inspection_macro_f1": 0.8597751002514465,
+      "evidence": "research/sensevoice-frozen-probe-metrics.json"
+    },
+    "fsd50k": {
+      "task": "shout/whisper/sob/scream",
+      "head": "linear",
+      "trainable_parameters": 20484,
+      "inspection_macro_f1": 0.7410326086956522,
+      "evidence": "research/fsd50k-frozen-probe-metrics.json"
+    }
+  },
+  "cascade": {
+    "inspection_clips": 310,
+    "original_150": {
+      "wer": 0.07027027027027027,
+      "affect_macro_f1": 0.9207542279530876,
+      "target_event_style_macro_f1": 0.783866087903862,
+      "ood_false_positive_rate": 0.06818181818181818
+    },
+    "licence_clean_expansion_160": {
+      "wer": 0.19,
+      "affect_macro_f1": 0.8679206566347469,
+      "target_event_style_macro_f1": 0.7272041062801933,
+      "ood_false_positive_rate": 0.022727272727272728
+    },
+    "evidence": "research/attune-cascade-inspection-results.json",
+    "timestamp_scope": "utterance only; not localization"
+  },
+  "affect_abstention": {
+    "method": "temperature-scaled maximum-probability threshold",
+    "threshold": 0.8337396462553928,
+    "fitted_on": {
+      "dataset": "CREMA-D",
+      "partition": "validation",
+      "actors": "1051-1060",
+      "clips": 120
+    },
+    "inspection_test": {
+      "dataset": "CREMA-D",
+      "clips": 130,
+      "used_for_fitting_or_selection": false,
+      "always_emit": {
+        "coverage": 1.0,
+        "macro_f1": 0.8828534093644884,
+        "ece": 0.06792922715372113,
+        "brier": 0.1505744995536055
+      },
+      "with_abstention": {
+        "coverage": 0.7615384615384615,
+        "emitted": 99,
+        "abstained": 31,
+        "retained_only_macro_f1": 0.9818627450980392,
+        "retained_only_ece": 0.029482596814017686,
+        "retained_only_brier": 0.04126207893731356,
+        "full_population_macro_f1_counting_abstentions_as_misses": 0.8371930287330915
+      }
+    },
+    "calibration_before_temperature_scaling": {
+      "ece": 0.08410403453414697,
+      "brier": 0.1855188433726818
+    },
+    "evidence_note": "Threshold selected on validation only. Retained-only metrics condition on coverage and are not full-population scores."
+  },
+  "localization": {
+    "dcase_temporal_mlp_segment_f1": 0.1943,
+    "whole_clip_segment_f1": 0.3183,
+    "temporal_mlp_collar_event_f1": 0.0,
+    "wired_into_cascade": false,
+    "next_adjacent_experiment": "bounded pre-cached hash-verified STARSS23 natural-audio slice only"
+  },
+  "phase3_required": [
+    "independently reviewed and adjudicated real gold labels",
+    "evidence that joint optimization is necessary and ethically supportable",
+    "real natural-audio timing evidence that beats utterance scope",
+    "broader speech-embedded style, open-world OOD, and subgroup evaluation"
+  ],
+  "joint_training_performed": false,
+  "weights_or_audio_committed": false
+}

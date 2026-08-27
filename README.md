@@ -31,6 +31,12 @@ spans are whole utterances, not localization. Third-party model/data licences
 remain independent, public weight redistribution is not authorized, and
 MSP-Podcast use remains pending review.
 
+Phase 2 is the frozen-encoder probe package in `research/phase2-probes.md`.
+SenseVoice-Small remains fully frozen; only small linear probe heads were
+trained. The package adds validation-selected affect abstention and a
+weight-refusing local WAV CLI, but does not authorize gold claims or Phase 3
+joint training. The gate remains closed.
+
 ## Quick start
 
 Requires Python 3.12 exactly (the project excludes 3.13) and
@@ -68,6 +74,9 @@ licence-clean-160 inspection with
 `scripts/evaluate_attune_cascade.py` after preparing the bounded datasets,
 reviewed local model paths, and gitignored heads. The encoder remains frozen,
 all annotations are utterance-level and provisional, and the gate is closed.
+For one or more local WAV files, `scripts/infer.py` emits authoritative JSON
+and optional deterministic XML; exact offline commands are in
+`docs/baseline-runners.md`.
 
 ## Repository map
 

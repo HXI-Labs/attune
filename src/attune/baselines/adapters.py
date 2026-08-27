@@ -20,7 +20,7 @@ from attune.baselines.sensevoice import (
     parse_sensevoice_output,
     sensevoice_affect_trace,
 )
-from attune.calibration import TemperatureCalibration
+from attune.calibration import ConfidenceAbstention, TemperatureCalibration
 from attune.evaluation.report import RuntimeMetrics
 from attune.schema.output import AffectCategory, AttuneOutput
 
@@ -323,12 +323,14 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
         self,
         checkpoint: Path | None = None,
         calibration: TemperatureCalibration | None = None,
+        abstention: ConfidenceAbstention | None = None,
     ) -> None:
         self.checkpoint = checkpoint or _local_checkpoint(
             "ATTUNE_EMOTION2VEC_PLUS_PATH",
             "models--emotion2vec--emotion2vec_plus_base",
         )
         self.calibration = calibration
+        self.abstention = abstention
         self._model: Any | None = None
 
     def availability(self) -> tuple[bool, str | None]:
@@ -368,12 +370,17 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
                 AffectCategory(label): value for label, value in calibrated.items()
             }
             category = max(distribution, key=distribution.__getitem__)
+        abstain = self.abstention is not None and self.abstention.abstains(
+            {label.value: value for label, value in distribution.items()}
+        )
         emotion_diagnostics = _emotion2vec_diagnostics(
             result,
             category,
             raw_distribution,
             distribution,
             self.calibration,
+            self.abstention,
+            abstain,
         )
         output = build_partial_output(
             item,
@@ -381,6 +388,7 @@ class Emotion2VecPlusAdapter(BaselineAdapter):
             transcript=item.transcript_hint or "",
             category=category,
             distribution=distribution,
+            abstain=abstain,
         )
         elapsed = time.perf_counter() - started
         return BaselinePrediction(
@@ -399,6 +407,7 @@ def build_partial_output(
     transcript: str,
     category: AffectCategory,
     distribution: dict[AffectCategory, float],
+    abstain: bool = False,
 ) -> AttuneOutput:
     """Build a valid contract with documented placeholders for unsupported heads."""
     duration_ms, sample_rate, channels = _wave_info(item.audio_path)
@@ -426,9 +435,9 @@ def build_partial_output(
                 "arousal": {"value": 0.0, "confidence": 0.0},
                 "dominance": {"value": 0.0, "confidence": 0.0},
                 "categories": distribution,
-                "top_label": category,
+                "top_label": None if abstain else category,
                 "top_label_confidence": top_probability,
-                "abstain": False,
+                "abstain": abstain,
             },
             "uncertainty": {"out_of_distribution_probability": 0.5},
         }
@@ -522,6 +531,8 @@ def _emotion2vec_diagnostics(
     raw_distribution: dict[AffectCategory, float],
     distribution: dict[AffectCategory, float],
     calibration: TemperatureCalibration | None,
+    abstention: ConfidenceAbstention | None,
+    abstained: bool,
 ) -> dict[str, Any]:
     row = result[0]
     labels = row["labels"]
@@ -550,6 +561,19 @@ def _emotion2vec_diagnostics(
             calibration.temperature if calibration is not None else None
         ),
         "calibration_fitted_on": calibration.fitted_on if calibration is not None else None,
+        "affect_abstained": abstained,
+        "affect_abstention_method": (
+            "confidence_threshold" if abstention is not None else None
+        ),
+        "affect_abstention_score": (
+            abstention.score if abstention is not None else None
+        ),
+        "affect_abstention_threshold": (
+            abstention.threshold if abstention is not None else None
+        ),
+        "affect_abstention_fitted_on": (
+            abstention.fitted_on if abstention is not None else None
+        ),
     }
 
 

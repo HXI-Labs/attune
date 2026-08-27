@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-27T07:53:39.743947Z",
+  "method": "temperature_scaling_plus_confidence_abstention",
+  "fitted_on": "validation",
+  "gate_decision": "closed",
+  "label_status": "weak source / acted labels; not reviewed gold",
+  "base_bundle": "phase1.json",
+  "inspection_test": {
+    "designation": "test",
+    "unique_clips": 310,
+    "used_for_fitting_or_selection": false
+  },
+  "components": {
+    "emotion2vec_plus_affect": {
+      "abstention": {
+        "method": "confidence_threshold",
+        "score": "calibrated_max_probability",
+        "threshold": 0.8337396462553928,
+        "fitted_on": "validation",
+        "selection": "maximum retained-only macro-F1 on validation subject to at least 80% coverage; ties prefer higher coverage",
+        "minimum_validation_coverage": 0.8
+      }
+    }
+  }
+}

@@ -32,6 +32,9 @@ def load_rows(manifest: Path, cache: Path, split: str) -> list[dict[str, Any]]:
     for row in rows:
         target = row.get("target_affect")
         if target is None:
+            affect = row.get("intended_attune_labels", {}).get("affect", [])
+            target = affect[0] if len(affect) == 1 else None
+        if target is None:
             continue
         audio = cache / row["cache_path"]
         if not audio.is_file() or digest(audio) != row["sha256"]:
@@ -58,7 +61,25 @@ def main() -> None:
         type=Path,
         default=Path("artifacts/calibration/affect-scores.jsonl"),
     )
+    parser.add_argument(
+        "--inspection-manifest",
+        type=Path,
+        action="append",
+        default=[],
+        help="untouched inspection manifest; repeat alongside --inspection-cache",
+    )
+    parser.add_argument(
+        "--inspection-cache",
+        type=Path,
+        action="append",
+        default=[],
+        help="cache matching an --inspection-manifest",
+    )
     arguments = parser.parse_args()
+    if len(arguments.inspection_manifest) != len(arguments.inspection_cache):
+        raise SystemExit(
+            "error: repeat --inspection-manifest and --inspection-cache the same number of times"
+        )
     os.environ.update(
         {
             "HF_HUB_OFFLINE": "1",
@@ -71,6 +92,12 @@ def main() -> None:
         arguments.validation_cache,
         "validation",
     )
+    for manifest, cache in zip(
+        arguments.inspection_manifest,
+        arguments.inspection_cache,
+        strict=True,
+    ):
+        rows.extend(load_rows(manifest, cache, "inspection_test"))
     adapter = Emotion2VecPlusAdapter(checkpoint=arguments.emotion2vec_path)
     records = []
     for index, row in enumerate(rows, 1):
