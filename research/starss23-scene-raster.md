@@ -5,6 +5,8 @@ Duration diagnostics are in
 `research/error-analysis/starss23-scene-raster-durations.json`.
 The validation decoder ablation is in
 `research/error-analysis/starss23-decoder-ablation.json`.
+The onset-shift search is in
+`research/error-analysis/starss23-onset-shift-ablation.json`.
 The scientific gold gate remains **closed**. Language is unverified. The
 SenseVoiceSmall encoder stayed frozen. SenseVoiceSmall is by
 FunASR/FunAudioLLM under the FunASR Model Open Source License Agreement v1.1.
@@ -30,7 +32,7 @@ once per pass. No Conv/GRU/CRNN head was added. The encoder stayed frozen.
 The previous 73-epoch pos-weight run selected min-active 15 (900 ms) because
 the grid used train-gold p50 and broke ties by minimizing FP. Gold inspection
 events have min 300 ms and p25 600 ms, so a 900 ms floor cannot recall short
-gold. This pass did **not** retrain. It repaired the decoder search on
+gold. That pass did **not** retrain. It repaired the decoder search on
 validation rooms only, then scored inspection once.
 
 Repaired grid: min-active `{1, 2, 3}` plus train-gold p10, capped at p25
@@ -46,10 +48,41 @@ thresholds unchanged. Selection key is `(collar F1, recall, segment F1)`.
 | 73-epoch pos-weight + old decoder | 0.0333 | 0.071 | 0.2889 | 1/45/13 |
 | 73-epoch pos-weight + repaired search | 0.0465 | 0.071 | 0.3099 | 1/28/13 |
 
-The 40-epoch checkpoint wins on validation collar F1 under the repaired
-search (0.1000 vs 0.0465). No retrain. Selected decoder: high `0.95`, low
-`0.855`, gap `0`, min-active `1` (60 ms), median window `3`. Gap 0 won on the
-selection key; `{2, 4, 8}` were in the grid.
+The 40-epoch checkpoint won on validation collar F1 under the repaired
+search (0.1000 vs 0.0465). Selected decoder: high `0.95`, low `0.855`, gap
+`0`, min-active `1` (60 ms), median window `3`.
+
+## Onset-shift pass
+
+The repaired decoder's inspection misses were mostly predicted events that
+failed the 200 ms collar (median overlapping onset error 200 ms). This pass
+did **not** retrain and did **not** invent a new head. It searched a
+validation-only onset/hysteresis repair of the 40-epoch checkpoint:
+
+- median locked to `{1}` (no 3/5 smear)
+- high thresholds unchanged
+- `low_ratio` `{0.2, 0.3, 0.5, 0.7}`; `0.9` banned
+- gaps `{0, 2, 4, 8}`
+- min-active `{1, 2, 3}` plus train-gold p10, capped at p25; p50 unused
+- global onset shift `{-180, -120, -60, 0}` ms on predicted `start_ms`,
+  selected on validation rooms only
+
+Selection key remains `(collar F1, recall, segment F1)`. Do not break ties
+by minimizing FP. 1152 cells. Inspection unused until one winner eval.
+
+### Validation-only onset-shift search (inspection unused)
+
+| Onset shift | collar F1 | recall | segment F1 | TP/FP/FN |
+|---|---:|---:|---:|---:|
+| -180 ms | 0.0215 | 0.071 | 0.2111 | 1/78/13 |
+| **-120 ms** | **0.0215** | **0.071** | **0.2147** | **1/78/13** |
+| -60 ms | 0.0215 | 0.071 | 0.2081 | 1/78/13 |
+| 0 ms | 0.0215 | 0.071 | 0.2130 | 1/78/13 |
+
+Winner: high `0.9`, low `0.63`, gap `8`, min-active `1` (60 ms), median `1`,
+onset shift `-120` ms. Collar F1 and recall tied across shifts; `-120` wins
+on segment F1. Banning `low_ratio` 0.9 and locking median to 1 dropped
+validation collar F1 from 0.1000 to 0.0215.
 
 ## Held-out official test rooms
 
@@ -57,16 +90,16 @@ selection key; `{2, 4, 8}` were in the grid.
 |---|---:|---:|---:|---:|
 | Frozen frame MLP, 40 epochs, old decoder | 0.4794 | 0.1721 | 0.1074 | 8/93/40 |
 | Frozen frame MLP, 73 epochs + 900 ms decoder | 0.3974 | 0.1721 | 0.0303 | 1/17/47 |
-| Frozen frame MLP, 40 epochs + repaired decoder | **0.5124** | 0.1721 | **0.1395** | 9/72/39 |
+| Frozen frame MLP, 40 epochs + repaired decoder | 0.5124 | 0.1721 | 0.1395 | 9/72/39 |
+| Frozen frame MLP, 40 epochs + onset-shift decoder | **0.3716** | 0.1721 | **0.0585** | 6/151/42 |
 | Whole-clip oracle tags | 0.1721 | 0.1721 | 0.0000 | 0/20/48 |
 
-This pass segment margin is `+0.3403` (clears `+0.05`). Collar F1 **fails**
+This pass segment margin is `+0.1995` (clears `+0.05`). Collar F1 **fails**
 `>= 0.25`. STARSS23 laugh timestamps therefore remain **unwired**. DCASE
 wiring is unchanged. Whole-clip `0..60000` tags are not localization.
 
-Of 39 false negatives, 24 overlap a prediction that fails the 200 ms collar
-(median overlapping onset error 200 ms), 14 are gold events the head never
-fires, and 1 is decoder-suppressed. Remaining error is mixed: mostly onset
-error on found events, with a substantial never-fire remainder. False
-positives are now short fragments (median 540 ms versus gold p25 600 ms).
-No second architecture, seed, or DCASE rerun was attempted.
+Of 42 false negatives: (a) 32 overlap a prediction that fails the 200 ms
+collar (median overlapping onset error 360 ms); (b) 10 are gold events the
+head never fires; (c) 0 are decoder-suppressed. False positives are not
+short fragments (median 780 ms versus gold p25 600 ms). Stopped after this
+one inspection eval. No new architecture.

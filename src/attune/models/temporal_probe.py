@@ -191,6 +191,10 @@ def _decode_annotations(
                 duration_ms,
                 round(first_frame_center_ms + (end + 1) * frame_hop_ms - frame_hop_ms / 2),
             )
+            if decoder:
+                start_ms = max(0, start_ms + int(decoder.get("onset_shift_ms", 0) or 0))
+                if start_ms >= end_ms:
+                    continue
             confidence = float(probabilities[start : end + 1, label_index].max())
             annotations.append(
                 ProbeAnnotation(

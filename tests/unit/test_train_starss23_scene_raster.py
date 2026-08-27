@@ -162,8 +162,9 @@ def test_decoder_span_kwargs_drops_search_metadata() -> None:
         "low_threshold": 0.855,
         "max_gap_frames": 8,
         "min_active_frames": 5,
-        "median_filter_frames": 3,
+        "median_filter_frames": 1,
         "min_duration_ms": 300,
+        "onset_shift_ms": -120,
         "type": "hysteresis",
     }
     kwargs = script.decoder_span_kwargs(decoder)
@@ -172,10 +173,11 @@ def test_decoder_span_kwargs_drops_search_metadata() -> None:
         "low_threshold": 0.855,
         "max_gap_frames": 8,
         "min_active_frames": 5,
-        "median_filter_frames": 3,
+        "median_filter_frames": 1,
     }
     assert "min_duration_ms" not in kwargs
     assert "type" not in kwargs
+    assert "onset_shift_ms" not in kwargs
 
 
 def test_hysteresis_spans_rejects_min_duration_ms_kwarg() -> None:
@@ -203,7 +205,7 @@ def test_main_keeps_inspection_out_of_pos_weight_and_decoder_search() -> None:
     assert "select_hysteresis_decoder(" in source
     assert "validation_probabilities" in source
     assert "references_validation" in source
-    assert "**decoder_span_kwargs(decoder)" in source
+    assert "decode_spans(" in source
     assert "frame_targets(inspection" not in source
     assert "gold_event_durations_ms(inspection" not in source
     assert "positive_class_weight_from_train_frames(inspection" not in source
@@ -228,6 +230,8 @@ def test_min_active_is_capped_below_train_gold_p50() -> None:
     assert max(frames) <= p25_frames
     assert p50_frames not in frames
     assert 1 in frames and 2 in frames and 3 in frames
+    assert script.DECODER_MEDIAN_WINDOWS == (1,)
+    assert 3 not in script.DECODER_MEDIAN_WINDOWS
     assert 5 not in script.DECODER_MEDIAN_WINDOWS
     assert {2, 4, 8}.issubset(script.DECODER_GAP_FRAMES)
     assert script.DECODER_GAP_FRAMES != (0,)
@@ -256,8 +260,52 @@ def test_decoder_selection_prefers_recall_over_fewer_false_positives() -> None:
         segment,
     )
     source = inspect.getsource(script.select_hysteresis_decoder)
-    assert "decoder_selection_key" in source
+    search_source = inspect.getsource(script.iter_hysteresis_decoder_candidates)
+    assert "decoder_selection_key" in search_source
+    assert "iter_hysteresis_decoder_candidates" in source
+    assert "DECODER_ONSET_SHIFTS_MS" in search_source
+    assert "apply_onset_shift" in search_source
     assert '-int(collar["false_positive"])' not in source
+    assert '-int(collar["false_positive"])' not in search_source
     assert script.choose_checkpoint_from_ablation(0.12, 0.12) == script.CHECKPOINT_UNWEIGHTED
     assert script.choose_checkpoint_from_ablation(0.12, 0.13) == script.CHECKPOINT_POSWEIGHT
     assert script.choose_checkpoint_from_ablation(0.14, 0.13) == script.CHECKPOINT_UNWEIGHTED
+
+
+def test_onset_shift_pass_locks_median_and_bans_low_ratio_09() -> None:
+    script = load_script()
+    inspect_source = inspect.getsource(script.run_inspection_eval)
+    search_source = inspect.getsource(script.iter_hysteresis_decoder_candidates)
+    ablation_source = inspect.getsource(script.run_onset_shift_ablation)
+    assert script.DECODER_MEDIAN_WINDOWS == (1,)
+    assert 0.9 not in script.DECODER_LOW_RATIOS
+    assert script.DECODER_LOW_RATIOS == (0.2, 0.3, 0.5, 0.7)
+    assert script.DECODER_ONSET_SHIFTS_MS == (-180, -120, -60, 0)
+    assert all(shift <= 0 for shift in script.DECODER_ONSET_SHIFTS_MS)
+    assert "DECODER_ONSET_SHIFTS_MS" in search_source
+    assert "select_hysteresis_decoder" not in inspect_source
+    assert "iter_hysteresis_decoder_candidates" not in inspect_source
+    assert "decode_spans(" in inspect_source
+    assert "validation_rows" in ablation_source
+    assert "inspection_rows" not in ablation_source
+    assert "inspection_used" in ablation_source
+    assert script.COLLAR_F1_REQUIRED == 0.25
+    assert script.SEGMENT_MARGIN_REQUIRED == 0.05
+
+
+def test_apply_onset_shift_moves_predicted_start_earlier() -> None:
+    script = load_script()
+    predictions = [[{"label": "laugh", "start_ms": 1000, "end_ms": 2000}]]
+    shifted = script.apply_onset_shift(predictions, -180)
+    assert shifted == [[{"label": "laugh", "start_ms": 820, "end_ms": 2000}]]
+    clamped = script.apply_onset_shift(
+        [[{"label": "laugh", "start_ms": 50, "end_ms": 400}]],
+        -180,
+    )
+    assert clamped[0][0]["start_ms"] == 0
+    assert clamped[0][0]["end_ms"] == 400
+    dropped = script.apply_onset_shift(
+        [[{"label": "laugh", "start_ms": 100, "end_ms": 150}]],
+        0,
+    )
+    assert dropped[0][0]["start_ms"] == 100

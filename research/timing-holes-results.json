@@ -1,6 +1,6 @@
 {
   "report_version": "1",
-  "generated_at_utc": "2026-08-27T09:29:41.025237Z",
+  "generated_at_utc": "2026-08-27T11:28:33.767092Z",
   "gate_decision": "closed",
   "encoder_frozen": true,
   "data_verification": {
@@ -64,7 +64,7 @@
     "checkpoint_committed": false
   },
   "cascade_timestamps": {
-    "event_style_policy": "gated DCASE laugh/cough/throat_clear frame spans when configured; STARSS23 laugh timing is unwired after the 60s scene raster; all other event/style labels remain utterance-scoped",
+    "event_style_policy": "gated DCASE laugh/cough/throat_clear frame spans when configured; STARSS23 laugh timing is unwired after the 60s scene raster onset-shift pass; all other event/style labels remain utterance-scoped",
     "zero_to_duration_is_localization": false,
     "changed_in_this_pr": true
   },
@@ -134,7 +134,7 @@
     },
     "eligible_for_cascade_wiring": false,
     "timestamps_wired": false,
-    "decision": "60s scene raster decoder-validity pass still fails collar F1 >= 0.25; STARSS23 laugh timing remains unwired",
+    "decision": "60s scene raster onset-shift pass still fails collar F1 >= 0.25; STARSS23 laugh timing remains unwired",
     "english_metadata_filter_available": false,
     "language": "unverified",
     "merge_quality_localization": false,
@@ -156,12 +156,12 @@
       "trainable_parameters": 32897,
       "seed": 0,
       "inspection_evaluations": 1,
-      "segment_f1": 0.512396694214876,
+      "segment_f1": 0.37163814180929094,
       "whole_clip_segment_f1": 0.17212490479817213,
-      "segment_f1_margin": 0.3402717894167039,
-      "collar_event_f1": 0.13953488372093023,
+      "segment_f1_margin": 0.1995132370111188,
+      "collar_event_f1": 0.05853658536585366,
       "whole_clip_oracle_tag_collar_event_f1": 0.0,
-      "collar_true_positive": 9,
+      "collar_true_positive": 6,
       "reference_event_count": 48,
       "wiring_gate": {
         "segment_margin_required": 0.05,
@@ -182,14 +182,14 @@
         "reference_event_count": 48
       },
       "epochs_completed": 40,
-      "collar_false_positive": 72,
-      "collar_false_negative": 39,
-      "false_positives_are_short_fragments": true,
-      "remaining_error": "dominant miss is predicted-but-collar-failed (24/39 FN, median overlapping onset error 200 ms); 14/39 gold events the head never fires",
+      "collar_false_positive": 151,
+      "collar_false_negative": 42,
+      "false_positives_are_short_fragments": false,
+      "remaining_error": "dominant miss is predicted-but-collar-failed (32/42 FN, median overlapping onset error 360 ms); 10/42 gold events the head never fires; 0 decoder-suppressed",
       "duration_table": "research/error-analysis/starss23-scene-raster-durations.json",
       "chosen_checkpoint": "40_epoch_unweighted",
       "retrained": false,
-      "decoder_ablation": "research/error-analysis/starss23-decoder-ablation.json",
+      "decoder_ablation": "research/error-analysis/starss23-onset-shift-ablation.json",
       "prior_posweight_decoder_pass": {
         "epochs_completed": 73,
         "segment_f1": 0.3974358974358974,
@@ -201,6 +201,21 @@
         "collar_false_negative": 47,
         "reference_event_count": 48,
         "false_positives_are_short_fragments": false
+      },
+      "prior_decoder_validity_pass": {
+        "chosen_checkpoint": "40_epoch_unweighted",
+        "retrained": false,
+        "segment_f1": 0.512396694214876,
+        "whole_clip_segment_f1": 0.17212490479817213,
+        "segment_f1_margin": 0.3402717894167039,
+        "collar_event_f1": 0.13953488372093023,
+        "collar_true_positive": 9,
+        "collar_false_positive": 72,
+        "collar_false_negative": 39,
+        "reference_event_count": 48,
+        "false_positives_are_short_fragments": true,
+        "remaining_error": "dominant miss is predicted-but-collar-failed (24/39 FN, median overlapping onset error 200 ms); 14/39 gold events the head never fires",
+        "decoder_ablation": "research/error-analysis/starss23-decoder-ablation.json"
       }
     }
   },

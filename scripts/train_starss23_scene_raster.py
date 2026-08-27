@@ -47,9 +47,10 @@ PRIOR_40_EPOCH_PASS = {
 GOLD_DURATION_PERCENTILES = (10,)
 SHORT_FLOOR_MIN_ACTIVE_FRAMES = (1, 2, 3)
 DECODER_HIGH_THRESHOLDS = (0.5, 0.6, 0.7, 0.8, 0.9, 0.95)
-DECODER_LOW_RATIOS = (0.5, 0.7, 0.9)
+DECODER_LOW_RATIOS = (0.2, 0.3, 0.5, 0.7)
 DECODER_GAP_FRAMES = (0, 2, 4, 8)
-DECODER_MEDIAN_WINDOWS = (1, 3)
+DECODER_MEDIAN_WINDOWS = (1,)
+DECODER_ONSET_SHIFTS_MS = (-180, -120, -60, 0)
 OLD_DECODER = {
     "high_threshold": 0.95,
     "low_threshold": 0.855,
@@ -376,6 +377,41 @@ def decoder_span_kwargs(decoder: dict[str, float | int]) -> dict[str, float | in
     }
 
 
+def apply_onset_shift(
+    predictions: list[list[dict[str, Any]]],
+    shift_ms: int,
+    *,
+    duration_ms: int = DURATION_MS,
+) -> list[list[dict[str, Any]]]:
+    """Move predicted start_ms; negative values pull onsets earlier. End is unchanged."""
+    result = []
+    for clip in predictions:
+        shifted = []
+        for event in clip:
+            start = max(0, int(event["start_ms"]) + int(shift_ms))
+            end = min(duration_ms, int(event["end_ms"]))
+            if start < end:
+                shifted.append({**event, "start_ms": start, "end_ms": end})
+        result.append(shifted)
+    return result
+
+
+def decode_spans(
+    probabilities: list[Any],
+    decoder: dict[str, float | int],
+    *,
+    first_frame_center_ms: float,
+    frame_hop_ms: float,
+) -> list[list[dict[str, Any]]]:
+    predictions = hysteresis_spans(
+        probabilities,
+        **decoder_span_kwargs(decoder),
+        first_frame_center_ms=first_frame_center_ms,
+        frame_hop_ms=frame_hop_ms,
+    )
+    return apply_onset_shift(predictions, int(decoder.get("onset_shift_ms", 0)))
+
+
 def collar_recall(collar: dict[str, Any]) -> float:
     true_positive = int(collar["true_positive"])
     false_negative = int(collar["false_negative"])
@@ -401,15 +437,17 @@ def choose_checkpoint_from_ablation(
     return CHECKPOINT_UNWEIGHTED
 
 
-def select_hysteresis_decoder(
+def iter_hysteresis_decoder_candidates(
     probabilities: list[Any],
     references: list[list[dict[str, Any]]],
     *,
     min_active_frames: tuple[int, ...],
     first_frame_center_ms: float,
     frame_hop_ms: float,
-) -> dict[str, float | int]:
-    """Select decoding on validation rooms only. Min-duration candidates come from train gold."""
+) -> list[
+    tuple[tuple[float, float, float], dict[str, float | int], dict[str, Any], dict[str, Any]]
+]:
+    """Score the validation-only decoder grid, including onset shift."""
     if not min_active_frames:
         raise ValueError("min_active_frames must not be empty")
     candidates = []
@@ -425,21 +463,52 @@ def select_hysteresis_decoder(
                             "min_active_frames": minimum,
                             "median_filter_frames": median_filter_frames,
                         }
-                        predictions = hysteresis_spans(
+                        unshifted = hysteresis_spans(
                             probabilities,
                             **decoder_span_kwargs(decoder),
                             first_frame_center_ms=first_frame_center_ms,
                             frame_hop_ms=frame_hop_ms,
                         )
-                        collar = collar_event_metrics(references, predictions)
-                        segment = segment_f1(
-                            references,
-                            predictions,
-                            duration_ms=DURATION_MS,
-                        )
-                        candidates.append(
-                            (decoder_selection_key(collar, segment), decoder, collar, segment)
-                        )
+                        for onset_shift_ms in DECODER_ONSET_SHIFTS_MS:
+                            shifted_decoder = {**decoder, "onset_shift_ms": onset_shift_ms}
+                            predictions = apply_onset_shift(unshifted, onset_shift_ms)
+                            collar = collar_event_metrics(references, predictions)
+                            segment = segment_f1(
+                                references,
+                                predictions,
+                                duration_ms=DURATION_MS,
+                            )
+                            candidates.append(
+                                (
+                                    decoder_selection_key(collar, segment),
+                                    shifted_decoder,
+                                    collar,
+                                    segment,
+                                )
+                            )
+    return candidates
+
+
+def select_hysteresis_decoder(
+    probabilities: list[Any],
+    references: list[list[dict[str, Any]]],
+    *,
+    min_active_frames: tuple[int, ...],
+    first_frame_center_ms: float,
+    frame_hop_ms: float,
+) -> dict[str, float | int]:
+    """Select decoding and onset shift on validation rooms only.
+
+    Min-duration candidates come from train gold. Onset shift is clock
+    calibration of predicted start_ms and is never fit on inspection.
+    """
+    candidates = iter_hysteresis_decoder_candidates(
+        probabilities,
+        references,
+        min_active_frames=min_active_frames,
+        first_frame_center_ms=first_frame_center_ms,
+        frame_hop_ms=frame_hop_ms,
+    )
     selected = max(candidates, key=lambda candidate: candidate[0])
     decoder = selected[1]
     decoder["min_duration_ms"] = round(int(decoder["min_active_frames"]) * frame_hop_ms)
@@ -503,9 +572,9 @@ def evaluate_decoder(
     first_frame_center_ms: float,
     frame_hop_ms: float,
 ) -> dict[str, Any]:
-    predictions = hysteresis_spans(
+    predictions = decode_spans(
         probabilities,
-        **decoder_span_kwargs(decoder),
+        decoder,
         first_frame_center_ms=first_frame_center_ms,
         frame_hop_ms=frame_hop_ms,
     )
@@ -762,6 +831,161 @@ def run_validation_ablation(
     return payload
 
 
+def run_onset_shift_ablation(
+    *,
+    train_rows: list[dict[str, Any]],
+    validation_rows: list[dict[str, Any]],
+    encoder: Any,
+    torch: Any,
+    arguments: Any,
+) -> dict[str, Any]:
+    """Validation-only onset-shift decoder search on the 40-epoch checkpoint."""
+    span_arguments = {
+        "first_frame_center_ms": encoder.first_frame_center_ms,
+        "frame_hop_ms": encoder.frame_hop_ms,
+    }
+    train_gold_durations = gold_event_durations_ms(train_rows)
+    min_active_frames = min_active_frames_from_gold(
+        train_gold_durations,
+        frame_hop_ms=encoder.frame_hop_ms,
+    )
+    p25_cap = max(1, round(duration_percentile_ms(train_gold_durations, 25) / encoder.frame_hop_ms))
+    p50_frames = max(
+        1, round(duration_percentile_ms(train_gold_durations, 50) / encoder.frame_hop_ms)
+    )
+    if max(min_active_frames) > p25_cap:
+        raise RuntimeError("onset-shift min_active grid exceeds train-gold p25")
+    if p50_frames in min_active_frames and p50_frames > p25_cap:
+        raise RuntimeError("train-gold p50 leaked into min_active")
+    if 0.9 in DECODER_LOW_RATIOS:
+        raise RuntimeError("low_ratio 0.9 is banned on the onset-shift pass")
+    if DECODER_MEDIAN_WINDOWS != (1,):
+        raise RuntimeError("median filter must stay locked to 1 frame")
+    if any(shift > 0 for shift in DECODER_ONSET_SHIFTS_MS):
+        raise RuntimeError("onset shift may only move predicted starts earlier or leave them")
+    checkpoint_path = arguments.checkpoint_unweighted
+    if not checkpoint_path.is_file():
+        raise RuntimeError(f"missing 40-epoch checkpoint: {checkpoint_path}")
+    references_validation = [row["events"] for row in validation_rows]
+    validation_x = [encoder(row["_audio"]) for row in validation_rows]
+    head, mean, scale, _payload = load_mlp_checkpoint(checkpoint_path, torch)
+    probabilities = clip_probabilities(head, validation_x, mean, scale, torch)
+    candidates = iter_hysteresis_decoder_candidates(
+        probabilities,
+        references_validation,
+        min_active_frames=min_active_frames,
+        **span_arguments,
+    )
+    selected = max(candidates, key=lambda candidate: candidate[0])
+    decoder = dict(selected[1])
+    decoder["min_duration_ms"] = round(int(decoder["min_active_frames"]) * encoder.frame_hop_ms)
+    decoder["validation_collar_f1"] = float(selected[2]["f1"])
+    decoder["validation_recall"] = selected[0][1]
+    decoder["validation_segment_f1"] = float(selected[3]["f1"])
+    scored = evaluate_decoder(
+        probabilities,
+        references_validation,
+        decoder,
+        **span_arguments,
+    )
+    best_by_shift: dict[int, dict[str, Any]] = {}
+    for key, candidate_decoder, collar, segment in candidates:
+        shift = int(candidate_decoder["onset_shift_ms"])
+        current = {
+            "onset_shift_ms": shift,
+            "decoder": {
+                **candidate_decoder,
+                "min_duration_ms": round(
+                    int(candidate_decoder["min_active_frames"]) * encoder.frame_hop_ms
+                ),
+            },
+            "validation": {
+                "collar_f1": float(collar["f1"]),
+                "recall": collar_recall(collar),
+                "segment_f1": float(segment["f1"]),
+                "true_positive": int(collar["true_positive"]),
+                "false_positive": int(collar["false_positive"]),
+                "false_negative": int(collar["false_negative"]),
+            },
+            "key": key,
+        }
+        previous = best_by_shift.get(shift)
+        if previous is None or key > previous["key"]:
+            best_by_shift[shift] = current
+    cells_evaluated = len(candidates)
+    winner = {
+        "checkpoint_kind": CHECKPOINT_UNWEIGHTED,
+        "checkpoint_path": str(checkpoint_path),
+        "decoder_kind": "onset_shift",
+        "decoder": json_safe_decoder(scored["decoder"]),
+        "validation": {
+            "collar_f1": scored["collar_f1"],
+            "recall": scored["recall"],
+            "segment_f1": scored["segment_f1"],
+            "true_positive": scored["true_positive"],
+            "false_positive": scored["false_positive"],
+            "false_negative": scored["false_negative"],
+        },
+        "reason": (
+            "validation-selected hysteresis plus onset shift on the 40-epoch "
+            "unweighted checkpoint; inspection unused"
+        ),
+    }
+    payload = {
+        "report_version": "1",
+        "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "partition": "development validation rooms only",
+        "validation_rooms": sorted(VALIDATION_ROOMS),
+        "inspection_used": False,
+        "inspection_evaluations": 0,
+        "selection_key": ["collar_f1", "recall", "segment_f1"],
+        "tie_break": "do not break ties by minimizing false positives",
+        "encoder_frozen": True,
+        "retrained": False,
+        "checkpoint_kind": CHECKPOINT_UNWEIGHTED,
+        "checkpoint_path": str(checkpoint_path),
+        "train_gold_duration_ms": duration_summary(train_gold_durations),
+        "decoder_grid": {
+            "min_duration_source": (
+                "short floor 1/2/3 plus train-gold p10; capped at p25; p50 unused"
+            ),
+            "min_active_frames_candidates": list(min_active_frames),
+            "p25_cap_frames": p25_cap,
+            "p50_frames_excluded": p50_frames,
+            "max_gap_frames_candidates": list(DECODER_GAP_FRAMES),
+            "median_filter_frames_candidates": list(DECODER_MEDIAN_WINDOWS),
+            "high_thresholds": list(DECODER_HIGH_THRESHOLDS),
+            "low_ratios": list(DECODER_LOW_RATIOS),
+            "onset_shift_ms_candidates": list(DECODER_ONSET_SHIFTS_MS),
+        },
+        "cells_evaluated": cells_evaluated,
+        "best_by_onset_shift_ms": [
+            {
+                "onset_shift_ms": shift,
+                "decoder": best_by_shift[shift]["decoder"],
+                "validation": best_by_shift[shift]["validation"],
+            }
+            for shift in DECODER_ONSET_SHIFTS_MS
+        ],
+        "winner": winner,
+    }
+    arguments.onset_shift_output.parent.mkdir(parents=True, exist_ok=True)
+    arguments.onset_shift_output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    print(f"Wrote {arguments.onset_shift_output}")
+    print(
+        "Winner decoder "
+        f"high={decoder['high_threshold']} low={decoder['low_threshold']} "
+        f"gap={decoder['max_gap_frames']} min_active={decoder['min_active_frames']} "
+        f"median={decoder['median_filter_frames']} "
+        f"onset_shift_ms={decoder['onset_shift_ms']}; "
+        f"val collar F1={scored['collar_f1']:.4f} "
+        f"recall={scored['recall']:.4f} segment={scored['segment_f1']:.4f} "
+        f"TP/FP/FN={scored['true_positive']}/{scored['false_positive']}/"
+        f"{scored['false_negative']}"
+    )
+    return payload
+
+
 def run_inspection_eval(
     *,
     train_rows: list[dict[str, Any]],
@@ -772,9 +996,14 @@ def run_inspection_eval(
     arguments: Any,
 ) -> None:
     """Score the predeclared ablation winner once on official inspection rooms."""
-    if not arguments.ablation_output.is_file():
-        raise RuntimeError(f"ablation table missing: {arguments.ablation_output}")
-    ablation = json.loads(arguments.ablation_output.read_text(encoding="utf-8"))
+    ablation_path = (
+        arguments.onset_shift_output
+        if arguments.onset_shift_output.is_file()
+        else arguments.ablation_output
+    )
+    if not ablation_path.is_file():
+        raise RuntimeError(f"ablation table missing: {ablation_path}")
+    ablation = json.loads(ablation_path.read_text(encoding="utf-8"))
     if ablation.get("inspection_used") is True:
         raise RuntimeError("ablation table must be validation-only")
     winner = ablation["winner"]
@@ -790,9 +1019,9 @@ def run_inspection_eval(
     references = [row["events"] for row in inspection]
     threshold = float(checkpoint["threshold"])
     direct_predictions = spans(inspection_probabilities, threshold, **span_arguments)
-    predictions = hysteresis_spans(
+    predictions = decode_spans(
         inspection_probabilities,
-        **decoder_span_kwargs(decoder),
+        decoder,
         **span_arguments,
     )
     baseline = whole_clip_predictions(references, duration_ms=DURATION_MS)
@@ -876,7 +1105,7 @@ def run_inspection_eval(
             "retrained": False,
             "chosen_checkpoint": winner["checkpoint_kind"],
             "source_checkpoint": str(checkpoint_path),
-            "note": "decoder-validity pass; head weights were not updated",
+            "note": "onset-shift decoder pass; head weights were not updated",
         },
         "decoder_search": {
             "selected_on": "development validation rooms",
@@ -885,19 +1114,24 @@ def run_inspection_eval(
             ),
             "gold_duration_percentiles": list(GOLD_DURATION_PERCENTILES),
             "train_gold_duration_ms": duration_summary(train_gold_durations),
-            "min_active_frames_candidates": ablation["decoder_grids"]["repaired"][
-                "min_active_frames_candidates"
-            ],
+            "min_active_frames_candidates": (
+                ablation.get("decoder_grid") or ablation["decoder_grids"]["repaired"]
+            )["min_active_frames_candidates"],
             "max_gap_frames_candidates": list(DECODER_GAP_FRAMES),
             "median_filter_frames_candidates": list(DECODER_MEDIAN_WINDOWS),
+            "high_thresholds": list(DECODER_HIGH_THRESHOLDS),
+            "low_ratios": list(DECODER_LOW_RATIOS),
+            "onset_shift_ms_candidates": list(DECODER_ONSET_SHIFTS_MS),
+            "onset_shift_selected_on": "development validation rooms",
             "selection_key": ["collar_f1", "recall", "segment_f1"],
             "inspection_used": False,
-            "ablation": str(arguments.ablation_output),
+            "ablation": str(ablation_path),
         },
         "decoder_ablation": {
-            "path": str(arguments.ablation_output),
+            "path": str(ablation_path),
             "winner": winner,
-            "cells": ablation["cells"],
+            "cells": ablation.get("cells"),
+            "best_by_onset_shift_ms": ablation.get("best_by_onset_shift_ms"),
         },
         "inspection_test": {
             "designation": "official dev-test rooms; never used for fitting or threshold selection",
@@ -941,6 +1175,23 @@ def run_inspection_eval(
                 "median_filter_frames": 5,
             },
         },
+        "prior_decoder_validity_pass": {
+            "chosen_checkpoint": CHECKPOINT_UNWEIGHTED,
+            "segment_f1": 0.512396694214876,
+            "whole_clip_segment_f1": 0.17212490479817213,
+            "collar_event_f1": 0.13953488372093023,
+            "collar_true_positive": 9,
+            "collar_false_positive": 72,
+            "collar_false_negative": 39,
+            "reference_event_count": 48,
+            "decoder": {
+                "high_threshold": 0.95,
+                "low_threshold": 0.855,
+                "max_gap_frames": 0,
+                "min_active_frames": 1,
+                "median_filter_frames": 3,
+            },
+        },
         "cascade_wiring": {
             **gate,
             "timestamps_wired": gate_passed,
@@ -951,7 +1202,7 @@ def run_inspection_eval(
             "decision": (
                 "wire STARSS23 laugh timing from the 60s scene raster"
                 if gate_passed
-                else "leave STARSS23 unwired; repaired decoder did not clear the collar gate"
+                else "leave STARSS23 unwired; onset-shift decoder did not clear the collar gate"
             ),
         },
         "runtime": {
@@ -978,7 +1229,7 @@ def run_inspection_eval(
         "partition": "official_dev_test_inspection",
         "audio_committed": False,
         "chosen_checkpoint": winner["checkpoint_kind"],
-        "decoder_ablation": str(arguments.ablation_output),
+        "decoder_ablation": str(ablation_path),
         "this_pass": durations,
         "this_pass_collar": {
             "true_positive": int(temporal_collar["true_positive"]),
@@ -1063,9 +1314,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=("train", "ablation", "inspect"),
+        choices=("train", "ablation", "onset-shift", "inspect"),
         default="train",
-        help="train, validation-only decoder ablation, or one inspection eval",
+        help="train, validation-only decoder ablation, onset-shift search, or one inspection eval",
     )
     parser.add_argument(
         "--checkpoint-unweighted",
@@ -1081,6 +1332,11 @@ def main() -> None:
         "--ablation-output",
         type=Path,
         default=Path("research/error-analysis/starss23-decoder-ablation.json"),
+    )
+    parser.add_argument(
+        "--onset-shift-output",
+        type=Path,
+        default=Path("research/error-analysis/starss23-onset-shift-ablation.json"),
     )
     parser.add_argument("--epochs", type=int, default=400)
     parser.add_argument("--patience", type=int, default=25)
@@ -1110,6 +1366,15 @@ def main() -> None:
     )
     if arguments.mode == "ablation":
         run_validation_ablation(
+            train_rows=train_rows,
+            validation_rows=validation_rows,
+            encoder=encoder,
+            torch=torch,
+            arguments=arguments,
+        )
+        return
+    if arguments.mode == "onset-shift":
+        run_onset_shift_ablation(
             train_rows=train_rows,
             validation_rows=validation_rows,
             encoder=encoder,
@@ -1228,9 +1493,9 @@ def main() -> None:
         min_active_frames=min_active_frames,
         **span_arguments,
     )
-    predictions = hysteresis_spans(
+    predictions = decode_spans(
         inspection_probabilities,
-        **decoder_span_kwargs(decoder),
+        decoder,
         **span_arguments,
     )
     baseline = whole_clip_predictions(references, duration_ms=DURATION_MS)
