@@ -2,8 +2,9 @@ model_id: sensevoice_small
 model_name: SenseVoice-Small
 provider: FunAudioLLM
 source_url: https://huggingface.co/FunAudioLLM/SenseVoiceSmall
-revision: null
-checkpoint_hash: null
+revision: 3847d57b6bdf2dd8875cb1508d2af43d80a16bf7
+checkpoint_hash:
+  model.pt: 833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea
 source_code:
   licence: MIT
   url: https://github.com/FunAudioLLM/SenseVoice
@@ -17,7 +18,7 @@ licence:
     - https://github.com/QwenAudio/SenseVoice/issues/334
     - https://github.com/FunAudioLLM/SenseVoice/issues/287
 redistribution_status: not_authorised_by_this_review
-downloaded_at: null
+downloaded_at: "2026-08-27"
 notes:
   - This review permits downloading the official weights for internal baseline runs only.
   - It does not authorise fine-tuning or public redistribution of weights.

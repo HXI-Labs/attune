@@ -2,8 +2,10 @@ model_id: whisper_small
 model_name: Whisper-Small
 provider: OpenAI
 source_url: https://huggingface.co/openai/whisper-small
-revision: null
-checkpoint_hash: null
+revision: 973afd24965f72e36ca33b3055d56a652f456b4d
+checkpoint_hash:
+  model.safetensors: 1d7734884874f1a1513ed9aa760a4f8e97aaa02fd6d93a3a85d27b2ae9ca596b
+  pytorch_model.bin: ea40d8f6c99cada3695b9ddec20d5ee228a58292650b79c94d8600f567bf9b37
 upstream_project:
   url: https://github.com/openai/whisper
   licence: MIT
@@ -16,7 +18,7 @@ licence:
   reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
   reviewed_at: "2026-08-26"
 redistribution_status: not_authorised_by_this_review
-downloaded_at: null
+downloaded_at: "2026-08-27"
 notes:
   - This review permits downloading the official weights for internal baseline runs only.
   - It does not authorise fine-tuning or public redistribution of weights.

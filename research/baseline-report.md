@@ -467,6 +467,33 @@ or fine-tunes an encoder. The probe checkpoint is intentionally gitignored;
 if unavailable, the machine report records that step as blocked rather than
 retraining.
 
+The offline run completed from commit `618184c` with no model or clip failures.
+Both checkpoints match the hashes used by the earlier Common Voice run.
+
+| Runner | CREMA-D clips | WER | CER | Affect accuracy | Affect macro-F1 |
+|---|---:|---:|---:|---:|---:|
+| Whisper-Small | 60/60 | 0.1967 | 0.2877 | 0.0000 | 0.0000 |
+| SenseVoiceSmall | 60/60 | 0.1900 | 0.2561 | 0.0000 | 0.0000 |
+
+Whisper labelled all 60 affect outputs `neutral`. SenseVoice labelled 58
+`neutral` and two `distress`; none matched the balanced weak ANG/FEA/DIS
+references. These are categorical output checks, not evidence that acted
+emotion categories are internal states. The comparison also does not isolate
+speaker, sentence, or intensity effects.
+
+SenseVoice AED detected `sob` on 8/25 (0.32) `Crying_and_sobbing` clips. It
+emitted no matching `shouting` or `whispering` style tags on the respective
+25-clip classes. The 25 `Screaming` clips have no Attune shouting target and
+remain a separate reported source class. The released AED inventory and this
+adapter do not expose a scream target.
+
+The frozen SenseVoice encoder probe evaluation is explicitly incomplete:
+status `blocked_missing_existing_checkpoint`. The trained linear head from the
+earlier probe is correctly gitignored and was not present on this VM. No new
+head was trained, the encoder was not fine-tuned, and no checkpoint was
+committed. Exact outputs, checkpoint hashes, runtime, failures, and the blocked
+status are in `research/licence-clean-inspection-results.json`.
+
 RAVDESS, SAVEE, DEED, EmoV-DB, and MSP-Podcast remain gated and were not
 downloaded. The existing Ghanaian-English NC research-only slice was not
 expanded. Human listening, reviewed gold labels, localization, calibration,
