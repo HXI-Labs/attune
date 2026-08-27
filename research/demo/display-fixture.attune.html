@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Attune cascade demo</title>
+  <style>
+    :root { font-family: ui-sans-serif, system-ui, sans-serif; color: #1f2328; }
+    body { margin: 1.5rem auto; max-width: 920px; line-height: 1.45; }
+    h1 { font-size: 1.25rem; margin-bottom: 0.3rem; }
+    .muted, .note { color: #656d76; }
+    .banner { background: #fff8c5; border: 1px solid #d4a72c; padding: 0.6rem 0.75rem; }
+    audio { width: 100%; margin: 0.75rem 0; }
+    .legend span { display: inline-block; margin-right: 1rem; }
+    .swatch { display: inline-block; width: 0.9rem; height: 0.9rem;
+      vertical-align: -0.1rem; margin-right: 0.3rem; }
+    .swatch.frame-local { background: #1f6feb; }
+    .swatch.utterance-scope {
+      background: repeating-linear-gradient(135deg, #d0d7de 0 5px, #f6f8fa 5px 10px);
+      border: 1px dashed #656d76;
+    }
+    .track { margin: 0.85rem 0 1.1rem; }
+    .track h2 { font-size: 0.85rem; text-transform: uppercase;
+      letter-spacing: 0.04em; margin: 0 0 0.35rem; }
+    .rail { position: relative; height: 2.4rem; background: #f6f8fa; border: 1px solid #d0d7de; }
+    .span {
+      position: absolute; top: 0.25rem; bottom: 0.25rem; overflow: hidden;
+      font-size: 0.75rem; padding: 0.15rem 0.35rem; box-sizing: border-box; white-space: nowrap;
+    }
+    .span.frame-local { background: #1f6feb; color: #fff; }
+    .span.utterance-scope {
+      background: repeating-linear-gradient(135deg, #d0d7de 0 6px, #eaeef2 6px 12px);
+      border: 1px dashed #656d76; color: #1f2328;
+    }
+    .span.word { background: #ddf4ff; border: 1px solid #54aeff; color: #0a3069; }
+    .playhead {
+      position: absolute; top: 0; bottom: 0; width: 2px; background: #cf222e; pointer-events: none;
+    }
+    .empty { color: #656d76; font-size: 0.85rem; padding: 0.45rem; }
+    dl.meta { display: grid; grid-template-columns: 10rem 1fr; gap: 0.2rem 0.75rem; }
+    code { font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Attune cascade demo</h1>
+  <p class="muted">Authoritative JSON is separate. This page only projects validated spans.</p>
+  <p class="banner">Display fixture: example frame-local laugh/cough vs hatched utterance-scope bars. Not cascade output and not a DCASE run.</p><p class="banner">Solid bars are DCASE frame spans for laugh/cough/throat_clear that do not cover the whole clip. Hatched full-width bars remain utterance scope.</p>
+  <audio controls preload="metadata" src="isolated-demo.wav"></audio>
+  <p class="legend">
+    <span><i class="swatch frame-local"></i>Frame-local laugh/cough/throat_clear</span>
+    <span><i class="swatch utterance-scope"></i>Utterance scope — <em>not</em> localization</span>
+  </p>
+  <section class="track"><h2>Words</h2><div class="rail"><div class="span word" style="left:6.000%;width:9.500%" title="okay 240–620 ms">okay</div></div></section>
+  <section class="track"><h2>Frame-local events</h2><div class="rail"><div class="span frame-local" style="left:20.000%;width:15.000%" title="laugh 800–1400 ms (frame-local)">laugh 800–1400ms</div><div class="span frame-local" style="left:55.000%;width:12.000%" title="cough 2200–2680 ms (frame-local)">cough 2200–2680ms</div></div></section><section class="track"><h2>Utterance-scope events (not localization)</h2><div class="rail"><div class="span utterance-scope" style="left:0.000%;width:100.000%" title="sigh 0–4000 ms (utterance-scope)">sigh 0–4000ms</div></div></section>
+  <section class="track"><h2>Utterance-scope styles (not localization)</h2><div class="rail"><div class="span utterance-scope" style="left:0.000%;width:100.000%" title="shouting 0–4000 ms (utterance-scope)">shouting 0–4000ms</div></div></section>
+  <h2>Transcript</h2>
+  <p>okay</p>
+  <h2>Affect</h2>
+  <dl class="meta">
+    <dt>top label</dt><dd>abstain</dd>
+    <dt>abstain</dt><dd>true</dd>
+    <dt>span</dt><dd>0–4000 ms (utterance scope)</dd>
+    <dt>model</dt><dd><code>attune-demo-display-fixture</code></dd>
+  </dl>
+  <script id="attune-timeline" type="application/json">{"duration_ms":4000,"events":[{"id":"e1","channel":"event","label":"laugh","start_ms":800,"end_ms":1400,"confidence":0.91,"kind":"frame-local"},{"id":"e2","channel":"event","label":"cough","start_ms":2200,"end_ms":2680,"confidence":0.87,"kind":"frame-local"},{"id":"e3","channel":"event","label":"sigh","start_ms":0,"end_ms":4000,"confidence":0.31,"kind":"utterance-scope"}],"styles":[{"id":"s1","channel":"style","label":"shouting","start_ms":0,"end_ms":4000,"confidence":0.22,"kind":"utterance-scope"}],"words":[{"id":"w1","text":"okay","start_ms":240,"end_ms":620}]}</script>
+  <script>
+    const data = JSON.parse(document.getElementById("attune-timeline").textContent);
+    const audio = document.querySelector("audio");
+    const rails = Array.from(document.querySelectorAll(".rail"));
+    rails.forEach((rail) => {
+      const head = document.createElement("div");
+      head.className = "playhead";
+      head.style.left = "0%";
+      rail.appendChild(head);
+      rail.addEventListener("click", (event) => {
+        if (!audio || !data.duration_ms) return;
+        const box = rail.getBoundingClientRect();
+        const ratio = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
+        audio.currentTime = (ratio * data.duration_ms) / 1000;
+      });
+    });
+    if (audio) {
+      const move = () => {
+        const ratio = data.duration_ms ? (audio.currentTime * 1000) / data.duration_ms : 0;
+        document.querySelectorAll(".playhead").forEach((head) => {
+          head.style.left = (Math.min(1, Math.max(0, ratio)) * 100).toFixed(3) + "%";
+        });
+      };
+      audio.addEventListener("timeupdate", move);
+      audio.addEventListener("seeked", move);
+    }
+  </script>
+</body>
+</html>
+

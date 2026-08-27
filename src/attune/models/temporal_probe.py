@@ -21,6 +21,56 @@ TEMPORAL_LABELS = {
     "cough": EventLabel.COUGH,
     "throat_clear": EventLabel.THROAT_CLEAR,
 }
+DCASE_DATASET = "dcase2016_task2"
+STARSS23_DATASET = "starss23"
+DCASE_LABELS = ("laugh", "cough", "throat_clear")
+
+
+def read_temporal_checkpoint(checkpoint: Path) -> dict[str, Any]:
+    """Load temporal-head metadata without constructing the frozen encoder."""
+    if importlib.util.find_spec("torch") is None:
+        raise RuntimeError("temporal checkpoint inspection requires torch")
+    import torch
+
+    payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    required = {
+        "head_state_dict",
+        "feature_mean",
+        "feature_scale",
+        "labels",
+        "threshold",
+        "dataset",
+        "embedding",
+        "encoder_frozen",
+        "gate",
+    }
+    if not isinstance(payload, dict) or not required <= payload.keys():
+        raise RuntimeError("temporal checkpoint has an unsupported payload")
+    return payload
+
+
+def dcase_checkpoint_acceptance(payload: dict[str, Any]) -> tuple[bool, str | None]:
+    """Accept only a DCASE overlap head that passed its held-out wiring gate."""
+    dataset = payload.get("dataset")
+    if dataset == STARSS23_DATASET:
+        return False, "STARSS23 timestamps stay unwired; refuse non-DCASE temporal heads"
+    if dataset != DCASE_DATASET:
+        return False, f"temporal checkpoint dataset is not DCASE: {dataset!r}"
+    if tuple(payload.get("labels") or ()) != DCASE_LABELS:
+        return False, "DCASE temporal checkpoint labels must be laugh, cough, throat_clear"
+    if payload.get("embedding") != SENSEVOICE_FRAME_EMBEDDING:
+        return False, "temporal checkpoint uses the wrong frame embedding"
+    if payload.get("encoder_frozen") is not True:
+        return False, "temporal checkpoint does not attest a frozen encoder"
+    gate = payload.get("gate")
+    if not isinstance(gate, dict) or gate.get("passed") is not True:
+        return False, "temporal checkpoint did not pass the held-out wiring gate"
+    try:
+        if float(gate["margin_observed"]) < float(gate["margin_required"]):
+            return False, "temporal checkpoint margin is below its wiring requirement"
+    except (KeyError, TypeError, ValueError):
+        return False, "DCASE temporal checkpoint gate is missing margin fields"
+    return True, None
 
 
 class FrozenTemporalProbeHead:
