@@ -134,3 +134,35 @@ mirror revision, cache path, and fetch script. The source is Mozilla Common
 Voice under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
 Mozilla Common Voice attribution is retained voluntarily. Do not attempt to
 determine speaker identities. No audio is committed.
+
+## Licence-clean event and affect expansion
+
+`licence-clean-inspection.jsonl` adds 160 individually fetched, converted, and
+SHA-256-hashed clips:
+
+- 25 each of FSD50K `Shout`, `Whispering`, `Crying_and_sobbing`, and
+  `Screaming` (100 clips total); and
+- 20 CREMA-D actors × `ANG`, `FEA`, and `DIS` (60 clips), using actors absent
+  from the original 70-clip inspection set.
+
+The FSD50K selector downloads only the official 6.7 MB metadata and 335 KB
+ground-truth archives first. It rejects every clip whose own Freesound licence
+is not CC0 or CC BY before constructing an individual audio URL. It never
+downloads the full FSD50K audio archive. Uploader, clip licence, title, source
+class, FSD50K curation attribution, and the pinned transport revision are
+retained per row. CC BY-NC and Sampling+ clips are ineligible.
+
+```bash
+# Fetch only the 160 selected files, with finite retry/backoff, and convert.
+uv run python scripts/prepare_licence_clean_inspection.py --download
+
+# Offline hash and audio-contract verification.
+uv run python scripts/prepare_licence_clean_inspection.py
+```
+
+All output audio is mono 16 kHz PCM16 under ignored
+`data/raw/licence-clean-inspection/`. The FSD50K transport is a pinned
+per-file mirror because original Freesound downloads require OAuth; official
+FSD50K metadata remains the licence and attribution authority.
+`licence-clean-inspection.provenance.json` records the manifest hash, class and
+licence counts, revisions, and selection rules.

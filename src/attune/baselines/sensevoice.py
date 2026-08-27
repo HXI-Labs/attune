@@ -6,7 +6,14 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from attune.schema.output import EventLabel, Status, StyleLabel, VocalEvent, VocalStyle
+from attune.schema.output import (
+    AffectCategory,
+    EventLabel,
+    Status,
+    StyleLabel,
+    VocalEvent,
+    VocalStyle,
+)
 
 UNKNOWN_CONFIDENCE = 0.0
 
@@ -38,6 +45,17 @@ _STYLE_LABELS = {
     "shouting": StyleLabel.SHOUTING,
     "shout": StyleLabel.SHOUTING,
 }
+_AFFECT_LABELS = {
+    "neutral": AffectCategory.NEUTRAL,
+    "happy": AffectCategory.JOY,
+    "sad": AffectCategory.DISTRESS,
+    "angry": AffectCategory.ANGER,
+    "fearful": AffectCategory.FEAR,
+    "fear": AffectCategory.FEAR,
+    "surprised": AffectCategory.SURPRISE,
+    "surprise": AffectCategory.SURPRISE,
+    "disgusted": AffectCategory.OTHER,
+}
 _STRUCTURED_EVENT_KEYS = ("events", "event", "aed", "audio_events", "audio_event")
 
 
@@ -45,7 +63,7 @@ _STRUCTURED_EVENT_KEYS = ("events", "event", "aed", "audio_events", "audio_event
 class SenseVoiceAnnotation:
     """One ontology label extracted from SenseVoice output."""
 
-    label: EventLabel | StyleLabel
+    label: EventLabel | StyleLabel | AffectCategory
     confidence: float = UNKNOWN_CONFIDENCE
 
 
@@ -56,6 +74,7 @@ class SenseVoiceOutput:
     transcript: str
     events: tuple[SenseVoiceAnnotation, ...]
     styles: tuple[SenseVoiceAnnotation, ...]
+    affect: tuple[SenseVoiceAnnotation, ...]
 
 
 def parse_sensevoice_output(result: Any) -> SenseVoiceOutput:
@@ -88,12 +107,15 @@ def parse_sensevoice_output(result: Any) -> SenseVoiceOutput:
 
     events: dict[EventLabel, float] = {}
     styles: dict[StyleLabel, float] = {}
+    affect: dict[AffectCategory, float] = {}
     for raw_label, confidence in candidates:
         normalized = _normalize_label(raw_label)
         if event_label := _EVENT_LABELS.get(normalized):
             events[event_label] = max(events.get(event_label, 0.0), confidence)
         if style_label := _STYLE_LABELS.get(normalized):
             styles[style_label] = max(styles.get(style_label, 0.0), confidence)
+        if affect_label := _AFFECT_LABELS.get(normalized):
+            affect[affect_label] = max(affect.get(affect_label, 0.0), confidence)
         if transcript and (speech_style := _SPEECH_STYLE_LABELS.get(normalized)):
             styles[speech_style] = max(styles.get(speech_style, 0.0), confidence)
 
@@ -106,6 +128,10 @@ def parse_sensevoice_output(result: Any) -> SenseVoiceOutput:
         styles=tuple(
             SenseVoiceAnnotation(label=label, confidence=confidence)
             for label, confidence in styles.items()
+        ),
+        affect=tuple(
+            SenseVoiceAnnotation(label=label, confidence=confidence)
+            for label, confidence in affect.items()
         ),
     )
 

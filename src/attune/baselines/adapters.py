@@ -228,7 +228,14 @@ class SenseVoiceSmallAdapter(BaselineAdapter):
                 input=str(item.audio_path), cache={}, language="auto"
             )
         parsed = parse_sensevoice_output(result)
-        category, distribution = TranscriptSentimentAdapter().classify(parsed.transcript)
+        if parsed.affect:
+            category = parsed.affect[0].label
+            if not isinstance(category, AffectCategory):
+                raise RuntimeError("SenseVoice affect tag mapped outside the affect ontology")
+            distribution = {label: 0.01 for label in AffectCategory}
+            distribution[category] = 0.93
+        else:
+            category, distribution = TranscriptSentimentAdapter().classify(parsed.transcript)
         output = build_partial_output(
             item,
             model_name=self.name,

@@ -435,3 +435,40 @@ Exact checkpoint revisions and hashes are in the machine-readable result. No
 fine-tuning occurred. This accent slice does not evaluate affect, events,
 localization, calibration, abstention, or OOD robustness; it does not pass the
 gate, and the gate remains closed.
+
+## Licence-clean event and affect expansion
+
+This packed inspection revision adds 100 individually fetched FSD50K clips
+(25 each of `Shout`, `Whispering`, `Crying_and_sobbing`, and `Screaming`) plus
+60 CREMA-D clips (20 actors × `ANG`, `FEA`, and `DIS`). All audio is mono
+16 kHz PCM16 under gitignored `data/raw/`; every selected converted file has a
+SHA-256 in `data/manifests/licence-clean-inspection.jsonl`.
+
+FSD50K selection used official ground truth and clip metadata before any audio
+fetch. Only individual Freesound clips licensed CC0 or CC BY were eligible:
+16 CC0 and 84 CC BY clips were selected. Uploader attribution is retained per
+row. CC BY-NC and Sampling+ were excluded, and no full FSD50K audio archive was
+downloaded. FSD50K curation and annotations remain attributed to Fonseca et
+al. under CC BY 4.0.
+
+The weak-label boundary is explicit: FSD50K `Shout` is a standalone sound, not
+speech-embedded shouting; `Whispering` maps weakly to `whispering`;
+`Crying_and_sobbing` maps to `sob`, not `crying_speech`; and `Screaming`
+remains separate. CREMA-D intensity remains source metadata and is never
+mapped to shouting or whispering. CREMA-D has no surprise source category.
+Its 20 expansion actors are disjoint from the original 70-clip inspection set.
+
+The evaluation script runs reviewed, pinned OpenAI Whisper-Small and
+SenseVoiceSmall by FunASR/FunAudioLLM offline after checkpoint fetch. It
+reports Whisper-versus-SenseVoice WER/CER and categorical affect on CREMA-D,
+SenseVoice AED tags on FSD50K, and can run an already-trained frozen
+SenseVoice event-probe head as an OOD diagnostic. It never trains a new head
+or fine-tunes an encoder. The probe checkpoint is intentionally gitignored;
+if unavailable, the machine report records that step as blocked rather than
+retraining.
+
+RAVDESS, SAVEE, DEED, EmoV-DB, and MSP-Podcast remain gated and were not
+downloaded. The existing Ghanaian-English NC research-only slice was not
+expanded. Human listening, reviewed gold labels, localization, calibration,
+abstention/OOD thresholds, and an approved gate decision remain incomplete.
+The gate remains **CLOSED**.

@@ -58,23 +58,54 @@ Its database is licensed under
 contents under the Database Contents License. Attribution and database
 ShareAlike obligations must be preserved.
 
+## Licence-clean expansion
+
+`data/manifests/licence-clean-inspection.jsonl` adds 100 FSD50K event/style
+clips and 60 CREMA-D affect clips. The FSD50K slice is balanced at 25 clips
+each for `Shout`, `Whispering`, `Crying_and_sobbing`, and `Screaming`. All 100
+were selected from official metadata only after their individual Freesound
+licences were confirmed as CC0 (16) or CC BY (84). Every row preserves the
+uploader attribution. CC BY-NC and Sampling+ clips were excluded before audio
+fetch, and no full FSD50K audio archive was downloaded.
+
+These are weak labels with deliberately narrow mappings:
+
+- `Shout → shouting`, but the clips are standalone Freesound shouts, not
+  evidence of speech-embedded shouting;
+- `Whispering → whispering`;
+- `Crying_and_sobbing → sob`, never `crying_speech` unless human review finds
+  actual speech with crying; and
+- `Screaming` stays separate, with no automatic mapping to `shouting`.
+
+FSD50K's curation and annotations are CC BY 4.0; each audio clip retains its
+own licence. The selected audio uses only clip-level CC0 or CC BY. The
+per-file transport mirror is pinned at revision
+`812caa9897ee9e0e9a3b0ce075f7d70f14fa6460`; official FSD50K metadata remains
+the licence and attribution authority.
+
+The CREMA-D expansion adds `ANG → anger`, `FEA → fear`, and `DIS → other` for
+20 actors absent from the original 70-clip set. CREMA-D has no surprise source
+category. `HI` remains source intensity metadata only and is not mapped to
+shouting, whispering, or vocal effort.
+
 ## What this subset still lacks
 
 This first set does **not** cover:
 
 - Ghanaian English or verified British English;
-- crying speech or sob events;
-- verified shouting or whispering;
+- crying speech (the new clips cover standalone sob events only);
+- human-verified speech-embedded shouting or whispering;
 - true quiet high-effort speech or a defensible loud-neutral contrast;
 - naturalistic, spontaneous affect;
 - inline vocal events within speech;
-- source-labelled fear, anger, surprise, or ambiguous delivery; or
+- source-labelled surprise or ambiguous delivery; or
 - independently reviewed recording-level, clipping, transcript-polarity, and
   source-label correctness.
 
-RAVDESS, Ghana English ASR, SAVEE, DEED, EmoV-DB, and MSP-Podcast were not
-downloaded or included. Filling the listed gaps requires a separate
-licence/consent decision and a new manifest revision.
+RAVDESS, SAVEE, DEED, EmoV-DB, and MSP-Podcast remain gated and were not
+downloaded or included. Ghana English ASR remains the existing NC
+research-only in-repository slice and was not expanded. Filling the listed
+gaps requires a separate licence/consent decision and a new manifest revision.
 
 ## Review boundary
 
