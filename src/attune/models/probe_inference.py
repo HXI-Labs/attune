@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from attune.calibration import TemperatureCalibration, calibration_from_payload
 from attune.models.probe_abstention import (
     accepts,
     checkpoint_abstention,
@@ -98,11 +99,13 @@ class FrozenLinearProbeHead:
         checkpoint: Path,
         encoder: FrozenEncoderProvider,
         label_mapping: dict[str, tuple[AnnotationChannel, EventLabel | StyleLabel]],
+        calibration: TemperatureCalibration | None = None,
     ) -> None:
         self.name = name
         self.checkpoint = checkpoint
         self.encoder = encoder
         self.label_mapping = label_mapping
+        self.calibration = calibration
         self._head: Any | None = None
         self._payload: dict[str, Any] | None = None
 
@@ -119,22 +122,43 @@ class FrozenLinearProbeHead:
             features = extractor(audio_path)
             normalized = (features - payload["feature_mean"]) / payload["feature_scale"]
             logits = head(normalized.unsqueeze(0))
-            probabilities = torch.softmax(logits, dim=1)[0]
+            raw_probabilities = torch.softmax(logits, dim=1)[0]
         method, threshold = checkpoint_abstention(payload)
         if method == "none_logit":
             none_index = len(payload["labels"])
-            index = int(probabilities[:none_index].argmax())
+            index = int(raw_probabilities[:none_index].argmax())
             score = float(
-                probabilities[:none_index].max() - probabilities[none_index]
+                raw_probabilities[:none_index].max() - raw_probabilities[none_index]
             )
             abstained = not accepts(score, threshold)
         else:
             score = float(confidence_scores(logits, method, torch)[0])
             abstained = not accepts(score, threshold)
-            index = int(probabilities.argmax())
+            index = int(raw_probabilities.argmax())
         source_label = payload["labels"][index]
         channel, label = self.label_mapping[source_label]
-        confidence = float(probabilities[index])
+        probability_labels = [
+            *payload["labels"],
+            *(["none"] if method == "none_logit" else []),
+        ]
+        raw_distribution = dict(
+            zip(probability_labels, raw_probabilities.tolist(), strict=True)
+        )
+        calibration = self.calibration
+        if calibration is not None and calibration.labels != tuple(probability_labels):
+            raise RuntimeError(f"{self.name} calibration labels do not match checkpoint")
+        calibration_payload = payload.get("calibration")
+        if calibration is None and isinstance(calibration_payload, dict):
+            calibration = calibration_from_payload(
+                calibration_payload,
+                expected_labels=probability_labels,
+            )
+        calibrated_distribution = (
+            calibration.probabilities(logits[0].tolist())
+            if calibration is not None
+            else raw_distribution
+        )
+        confidence = calibrated_distribution[source_label]
         return ProbePrediction(
             annotations=(
                 () if abstained else (ProbeAnnotation(channel, label, confidence),)
@@ -147,25 +171,41 @@ class FrozenLinearProbeHead:
                 "mapped_label": None if abstained else label.value,
                 "confidence": confidence,
                 "confidence_role": (
-                    "diagnostic closed-set softmax; not reviewed gold"
+                    "validation-temperature-scaled probability; not reviewed gold"
+                    if calibration is not None
+                    else "diagnostic uncalibrated softmax; not reviewed gold"
+                ),
+                "calibration_method": (
+                    "temperature_scaling" if calibration is not None else None
+                ),
+                "calibration_temperature": (
+                    calibration.temperature if calibration is not None else None
+                ),
+                "calibration_fitted_on": (
+                    calibration.fitted_on if calibration is not None else None
                 ),
                 "abstained": abstained,
                 "abstention_method": method,
                 "abstention_score": score,
                 "abstention_threshold": threshold,
                 "abstention_rule": "emit when score >= threshold",
+                "abstention_score_uses_uncalibrated_margin": True,
                 "energy": -score if method == "energy" else None,
                 "class_probabilities": {
-                    source: float(probability)
-                    for source, probability in zip(
-                        payload["labels"],
-                        probabilities[: len(payload["labels"])].tolist(),
-                        strict=True,
-                    )
+                    source: calibrated_distribution[source]
+                    for source in payload["labels"]
+                },
+                "uncalibrated_class_probabilities": {
+                    source: raw_distribution[source] for source in payload["labels"]
                 },
                 "none_probability": (
-                    float(probabilities[-1]) if method == "none_logit" else None
+                    calibrated_distribution["none"] if method == "none_logit" else None
                 ),
+                "uncalibrated_none_probability": (
+                    raw_distribution["none"] if method == "none_logit" else None
+                ),
+                "calibration_labels": probability_labels,
+                "uncalibrated_logits": [float(value) for value in logits[0].tolist()],
                 "encoder_frozen": True,
                 "embedding": SENSEVOICE_EMBEDDING,
                 "span_scope": "utterance",

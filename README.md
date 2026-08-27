@@ -25,13 +25,11 @@ near-real-time inference, with INT8 quantization evaluated later.
 
 ## Stage gate
 
-**14-day gate: no large fine-tuning until a baseline report exists.** Phase 1
-must first produce `research/baseline-report.md` with transcript, timing,
-ontology, calibration, abstention, runtime, and subgroup/error-slice results.
-Only then may the project decide whether probes, joint training, or another
-approach are justified. The model-licence review does not bypass this gate: it
-does not authorise fine-tuning, public weight redistribution, or MSP-Podcast
-use, whose review remains pending.
+Phase 1 closure is tracked in `research/phase1-close.md`. The gold gate remains
+closed: current event/style targets are weak source labels and their existing
+spans are whole utterances, not localization. Third-party model/data licences
+remain independent, public weight redistribution is not authorized, and
+MSP-Podcast use remains pending review.
 
 ## Quick start
 

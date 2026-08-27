@@ -1,0 +1,51 @@
+dataset_id: dcase2016_task2_synthetic_sed
+name: IEEE DCASE 2016 Task 2 - Synthetic Audio Sound Event Detection
+provider: IRCCYN / Ecole Centrale de Nantes
+official_task_url: https://dcase.community/challenge2016/task-sound-event-detection-in-synthetic-audio
+licence_review:
+  status: reviewed_for_bounded_phase1_localization
+  reviewed_at: "2026-08-27"
+  basis:
+    - url: https://dcase-repo.github.io/dcase_datalist/datasets/sounds/dcase2016_task2_dev.html
+      statement: Train/development audio and strong annotations are CC BY 3.0.
+    - url: https://archive.org/details/dcase2016_task2_train_dev
+      statement: Official-provider mirror records CC BY 3.0.
+    - url: https://archive.org/details/dcase2016_task2_test_public
+      statement: Official-provider public test mirror with annotations records CC BY 4.0.
+  annotation_granularity:
+    type: strong onset/offset
+    source: synthetic event sequence
+    overlapping_events: true
+  relevant_attune_labels:
+    clearthroat: throat_clear
+    cough: cough
+    laughter: laugh
+  excluded_source_labels:
+    - doorslam
+    - drawer
+    - keyboard
+    - keys
+    - knock
+    - pageturn
+    - phone
+    - speech
+  redistribution: permitted with attribution under the recorded Creative Commons terms
+archives:
+  train_development:
+    url: https://archive.org/download/dcase2016_task2_train_dev/dcase2016_task2_train_dev.zip
+    bytes: 125450464
+    md5: 4e1b5e8887159193e8624dec801eb9e7
+    licence: CC-BY-3.0
+  public_test_with_annotations:
+    url: https://archive.org/download/dcase2016_task2_test_public/dcase2016_task2_test_public.zip
+    bytes: 328618451
+    md5: ac98768b39a08fc0c6c2ddd15a981dd7
+    licence: CC-BY-4.0
+constraints:
+  - Use only a bounded 80-150 derived-clip inspection manifest.
+  - Keep downloaded archives and derived audio gitignored.
+  - Do not call synthetic strong labels natural in-the-wild gold.
+  - Keep development and public-test source recordings disjoint.
+attribution: >-
+  IEEE DCASE 2016 Challenge Task 2 dataset by Grégoire Lafay (IRCCYN,
+  Ecole Centrale de Nantes); Mesaros et al. 2018 and Lafay et al. 2017.

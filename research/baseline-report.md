@@ -1,82 +1,61 @@
 # Phase 1 baseline report
 
-**Status: fixture smoke-test complete; licensed, speaker-disjoint gold
-evaluation not started. This document is a gate, not a claim of scientific
-results.**
+**Status: Phase 1 baseline package complete. The scientific gold gate remains
+closed. Source/acted labels are weak, and no real inspection row has been
+promoted to gold. See `research/phase1-close.md`.**
 
-No large fine-tuning may begin until this report is completed and reviewed.
+## Executive result
 
-## How to fill this report
+The inspected cascade combines SenseVoice-Small transcript/AED,
+emotion2vec+ affect, and frozen-SenseVoice VocalSound/FSD50K linear probes.
+Validation-selected `none` logits suppress out-of-domain probe emissions.
+JSON is authoritative and XML is a deterministic projection.
 
-1. Review and record model licences in `data/provenance/`. SenseVoice-Small has
-   a separate weight licence and must not be downloaded before that review.
-2. Obtain approved evaluation data through its authorised channel. Do not
-   download MSP-Podcast while its ledger remains `licence_review_status:
-   pending`; never commit restricted audio.
-3. Construct and record speaker/session-disjoint manifests and hashes. Replace
-   the synthetic fixture path with approved manifests only in a separate,
-   privacy-reviewed evaluation workflow.
-4. Place reviewed model weights in local storage or an existing Hugging Face
-   cache. The harness never downloads weights. Configure paths as described in
-   `docs/baseline-runners.md`.
-5. Verify the offline wiring run:
+| 310-clip slice | WER | Affect macro-F1 | Cascade target macro-F1 | OOD FPR | All-prediction micro-F1 |
+|---|---:|---:|---:|---:|---:|
+| Original 150 | 0.0703 | 0.9208 | 0.7839 | 0.0682 | 0.7039 |
+| Licence-clean expansion 160 | 0.1900 | 0.8679 | 0.7272 | 0.0227 | 0.6927 |
 
-   ```bash
-   uv run python scripts/evaluate.py --output research/baseline-results.json
-   ```
+These are inspection results against weak source/acted targets. The confidence
+calibration and DCASE timing diagnostic added at closure are reported below;
+neither changes the label status.
 
-   The transcript-only runner always executes. Optional runners and modular
-   cascades execute only when their local weights and runtimes are available;
-   otherwise the JSON report records an actionable skip reason.
-6. Add approved-data evaluation reports and fill every section below,
-   including slices, runtime hardware, calibration, abstention, OOD behaviour,
-   privacy-safe errors, and checkpoint provenance. Synthetic fixture numbers
-   must not be substituted for those results.
-7. Obtain human review of the completed gate before any large fine-tuning.
+## Phase 1 gate checklist
+
+| Requirement | Evidence | Status |
+|---|---|---|
+| ASR | CREMA-D, British Common Voice, Ghanaian-English reports | measured |
+| timing/alignment | no fabricated word timing; clip probes remain utterance-scoped; separate DCASE strong-label diagnostic | bounded |
+| behaviour labels | VocalSound, CREMA-D, FSD50K, combined cascade | measured on weak/acted labels |
+| calibration | validation-only temperature scaling; test ECE/Brier | measured, not gold |
+| abstention | validation-selected `none` logits and 310-clip OOD rerun | measured |
+| OOD/subgroups | cross-probe OOD, British English, Ghanaian English, licence-clean expansion | bounded |
+| runtime | per-run elapsed/audio RTF where available | measured on CPU |
+| error analysis | `research/error-analysis/` confusion, OOD, runtime, and qualitative notes | complete |
+| gold review | strict append-only ledger contract and fixture dry-run | protocol only |
 
 ## Reproducibility
 
-- Commit/config/run IDs:
-- Dataset cards, approved licences, and manifest hashes:
-- Speaker/session-disjoint split construction:
-- Hardware, software lockfile, seeds, and runtime:
-- SenseVoice-Small and Whisper-Small checkpoint provenance:
-
-## Results
-
-- Transcript quality by language and acoustic slice:
-- Word/event/style timing:
-- Event and style precision/recall/F1, including overlap:
-- Affect soft-label metrics:
-- ECE, Brier score, reliability plots, and threshold selection:
-- Abstention coverage/risk and OOD results:
-- Latency, memory, throughput, and local deployment feasibility:
-- Speaker, language, recording-quality, and permitted subgroup slices:
-
-## Error analysis
-
-Link representative, privacy-safe errors covering label ambiguity, lexical
-bias, short clips, overlap, clipping, low SNR, far field, language mismatch,
-atypical voices, and confident failures.
-
-## Gate decision
-
-- Is each ontology label learnable and annotator-supported?
-- Is calibration adequate for user-facing language?
-- Does a frozen probe suffice?
-- Is joint or large fine-tuning supported by evidence?
-- What is explicitly deferred or rejected?
+- Environment and package versions are pinned by `uv.lock`.
+- Dataset/model reviews and exact revisions are under `data/provenance/`.
+- Every bounded audio selection has a committed hashed manifest; audio, model
+  weights, embeddings, and `.pt` heads are gitignored.
+- VocalSound is speaker-disjoint; FSD50K is clip-disjoint because it has no
+  speaker identity; British Common Voice uses 100 distinct client IDs; Ghana
+  exposes no speaker IDs and is marked accordingly.
+- SenseVoice extraction is direct frontend/encoder, dither `0.0`, frozen
+  parameters, and a representation-specific cache fingerprint.
+- Machine-readable results are under `research/*.json` and
+  `research/error-analysis/*.json`.
 
 ## Remaining work before the gate can pass
 
-- Human licence review and exact checkpoint provenance for Whisper-Small,
-  SenseVoice-Small, emotion2vec+, and every evaluation corpus.
-- Approved, speaker/session-disjoint evaluation manifests and dataset cards.
-- Real event/style gold labels, alignment metrics, calibration and abstention
-  analysis, OOD and permitted subgroup slices, runtime/memory measurements,
-  and privacy-safe qualitative errors.
-- A documented gate decision. Until these are complete, the 14-day no-large-
-  fine-tuning restriction remains in force.
+- Human review and adjudication of the existing 310 clips; no current row is gold.
+- Natural, speech-overlapping onset/offset labels beyond the synthetic DCASE diagnostic.
+- Coverage for `crying_speech` and broader in-the-wild behaviour.
+- Better Ghanaian-English WER evidence on a licence-compatible, speaker-traceable set.
+- Broader open-world OOD, recording-quality, and demographic evaluation.
+- A separate reviewed decision before any scientific gold claim.
 
 ## Fixture smoke-test (not a scientific baseline)
 
@@ -588,3 +567,147 @@ under-cover. They do not establish speech-embedded style detection, reviewed
 gold performance, localization, calibration, abstention, or OOD robustness.
 No encoder fine-tuning occurred, no weights or probe checkpoint are committed,
 and the gate remains **CLOSED**.
+
+## Combined cascade, abstention, and ablations
+
+PR #18 joined the concrete components without changing their ontology
+boundaries. SenseVoice transcript/AED runs first; emotion2vec+ replaces the
+ASR adapter's placeholder affect; validation-selected VocalSound and FSD50K
+probes contribute only when their `none`-margin accepts. Duplicate labels are
+suppressed in AED, VocalSound, FSD50K order. `scream` is never collapsed into
+`shouting`, and `sob` never implies `crying_speech`.
+
+| Slice / event-style ablation | Target macro-F1 | All-prediction micro-F1 |
+|---|---:|---:|
+| Original 150: AED only | 0.4293 | 0.4828 |
+| Original 150: intended probe only | 0.7994 | 0.7945 |
+| Original 150: cascade | 0.7839 | 0.7039 |
+| Expansion 160: AED only | 0.1622 | 0.2034 |
+| Expansion 160: intended probe only | 0.7216 | 0.7071 |
+| Expansion 160: cascade | 0.7272 | 0.6927 |
+
+The all-prediction denominator includes output labels with no matching target;
+it exposes open-set false positives that a target-only macro average can hide.
+Compared with mandatory closed-set probe emission, abstention changes OOD FPR
+from 1.0 to 0.0682 on the original slice and 0.0227 on the expansion. Across all
+310 clips, the probes emit on 20/440 OOD opportunities (0.0455): VocalSound
+5/230 and FSD50K 15/210.
+
+The affect ablation is unambiguous on these acted sentences. On the original
+70 CREMA-D clips, emotion2vec+ macro-F1 is 0.9208 versus 0.0833 for the
+transcript lexicon. On the ANG/FEA/DIS expansion, emotion2vec+ is 0.8679 while
+the lexicon predicts neutral for all 60 clips and scores 0.0. This supports an
+acoustic affect component; it does not establish internal emotional state.
+
+## Confidence calibration
+
+`scripts/calibrate.py` fits one scalar temperature per component by minimizing
+categorical negative log likelihood on validation only. Probe validation joins
+the original ID validation partition with its cross-domain `none` validation
+examples. Affect uses 120 balanced, actor-disjoint CREMA-D clips from actors
+1051–1060 across ANG, DIS, FEA, HAP, NEU, and SAD. No 310-clip inspection row is
+used for fitting or selection.
+
+| Component (inspection test) | Clips | Temperature | ECE before | ECE after | Brier before | Brier after |
+|---|---:|---:|---:|---:|---:|---:|
+| emotion2vec+ affect | 130 labelled / 310 total | 2.7058 | 0.0841 | 0.0679 | 0.1855 | 0.1506 |
+| FSD50K class + `none` | 310 | 6.1112 | 0.1392 | 0.0670 | 0.2816 | 0.2474 |
+| VocalSound class + `none` | 310 | 8.7453 | 0.0615 | 0.0244 | 0.1249 | 0.1031 |
+
+These are explicitly **test** numbers from the untouched combined inspection.
+The fit objective is NLL, not ECE or Brier. On affect validation, ECE improves
+from 0.0953 to 0.0655 while Brier changes from 0.1987 to 0.2003; that small
+validation Brier regression is retained rather than hidden. Both affect
+metrics improve on test. Full validation/test values and partition labels are
+in `research/calibration-results.json`.
+
+Calibrated affect probabilities and top-label confidence now populate Attune
+JSON. Emitted probe event/style confidence uses the calibrated class
+probability. The PR #18 abstention boundary remains tied to its original
+validation-selected uncalibrated class-minus-`none` margin, so temperature
+scaling does not silently alter coverage or the reported OOD operating point.
+
+## OOD and runtime summary
+
+The calibrated rerun reproduces the PR #18 categorical and abstention results:
+temperature scaling preserves argmax and the existing abstention decision.
+Cross-source residual OOD errors are asymmetric:
+
+| Probe | OOD source | False-positive clips |
+|---|---|---:|
+| VocalSound | CREMA-D | 0/130 |
+| VocalSound | FSD50K | 5/100 |
+| FSD50K | CREMA-D | 13/130 |
+| FSD50K | VocalSound | 2/80 |
+
+On this CPU rerun the full 310-clip cascade processes 1,488.748 seconds of audio
+in 102.050 seconds, RTF 0.0685. By source, RTF is 0.0922 for CREMA-D, 0.0620
+for VocalSound, and 0.0616 for FSD50K. This is offline batch timing on one VM,
+not a streaming latency claim.
+
+Separate ASR runs provide context. Ghanaian-English broadcast audio has
+Whisper/SenseVoice WER 0.2562/0.2365 and RTF 0.0918/0.0193. British Common Voice
+has WER 0.0997/0.1149 and RTF 0.1625/0.0305. Ghana is NC research-only and has
+no speaker IDs; neither slice supports nationality or population claims.
+
+## Timing and localization status
+
+The 310-clip cascade still emits no word alignment and keeps all existing
+event/style spans at 0..duration. VocalSound and FSD50K are clip-labelled, so
+those spans are scope markers, not localization. The contract audit confirms
+all 310 outputs remain schema-valid, deterministic in XML, structured-channel
+separated, and utterance-timestamp-only.
+
+Licence review identified DCASE 2016 Task 2 as a bounded exception suitable for
+an independent timing diagnostic: original synthetic office mixtures, strong
+onset/offset annotations, overlapping events, and recorded CC BY terms. The
+committed 100-clip public-test manifest covers the Attune-overlapping laugh,
+cough, and throat-clear labels. It does not retrofit timestamps onto
+VocalSound/FSD50K or claim natural speech coverage.
+
+The frozen-encoder temporal MLP uses eight 1.25-second SenseVoice bins, 66,051
+trainable head parameters, dither `0.0`, and no encoder updates. Its threshold
+0.75 is selected on 48 development-validation clips after fitting on 168
+development clips. On the source-disjoint 100-clip public test:
+
+| Timing method | 1 s segment F1 | 200 ms collar event F1 |
+|---|---:|---:|
+| Temporal head | 0.1943 | 0.0000 |
+| Whole-clip oracle-tag baseline | 0.3183 | 0.0000 |
+
+The temporal head **does not beat** the whole-clip baseline. The eight-bin
+representation is too coarse for the 200 ms collar, and its lower segment F1
+does not support integrating predicted timestamps into Attune JSON. The
+experiment is committed as a negative result in
+`research/dcase-localization-results.json`; production/cascade spans remain
+honestly utterance-level.
+
+## Gold review, errors, ethics, and non-goals
+
+`attune.data.gold_review.GoldReviewRecord` defines a strict append-only review
+ledger for transcript accept/reject, affect accept/reject/ambiguous, and event
+or style accept/reject/retime/add decisions. Retimed/added spans require bounded
+milliseconds. `docs/gold-review-protocol.md` specifies independent review and
+adjudication. The committed six-row dry-run uses generated tones/noise and sets
+`dry_run_fixture=true`; no real row is marked gold.
+
+Machine-readable affect confusion, event/style TP/FP/FN, probe OOD-by-source,
+and runtime tables are in `research/error-analysis/cascade-310.json`.
+Interpretive notes are in `research/error-analysis/phase1-notes.md`. Notable
+boundaries include CREMA `DIS` → `other`, 14/20 correct FEA clips, no
+`crying_speech` target coverage, and residual FSD50K-head emissions on CREMA-D.
+
+Attune estimates audible expression, not diagnosis, intent, truthfulness,
+protected traits, or internal emotional state. It is not validated for
+high-stakes decisions. Acted and synthetic labels, speaker gaps, NC restrictions,
+and domain shifts remain visible in every report.
+
+## Final Phase 1 gate decision
+
+The engineering checklist is covered: ASR, behaviour labels, calibration,
+abstention, OOD slices, runtime, error analysis, timing status, licence records,
+and a usable human-review protocol all have committed evidence. The scientific
+gate is nevertheless **CLOSED** because the principal 310 labels are not
+human-adjudicated gold, most behaviour spans are not localized, subgroup and
+in-the-wild evidence are narrow, and `crying_speech` is unmeasured. Completing
+the checklist is not permission to rewrite those limitations as success.

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import platform
 import subprocess
@@ -19,6 +20,7 @@ from attune.baselines.adapters import BaselineInput, TranscriptSentimentAdapter
 from attune.baselines.cascade import AttuneCascade
 from attune.evaluation.metrics import corpus_character_error_rate, corpus_word_error_rate
 from attune.inference.packaging import package_for_trusted_channel
+from attune.models.fsd50k_probe import SOURCE_TO_PROBE_LABEL
 from attune.schema.output import AttuneOutput
 from attune.schema.xml import render_xml
 
@@ -68,6 +70,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--emotion2vec-path", type=Path, required=True)
     parser.add_argument("--vocalsound-probe-checkpoint", type=Path, required=True)
     parser.add_argument("--fsd50k-probe-checkpoint", type=Path, required=True)
+    parser.add_argument(
+        "--calibration",
+        type=Path,
+        default=Path("configs/calibration/phase1.json"),
+    )
+    parser.add_argument(
+        "--calibration-records-output",
+        type=Path,
+        default=Path("artifacts/calibration/cascade-inspection-test.jsonl"),
+    )
     parser.add_argument(
         "--embedding-cache",
         type=Path,
@@ -347,6 +359,43 @@ def run_row(cascade: AttuneCascade, row: dict[str, Any]) -> dict[str, Any]:
         "transcript" not in package["paralinguistic_metadata"]
         and package["spoken_transcript"]["text"] == output.transcript.text
     )
+    calibration_scores = []
+    affect_target = (row["intended_attune_labels"].get("affect") or [None])[0]
+    if affect_target is not None:
+        raw_affect = diagnostics["uncalibrated_affect_probabilities"]
+        labels = list(raw_affect)
+        calibration_scores.append(
+            {
+                "component": "emotion2vec_plus_affect",
+                "split": "inspection_test",
+                "clip_id": row["clip_id"],
+                "labels": labels,
+                "logits": [math.log(max(raw_affect[label], 1e-12)) for label in labels],
+                "target": affect_target,
+            }
+        )
+    for name, detail in probe_diagnostics.items():
+        is_vocalsound = "vocalsound" in name
+        if is_vocalsound and row["source_dataset"] == "VocalSound":
+            target = row["intended_attune_labels"]["events"][0]
+        elif not is_vocalsound and row["source_dataset"] == "FSD50K":
+            target = SOURCE_TO_PROBE_LABEL[
+                row["intended_attune_labels"]["source_class"]
+            ]
+        else:
+            target = "none"
+        calibration_scores.append(
+            {
+                "component": (
+                    "vocalsound_probe" if is_vocalsound else "fsd50k_probe"
+                ),
+                "split": "inspection_test",
+                "clip_id": row["clip_id"],
+                "labels": detail["calibration_labels"],
+                "logits": detail["uncalibrated_logits"],
+                "target": target,
+            }
+        )
     return {
         "inspection_slice": row["_inspection_slice"],
         "clip_id": row["clip_id"],
@@ -380,6 +429,7 @@ def run_row(cascade: AttuneCascade, row: dict[str, Any]) -> dict[str, Any]:
         "structured_channels_separate": structured_channels,
         "elapsed_seconds": prediction.runtime.elapsed_seconds,
         "audio_seconds": prediction.runtime.audio_seconds,
+        "_calibration_scores": calibration_scores,
     }
 
 
@@ -518,6 +568,9 @@ def main() -> None:
         vocalsound_probe_checkpoint=arguments.vocalsound_probe_checkpoint,
         fsd50k_probe_checkpoint=arguments.fsd50k_probe_checkpoint,
         embedding_cache=arguments.embedding_cache,
+        calibration_path=(
+            arguments.calibration if arguments.calibration.is_file() else None
+        ),
     )
     available, reason = cascade.availability()
     if not available:
@@ -572,8 +625,8 @@ def main() -> None:
             ),
             "timestamps": "whole utterance only; no word or frame localization",
             "probe_confidence": (
-                "closed-set softmax diagnostic plus validation selection among max-softmax, "
-                "energy, and a genuine-negative none logit; not reviewed gold"
+                "validation-temperature-scaled class/none probabilities; abstention "
+                "uses the existing validation-selected uncalibrated none margin"
             ),
         },
         "slices": slices,
@@ -586,6 +639,14 @@ def main() -> None:
             }
         },
         "comparison_with_pr17": comparison_with_pr17(slices),
+        "calibration": (
+            json.loads(arguments.calibration.read_text(encoding="utf-8"))
+            if arguments.calibration.is_file()
+            else {
+                "status": "not_applied",
+                "note": "raw score collection run only",
+            }
+        ),
         "contract_audit": {
             "schema_valid": sum(record["schema_valid"] for record in records),
             "deterministic_xml": sum(record["xml_deterministic"] for record in records),
@@ -643,8 +704,25 @@ def main() -> None:
             "FSD50K standalone events do not establish speech-embedded style coverage.",
             "CREMA-D DIS maps to Attune other, never distress.",
         ],
-        "predictions": [json_record(record) for record in records],
+        "predictions": [
+            json_record(
+                {
+                    key: value
+                    for key, value in record.items()
+                    if key != "_calibration_scores"
+                }
+            )
+            for record in records
+        ],
     }
+    calibration_rows = [
+        score for record in records for score in record["_calibration_scores"]
+    ]
+    arguments.calibration_records_output.parent.mkdir(parents=True, exist_ok=True)
+    arguments.calibration_records_output.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in calibration_rows),
+        encoding="utf-8",
+    )
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     arguments.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {arguments.output}")

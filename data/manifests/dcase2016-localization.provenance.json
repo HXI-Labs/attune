@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "licence_review": "data/provenance/dcase2016_task2.yaml",
+  "training_manifest": "data/manifests/dcase2016-localization-training.jsonl",
+  "training_rows": 216,
+  "training_manifest_sha256": "f7885caf0ace4cab62b2bdbbca403459ebe24124402983671fb09732b516f589",
+  "inspection_manifest": "data/manifests/dcase2016-localization-inspection.jsonl",
+  "inspection_rows": 100,
+  "inspection_manifest_sha256": "95bbf2ab627b76cea14b7dd0e911a2a086791af74844e277cf4b6995f395c338",
+  "selection": "All non-overlapping 10-second development windows for fitting; first 100 lexically sorted event-bearing public-test windows for untouched inspection.",
+  "source_disjoint": "DCASE public test uses source event examples separate from train/development.",
+  "labels": {
+    "clearthroat": "throat_clear",
+    "cough": "cough",
+    "laughter": "laugh"
+  },
+  "audio_committed": false
+}
