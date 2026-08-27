@@ -11,6 +11,15 @@ The scientific gold gate remains **closed**. Language is unverified. The
 SenseVoiceSmall encoder stayed frozen. SenseVoiceSmall is by
 FunASR/FunAudioLLM under the FunASR Model Open Source License Agreement v1.1.
 
+**This pass is a negative mean-of-4 tiled MLP.** Tiled inspection collar F1
+is **0.0148** (1/26/107 on 108 gold). First-60s control is 0.0308 (1/16/47)
+versus prior best **0.1395**. Segment margin still clears +0.05; collar
+fails >=0.25. Gate **FAIL**. STARSS23 stays **unwired**. **0.1395 remains
+the reported best and must not be replaced.** Scored audio is mean-of-4 in
+`data/raw/starss23-scene-raster-tiled`. `data/raw/starss23-scene-raster-v2`
+is **max-RMS audio only** (259 files) and was **not** this eval; do not mix
+it into tiled embeddings.
+
 ## Protocol
 
 This pass replaces first-60s-only scenes with **non-overlapping 60 s tiles**.
@@ -22,7 +31,9 @@ four unlabeled tetrahedral MIC capsules** over the whole window (omni, not
 FOA W, not max-RMS, no in-window channel switch), then 24 kHz → 16 kHz mono.
 New audio cache: `data/raw/starss23-scene-raster-tiled`. New embedding cache:
 `artifacts/starss23-scene-raster/embeddings-tiled`. First-60s embeddings were
-not reused.
+not reused. `data/raw/starss23-scene-raster-v2` is a leftover **max-RMS**
+wav cache (259 files) and is **not** the scored protocol; do not point
+prepare/train/embeddings at v2.
 
 Laugh events that span a 60 s cut are dropped from train targets and from
 scored gold on **later tiles only** (`window_start_ms > 0`). On the first tile
@@ -182,6 +193,7 @@ pass is **not** in this table; see dual eval above.
 | Whole-clip oracle tags | 0.1721 | 0.1721 | 0.0000 | 0/20/48 |
 
 Wiring uses tiled inspection only. Collar there is 0.0148 < 0.25, so STARSS23
-laugh timestamps remain **unwired**. DCASE wiring is unchanged. Whole-clip
+laugh timestamps remain **unwired**. This mean-4 tiled MLP is a **negative**
+result and **must not replace 0.1395**. DCASE wiring is unchanged. Whole-clip
 `0..60000` tags are not localization. Gold remains closed. Language
 unverified.

@@ -5,22 +5,6 @@
   "inspection_evaluations": 1,
   "protocol": "tiled_60s_mean4_mic",
   "task": "STARSS23 v1.1 tiled 60-second mean-of-4 MIC laughter localization",
-  "headline": "mean-4 tiled MLP negative; do not replace reported best 0.1395",
-  "result_status": "negative",
-  "do_not_replace_reported_best_0.1395": true,
-  "audio_caches": {
-    "scored_this_eval": {
-      "path": "data/raw/starss23-scene-raster-tiled",
-      "downmix": "mean_of_4_tetrahedral_mic",
-      "note": "hash-verified mean-of-4; this inspection"
-    },
-    "v2_max_rms_audio_only": {
-      "path": "data/raw/starss23-scene-raster-v2",
-      "downmix": "max_rms_channel",
-      "wav_count": 259,
-      "note": "max-RMS audio only; NOT this eval; do not mix into embeddings"
-    }
-  },
   "label_mapping": {
     "STARSS23 class 4 laughter": "Attune laugh"
   },
@@ -1739,9 +1723,7 @@
       "onset_shift_ms": 0,
       "min_duration_ms": 60
     },
-    "comparator_note": "tiled inspection gold is a new event set; do not treat 0.1395 as the same comparator",
-    "do_not_replace_reported_best": true,
-    "result_status": "negative"
+    "comparator_note": "tiled inspection gold is a new event set; do not treat 0.1395 as the same comparator"
   },
   "cascade_wiring": {
     "passed": false,
@@ -1756,7 +1738,7 @@
     "timestamps_wired": false,
     "policy": "wire STARSS23 laugh timestamps only if tiled inspection collar F1 >= 0.25 and segment margin >= 0.05",
     "dcase_unchanged": true,
-    "decision": "leave STARSS23 unwired; tiled mean-4 MLP did not clear the collar/segment gate; do not replace reported best 0.1395"
+    "decision": "leave STARSS23 unwired; tiled mean-4 MLP did not clear the collar/segment gate"
   },
   "runtime": {
     "device": "cpu",
@@ -1769,5 +1751,13 @@
     "Natural recordings require ongoing privacy and consent care.",
     "The bounded slice is not independently reviewed Attune gold.",
     "Tiled windows from one file are correlated and are not extra i.i.d. samples."
-  ]
+  ],
+  "reported_best_unchanged": {
+    "collar_f1": 0.13953488372093023,
+    "id": "decoder_validity_0a27733",
+    "note": "this tiled pass must not replace 0.1395 as reported best"
+  },
+  "audio_cache": "data/raw/starss23-scene-raster-tiled",
+  "embedding_note": "cache_misses=259 on this pass; mean-4 wavs hash-verified against source MIC",
+  "max_rms_audio_cache_not_this_eval": "data/raw/starss23-scene-raster-v2"
 }

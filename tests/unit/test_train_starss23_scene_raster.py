@@ -131,6 +131,12 @@ def test_main_trains_mlp_with_unweighted_bce_and_locked_decoder() -> None:
     assert "choose_max_rms_channel" not in source
     assert "chosen_channel" not in source
     assert "train_only_events_for_frame_targets" not in source
+    assert 'default=Path("data/raw/starss23-scene-raster-v2")' not in source
+    assert script.HEADLINE.startswith("mean-4 tiled MLP negative")
+    assert "do not replace reported best 0.1395" in script.HEADLINE
+    assert script.AUDIO_CACHE_SCORED == "data/raw/starss23-scene-raster-tiled"
+    assert script.AUDIO_CACHE_V2_MAX_RMS == "data/raw/starss23-scene-raster-v2"
+    assert script.AUDIO_CACHES["v2_max_rms_audio_only"]["downmix"] == "max_rms_channel"
 
 
 def test_predeclared_decoder_is_locked_in_main() -> None:

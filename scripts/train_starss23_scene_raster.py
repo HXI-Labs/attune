@@ -29,6 +29,22 @@ VALIDATION_ROOMS = {"sony-room21", "tau-room6"}
 SEGMENT_MARGIN_REQUIRED = 0.05
 COLLAR_F1_REQUIRED = 0.25
 PROTOCOL = "tiled_60s_mean4_mic"
+HEADLINE = "mean-4 tiled MLP negative; do not replace reported best 0.1395"
+AUDIO_CACHE_SCORED = "data/raw/starss23-scene-raster-tiled"
+AUDIO_CACHE_V2_MAX_RMS = "data/raw/starss23-scene-raster-v2"
+AUDIO_CACHES = {
+    "scored_this_eval": {
+        "path": AUDIO_CACHE_SCORED,
+        "downmix": "mean_of_4_tetrahedral_mic",
+        "note": "hash-verified mean-of-4; this inspection",
+    },
+    "v2_max_rms_audio_only": {
+        "path": AUDIO_CACHE_V2_MAX_RMS,
+        "downmix": "max_rms_channel",
+        "wav_count": 259,
+        "note": "max-RMS audio only; NOT this eval; do not mix into embeddings",
+    },
+}
 MLP_HIDDEN_SIZE = 64
 PRIOR_40_EPOCH_PASS = {
     "epochs_completed": 40,
@@ -1072,11 +1088,16 @@ def main() -> None:
         "comparator_note": (
             "tiled inspection gold is a new event set; do not treat 0.1395 as the same comparator"
         ),
+        "do_not_replace_reported_best": True,
+        "result_status": "negative",
     }
     wiring_decision = (
         "wire STARSS23 laugh timing from the tiled 60s scene raster"
         if gate_passed
-        else ("leave STARSS23 unwired; tiled mean-4 MLP did not clear the collar/segment gate")
+        else (
+            "leave STARSS23 unwired; tiled mean-4 MLP did not clear the collar/segment gate; "
+            "do not replace reported best 0.1395"
+        )
     )
     overlapping_onset = {
         "prior_best_median_ms": PRIOR_BEST_PASS["median_onset_error_ms_on_overlapping_misses"],
@@ -1103,6 +1124,10 @@ def main() -> None:
         "inspection_evaluations": 1,
         "protocol": PROTOCOL,
         "task": "STARSS23 v1.1 tiled 60-second mean-of-4 MIC laughter localization",
+        "headline": HEADLINE,
+        "result_status": "negative",
+        "do_not_replace_reported_best_0.1395": True,
+        "audio_caches": AUDIO_CACHES,
         "label_mapping": {"STARSS23 class 4 laughter": "Attune laugh"},
         "language": "unverified; STARSS23 metadata has no language field",
         "label_status": "human 100 ms activity label; not reviewed Attune gold",

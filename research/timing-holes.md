@@ -153,7 +153,7 @@ low `0.63`, gap `8`, min-active `1`, median `1`, onset shift `-120` ms.
 Inspection collar F1 `0.0585` failed `>=0.25`. Decoder-grid path is exhausted.
 
 MLP-only retrains, decoder search, 44× `pos_weight`, onset-shift, and
-boundary-weighted BCE are exhausted. This pass trained one predeclared
+boundary-weighted BCE are exhausted. A later first-60s pass trained one predeclared
 1-layer bidirectional GRU (hidden 64, Linear 128→1, 222,081 params) on
 padded clip sequences with a masked unweighted BCE, frozen encoder, seed 0,
 early-stop at 86 epochs, and decoded inspection once with the predeclared
@@ -183,10 +183,15 @@ stay in one split.
 | First-60s subset (matched control) | 49 / 48 | 0.3741 | 0.0308 | 1/16/47 |
 | Whole-clip oracle tags (tiled / first-60s) | — | 0.1538 / 0.1721 | 0.0000 | — |
 
-Tiled segment margin `+0.1604` clears `+0.05`, but collar F1 fails `>=0.25`.
-Do not treat 0.1395 as the tiled comparator. First-60s subset collar 0.0308
-is also below 0.1395 on the same 48 events. STARSS23 remains **unwired**.
-DCASE wiring is unchanged. Stopped after the one tiled inspection eval.
+**This pass is the mean-of-4 tiled MLP, and it is negative.** Tiled
+segment margin `+0.1604` clears `+0.05`, but collar F1 fails `>=0.25`.
+Do not treat 0.1395 as the tiled comparator, and **do not replace 0.1395**
+as the reported best. First-60s subset collar 0.0308 is also below 0.1395
+on the same 48 events. STARSS23 remains **unwired**. DCASE wiring is
+unchanged. Stopped after the one tiled inspection eval. Scored wavs are
+mean-of-4 in `data/raw/starss23-scene-raster-tiled`.
+`data/raw/starss23-scene-raster-v2` is **max-RMS audio only** (259 files)
+and was **not** this eval; do not mix it into embeddings.
 
 STARSS23 metadata has no language field and its README states that speech spans
 multiple languages. Language is therefore `unverified`; no English claim or
