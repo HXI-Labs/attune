@@ -98,3 +98,55 @@ or frame localization. Word timestamps are absent. Every annotation is
 provisional. The research gate remains closed unless the combined inspection
 shows that abstention reduces OOD false positives without collapsing in-domain
 target F1, and this implementation never passes the gate automatically.
+
+## Phase 2 local WAV CLI
+
+`scripts/infer.py` runs the complete reviewed cascade; it is a batch CLI, not a
+product interface. It never downloads a model or silently drops a probe. Set
+all four local artifact paths and acknowledge the separate SenseVoice licence:
+
+```bash
+export ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1
+export ATTUNE_SENSEVOICE_SMALL_PATH=/absolute/path/to/SenseVoiceSmall
+export ATTUNE_EMOTION2VEC_PLUS_PATH=/absolute/path/to/emotion2vec_plus_base
+export ATTUNE_VOCALSOUND_PROBE_PATH=/absolute/path/to/vocalsound-head.pt
+export ATTUNE_FSD50K_PROBE_PATH=/absolute/path/to/fsd50k-head.pt
+
+uv run python scripts/infer.py sample.wav
+uv run python scripts/infer.py a.wav b.wav --output artifacts/inference-json
+uv run python scripts/infer.py sample.wav \
+  --output artifacts/sample.attune.json \
+  --xml-output artifacts/sample.attune.xml
+```
+
+JSON is always produced and remains authoritative. One input prints one JSON
+object; multiple inputs print JSON Lines. With multiple inputs, `--output` and
+`--xml-output` name directories. To send XML to stdout, first direct JSON to a
+file: `--output sample.attune.json --xml-output -`. XML is rendered only from a
+validated `AttuneOutput`; metadata is never concatenated into transcript text.
+The current SenseVoice runner exposes utterance text but no reviewed word
+alignment, so `transcript.words` remains an honest empty list.
+
+The CLI fails before inference when licence acknowledgement, either model, the
+calibration bundle, or either gitignored probe head is absent. `--fixture-mode`
+is only a schema/CLI smoke path and says so in `model.name`; it does not run or
+simulate a scientific model. A weight-free smoke command is:
+
+```bash
+python - <<'PY'
+import wave
+with wave.open("/tmp/attune-fixture.wav", "wb") as wav:
+    wav.setparams((1, 2, 16000, 1600, "NONE", "not compressed"))
+    wav.writeframes(b"\0\0" * 1600)
+PY
+uv run python scripts/infer.py /tmp/attune-fixture.wav --fixture-mode
+```
+
+All cascade event/style bounds denote utterance scope only. A `0..duration`
+span with null word anchors is not frame localization. The failed DCASE
+temporal result remains authoritative; the CLI does not invent finer timing.
+If timing work resumes, the bounded next candidate is a pre-existing,
+hash-verified STARSS23 slice only. STARSS23 is the MIT natural-spatial-audio
+dataset with 100 ms labels; its metadata does not permit filtering for English,
+and its licence and natural-recording/privacy terms require review for the
+intended use. This Phase 2 package does not download it.

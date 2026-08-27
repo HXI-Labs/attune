@@ -13,7 +13,7 @@ from attune.baselines.adapters import (
     Emotion2VecPlusAdapter,
     SenseVoiceSmallAdapter,
 )
-from attune.calibration import load_calibration
+from attune.calibration import load_affect_abstention, load_calibration
 from attune.evaluation.report import RuntimeMetrics
 from attune.models.probe_inference import (
     FSD50K_LABEL_MAPPING,
@@ -202,6 +202,14 @@ class AttuneCascade(ModularCascade):
                 checkpoint=emotion2vec_checkpoint,
                 calibration=(
                     load_calibration(
+                        calibration_path,
+                        component="emotion2vec_plus_affect",
+                    )
+                    if calibration_path is not None
+                    else None
+                ),
+                abstention=(
+                    load_affect_abstention(
                         calibration_path,
                         component="emotion2vec_plus_affect",
                     )

@@ -12,9 +12,12 @@ from typing import Any
 
 from attune.calibration import (
     CalibrationError,
+    ConfidenceAbstention,
     TemperatureCalibration,
+    fit_confidence_threshold,
     fit_temperature,
     metrics,
+    selective_metrics,
 )
 
 
@@ -92,7 +95,7 @@ def calibrate(records: list[dict[str, Any]], expected_test_clips: int) -> dict[s
             [label_indices[row["target"]] for row in validation],
         )
         scaling = TemperatureCalibration(labels, temperature)
-        components[component] = {
+        component_payload = {
             **scaling.model_dump(),
             "selection": "minimum categorical NLL on validation only",
             "validation": _partition_metrics(validation, scaling),
@@ -101,6 +104,34 @@ def calibrate(records: list[dict[str, Any]], expected_test_clips: int) -> dict[s
                 **_partition_metrics(test, scaling),
             },
         }
+        if component == "emotion2vec_plus_affect":
+            validation_probabilities = [
+                scaling.probabilities(row["logits"]) for row in validation
+            ]
+            threshold = fit_confidence_threshold(
+                validation_probabilities,
+                [row["target"] for row in validation],
+                labels,
+            )
+            policy = ConfidenceAbstention(threshold)
+            component_payload["abstention"] = {
+                **policy.model_dump(),
+                "selection": (
+                    "maximum retained-only macro-F1 on validation subject to at least "
+                    "80% coverage; ties prefer higher coverage"
+                ),
+                "minimum_validation_coverage": 0.8,
+                "validation": _partition_abstention_metrics(
+                    validation,
+                    scaling,
+                    policy,
+                ),
+                "inspection_test": {
+                    "designation": "test; never used for fitting or selection",
+                    **_partition_abstention_metrics(test, scaling, policy),
+                },
+            }
+        components[component] = component_payload
     test_ids = {
         record["clip_id"] for record in records if record["split"] == "inspection_test"
     }
@@ -134,6 +165,29 @@ def _partition_metrics(
         "clips": len(rows),
         "before": metrics(raw, targets, scaling.labels),
         "after": metrics(calibrated, targets, scaling.labels),
+    }
+
+
+def _partition_abstention_metrics(
+    rows: list[dict[str, Any]],
+    scaling: TemperatureCalibration,
+    policy: ConfidenceAbstention,
+) -> dict[str, Any]:
+    probabilities = [scaling.probabilities(row["logits"]) for row in rows]
+    targets = [row["target"] for row in rows]
+    return {
+        "always_emit": selective_metrics(
+            probabilities,
+            targets,
+            scaling.labels,
+            threshold=0.0,
+        ),
+        "with_abstention": selective_metrics(
+            probabilities,
+            targets,
+            scaling.labels,
+            threshold=policy.threshold,
+        ),
     }
 
 

@@ -54,3 +54,38 @@ def test_script_rejects_validation_test_leakage() -> None:
             ],
             expected_test_clips=1,
         )
+
+
+def test_affect_abstention_fit_never_uses_inspection_test_ids() -> None:
+    script = load_script()
+    validation = [
+        {
+            **record("validation", "actor-1051-a", "class"),
+            "component": "emotion2vec_plus_affect",
+        },
+        {
+            **record("validation", "actor-1052-b", "none"),
+            "component": "emotion2vec_plus_affect",
+            "logits": [2.0, 1.9],
+        },
+    ]
+    first_test = [
+        {
+            **record("inspection_test", f"test-{index}", "class"),
+            "component": "emotion2vec_plus_affect",
+            "logits": [10.0, -10.0],
+        }
+        for index in range(2)
+    ]
+    changed_test = [
+        {**row, "target": "none", "logits": [-10.0, 10.0]} for row in first_test
+    ]
+
+    first = script.calibrate(validation + first_test, expected_test_clips=2)
+    changed = script.calibrate(validation + changed_test, expected_test_clips=2)
+
+    first_policy = first["components"]["emotion2vec_plus_affect"]["abstention"]
+    changed_policy = changed["components"]["emotion2vec_plus_affect"]["abstention"]
+    assert first_policy["threshold"] == changed_policy["threshold"]
+    assert first_policy["fitted_on"] == "validation"
+    assert first_policy["inspection_test"]["designation"].startswith("test")
