@@ -7,6 +7,7 @@ torch = pytest.importorskip("torch")
 from attune.models.temporal_probe import (  # noqa: E402
     FrozenTemporalProbeHead,
     _decode_annotations,
+    dcase_checkpoint_acceptance,
 )
 
 
@@ -92,3 +93,24 @@ def test_frame_probabilities_decode_multiple_bounded_event_spans() -> None:
         (annotation.label.value, annotation.start_ms, annotation.end_ms)
         for annotation in annotations
     ] == [("laugh", 0, 120), ("laugh", 180, 240)]
+
+
+def test_dcase_checkpoint_acceptance_rejects_starss23() -> None:
+    payload = checkpoint_payload(gate_passed=True)
+    payload["dataset"] = "starss23"
+    payload["labels"] = ("laugh",)
+    accepted, reason = dcase_checkpoint_acceptance(payload)
+    assert accepted is False
+    assert reason is not None and "STARSS23" in reason
+
+
+def test_dcase_checkpoint_acceptance_requires_passed_gate() -> None:
+    accepted, reason = dcase_checkpoint_acceptance(checkpoint_payload(gate_passed=False))
+    assert accepted is False
+    assert reason is not None and "did not pass" in reason
+
+
+def test_dcase_checkpoint_acceptance_accepts_gated_dcase() -> None:
+    accepted, reason = dcase_checkpoint_acceptance(checkpoint_payload(gate_passed=True))
+    assert accepted is True
+    assert reason is None

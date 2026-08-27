@@ -112,20 +112,21 @@ export ATTUNE_SENSEVOICE_SMALL_PATH=/absolute/path/to/SenseVoiceSmall
 export ATTUNE_EMOTION2VEC_PLUS_PATH=/absolute/path/to/emotion2vec_plus_base
 export ATTUNE_VOCALSOUND_PROBE_PATH=/absolute/path/to/vocalsound-head.pt
 export ATTUNE_FSD50K_PROBE_PATH=/absolute/path/to/fsd50k-head.pt
-# Optional: enables gated frame spans for laugh/cough/throat-clear only.
-export ATTUNE_TEMPORAL_HEAD_PATH=/absolute/path/to/frame-head.pt
+# Optional: ONE gated DCASE frame-head for laugh/cough/throat-clear only.
+# STARSS23 checkpoints are refused. Unset path omits DCASE spans honestly.
+export ATTUNE_TEMPORAL_HEAD_PATH=/absolute/path/to/dcase-frame-head.pt
 
 uv run python scripts/infer.py sample.wav
 uv run python scripts/infer.py a.wav b.wav --output artifacts/inference-json
 uv run python scripts/infer.py sample.wav \
   --output artifacts/sample.attune.json \
-  --xml-output artifacts/sample.attune.xml
+  --xml-output artifacts/sample.attune.xml \
+  --html-output artifacts/sample.attune.html
 ```
 
 JSON is always produced and remains authoritative. One input prints one JSON
-object; multiple inputs print JSON Lines. With multiple inputs, `--output` and
-`--xml-output` name directories. To send XML to stdout, first direct JSON to a
-file: `--output sample.attune.json --xml-output -`. XML is rendered only from a
+object; multiple inputs print JSON Lines. With multiple inputs, `--output`, `--xml-output`, and `--html-output` name
+directories. To send XML or HTML to stdout, first direct JSON to a file. XML is rendered only from a
 validated `AttuneOutput`; metadata is never concatenated into transcript text.
 SenseVoice accepts only explicit token/word spans returned by FunASR, including
 the official model's token-plus-second-boundaries shape. The timing run used
@@ -134,10 +135,12 @@ SenseVoice for encoder frames, not an ASR word-alignment claim. Whisper uses the
 an incomplete alignment rather than filling gaps. The cascade passes valid
 words through unchanged.
 
-The CLI fails before inference when licence acknowledgement, either model, the
-calibration bundle, or either gitignored probe head is absent. `--fixture-mode`
-is only a schema/CLI smoke path and says so in `model.name`; it does not run or
-simulate a scientific model. A weight-free smoke command is:
+SenseVoice, emotion2vec+, and the two probe heads are discovered from env vars
+or gitignored local caches listed in `research/demo/README.md`. A missing
+required artifact is a hard error; the CLI does not download weights or silently
+drop a probe. The optional DCASE frame-head is different: if absent, events still
+run and DCASE spans are omitted. `--fixture-mode` is only a schema/CLI smoke path
+and says so in `model.name`; it does not run or simulate a scientific model. A weight-free smoke command is:
 
 ```bash
 python - <<'PY'
@@ -146,11 +149,12 @@ with wave.open("/tmp/attune-fixture.wav", "wb") as wav:
     wav.setparams((1, 2, 16000, 1600, "NONE", "not compressed"))
     wav.writeframes(b"\0\0" * 1600)
 PY
-uv run python scripts/infer.py /tmp/attune-fixture.wav --fixture-mode
+uv run python scripts/infer.py /tmp/attune-fixture.wav --fixture-mode \
+  --output /tmp/attune-fixture.json --html-output /tmp/attune-fixture.html
 ```
 
 Cascade `laugh`, `cough`, and `throat_clear` events use frame spans only when a
-checkpoint carrying the passed held-out gate is explicitly configured. The
+single DCASE checkpoint carrying the passed held-out gate is configured. The
 direct frame decoder scores 0.7285 segment / 0.4637 collar F1. Hysteresis
 selected only on development validation scores 0.7059 / 0.5279 on the same
 untouched test, versus 0.3183 / 0 for whole-clip. All other `0..duration`

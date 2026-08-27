@@ -25,3 +25,6 @@ model-cache/
 *.safetensors
 *.msgpack
 *.h5
+
+# Local demo audio; JSON/XML/HTML may be tracked.
+research/demo/*.wav

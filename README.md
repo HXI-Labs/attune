@@ -84,8 +84,10 @@ segment F1 versus 0.4894 whole-clip, but only 0.1159 collar F1; it is therefore
 not merge-quality boundary alignment. A single temporal Conv1d follow-up scores
 0.7113 / 0.0282 and fails the fixed collar gate, so STARSS23 timestamps are
 unwired. Details are in `research/timing-holes.md`.
-For one or more local WAV files, `scripts/infer.py` emits authoritative JSON
-and optional deterministic XML; exact offline commands are in
+For one or more local WAV files, `scripts/infer.py` emits authoritative JSON,
+optional deterministic XML, and a playable HTML timeline that distinguishes
+DCASE frame-local laugh/cough/throat_clear from utterance-scoped `0..duration`
+bars. How-to: `research/demo/README.md`. Offline path notes remain in
 `docs/baseline-runners.md`.
 
 ## Repository map
@@ -93,6 +95,8 @@ and optional deterministic XML; exact offline commands are in
 - `src/attune/schema/output.py` — authoritative Pydantic v2 JSON schema (`1.0`)
 - `src/attune/schema/xml.py` — deterministic, injection-safe XML renderer
 - `src/attune/inference/packaging.py` — separated trusted-channel packaging
+- `src/attune/inference/timeline.py` — playable HTML timeline for `scripts/infer.py`
+- `research/demo/` — wav-in cascade demo how-to and display fixture
 - `src/attune/audio/contracts.py` — 16 kHz mono and duration contracts
 - `src/attune/evaluation/` — offline metrics and report harness
 - `src/attune/baselines/` — lazy baseline adapters and modular cascade
