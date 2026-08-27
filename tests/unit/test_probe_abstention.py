@@ -4,6 +4,7 @@ from attune.models.probe_abstention import (
     calibrate_abstention,
     checkpoint_abstention,
     confidence_scores,
+    fit_none_logit_head,
 )
 
 torch = pytest.importorskip("torch")
@@ -63,3 +64,29 @@ def test_calibration_can_select_genuine_negative_none_logit() -> None:
 def test_checkpoint_abstention_is_mandatory() -> None:
     with pytest.raises(RuntimeError, match="no abstention"):
         checkpoint_abstention({})
+
+
+def test_none_logit_fit_preserves_closed_set_class_weights() -> None:
+    closed = torch.nn.Linear(2, 2)
+    original_weight = closed.weight.detach().clone()
+    original_bias = closed.bias.detach().clone()
+
+    combined, _state, _history = fit_none_logit_head(
+        closed_head=closed,
+        train_features=torch.tensor([[2.0, 0.0], [0.0, 2.0]]),
+        train_targets=torch.tensor([0, 1]),
+        ood_train_features=torch.tensor([[-2.0, -2.0], [-1.0, -1.0]]),
+        validation_features=torch.tensor([[2.0, 0.0], [0.0, 2.0]]),
+        validation_targets=torch.tensor([0, 1]),
+        ood_validation_features=torch.tensor([[-2.0, -2.0]]),
+        label_count=2,
+        learning_rate=1e-2,
+        batch_size=2,
+        epochs=2,
+        patience=2,
+        seed=0,
+        torch=torch,
+    )
+
+    assert torch.equal(combined.weight[:2], original_weight)
+    assert torch.equal(combined.bias[:2], original_bias)

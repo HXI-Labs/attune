@@ -446,6 +446,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     closed_head = head
     try:
         none_head, none_state, none_history = fit_none_logit_head(
+            closed_head=closed_head,
             train_features=train_x,
             train_targets=train_y,
             ood_train_features=ood_training_x,

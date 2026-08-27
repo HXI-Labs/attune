@@ -151,6 +151,7 @@ def evaluate_none_logit(
 
 def fit_none_logit_head(
     *,
+    closed_head: Any,
     train_features: Any,
     train_targets: Any,
     ood_train_features: Any,
@@ -165,54 +166,61 @@ def fit_none_logit_head(
     seed: int,
     torch: Any,
 ) -> tuple[Any, dict[str, Any], list[dict[str, float | int]]]:
-    """Fit one small none-logit candidate while keeping all embeddings frozen."""
-    none_index = label_count
+    """Fit only a none logit while preserving every closed-set class weight."""
     features = torch.cat((train_features, ood_train_features))
     targets = torch.cat(
         (
-            train_targets,
-            torch.full((len(ood_train_features),), none_index, dtype=torch.long),
+            torch.zeros(len(train_features)),
+            torch.ones(len(ood_train_features)),
         )
     )
     validation_x = torch.cat((validation_features, ood_validation_features))
     validation_y = torch.cat(
         (
-            validation_targets,
-            torch.full((len(ood_validation_features),), none_index, dtype=torch.long),
+            torch.zeros(len(validation_features)),
+            torch.ones(len(ood_validation_features)),
         )
     )
-    counts = torch.bincount(targets, minlength=label_count + 1).float()
-    class_weights = len(targets) / ((label_count + 1) * counts)
+    del train_targets, validation_targets
+    closed_head.eval()
+    with torch.inference_mode():
+        fixed_class_score = torch.logsumexp(closed_head(features), dim=1)
+        fixed_validation_class_score = torch.logsumexp(
+            closed_head(validation_x), dim=1
+        )
+    positive_weight = torch.tensor([len(train_features) / len(ood_train_features)])
 
     torch.manual_seed(seed + 1)
-    head = torch.nn.Linear(features.shape[1], label_count + 1)
-    optimizer = torch.optim.AdamW(head.parameters(), lr=learning_rate)
+    none_logit = torch.nn.Linear(features.shape[1], 1)
+    optimizer = torch.optim.AdamW(none_logit.parameters(), lr=learning_rate)
     generator = torch.Generator().manual_seed(seed + 1)
     best_state = None
     best_validation_loss = math.inf
     stale_epochs = 0
     history: list[dict[str, float | int]] = []
     for epoch in range(1, epochs + 1):
-        head.train()
+        none_logit.train()
         permutation = torch.randperm(len(targets), generator=generator)
         total_loss = 0.0
         for start in range(0, len(permutation), batch_size):
             indices = permutation[start : start + batch_size]
             optimizer.zero_grad()
-            loss = torch.nn.functional.cross_entropy(
-                head(features[indices]),
+            loss = torch.nn.functional.binary_cross_entropy_with_logits(
+                none_logit(features[indices]).squeeze(1)
+                - fixed_class_score[indices],
                 targets[indices],
-                weight=class_weights,
+                pos_weight=positive_weight,
             )
             loss.backward()
             optimizer.step()
             total_loss += loss.item() * len(indices)
-        head.eval()
+        none_logit.eval()
         with torch.inference_mode():
-            validation_loss = torch.nn.functional.cross_entropy(
-                head(validation_x),
+            validation_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+                none_logit(validation_x).squeeze(1)
+                - fixed_validation_class_score,
                 validation_y,
-                weight=class_weights,
+                pos_weight=positive_weight,
             ).item()
         history.append(
             {
@@ -224,7 +232,8 @@ def fit_none_logit_head(
         if validation_loss < best_validation_loss - 1e-6:
             best_validation_loss = validation_loss
             best_state = {
-                name: value.detach().clone() for name, value in head.state_dict().items()
+                name: value.detach().clone()
+                for name, value in none_logit.state_dict().items()
             }
             stale_epochs = 0
         else:
@@ -233,9 +242,18 @@ def fit_none_logit_head(
                 break
     if best_state is None:
         raise RuntimeError("none-logit training did not produce a checkpoint")
-    head.load_state_dict(best_state)
-    head.eval()
-    return head, best_state, history
+    none_logit.load_state_dict(best_state)
+    combined = torch.nn.Linear(features.shape[1], label_count + 1)
+    with torch.no_grad():
+        combined.weight[:label_count].copy_(closed_head.weight)
+        combined.bias[:label_count].copy_(closed_head.bias)
+        combined.weight[label_count:].copy_(none_logit.weight)
+        combined.bias[label_count:].copy_(none_logit.bias)
+    combined.eval()
+    combined_state = {
+        name: value.detach().clone() for name, value in combined.state_dict().items()
+    }
+    return combined, combined_state, history
 
 
 def _decision_metrics(
