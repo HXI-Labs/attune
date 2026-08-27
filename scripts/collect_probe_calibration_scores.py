@@ -11,9 +11,11 @@ from typing import Any
 
 from attune.models.frozen_event_probe import (
     discover_vocalsound,
-    inspection_examples as vocalsound_inspection_examples,
     load_inspection_rows,
     make_speaker_disjoint_split,
+)
+from attune.models.frozen_event_probe import (
+    inspection_examples as vocalsound_inspection_examples,
 )
 from attune.models.fsd50k_probe import (
     inspection_examples as fsd50k_inspection_examples,

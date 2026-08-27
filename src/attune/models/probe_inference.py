@@ -173,7 +173,7 @@ class FrozenLinearProbeHead:
                 "confidence_role": (
                     "validation-temperature-scaled probability; not reviewed gold"
                     if calibration is not None
-                    else "uncalibrated diagnostic softmax; not reviewed gold"
+                    else "diagnostic uncalibrated softmax; not reviewed gold"
                 ),
                 "calibration_method": (
                     "temperature_scaling" if calibration is not None else None
