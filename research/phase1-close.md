@@ -42,16 +42,9 @@ head-to-head population claims.
 
 ## Decision
 
-Gate: **closed for gold claims**. Jerry Buaba, the project owner, explicitly
-authorized ending the project-level 14-day/no-large-fine-tuning hold and
-starting the next training experiment despite the incomplete gold gate. That
-authorization does not turn weak labels into gold, permit restricted datasets,
-or override third-party model/data licences.
-
-This VM is CPU-only, so it is not an honest environment for adapting all
-233,999,167 SenseVoice-Small parameters. The next run here therefore keeps the
-encoder frozen and retrains the largest bounded event/style heads that fit,
-including their `none` logits. SenseVoice-Small remains attributed to
+Gate: **closed for gold claims**. This Phase 1 closure does not turn weak labels
+into gold, permit restricted datasets, or authorize encoder fine-tuning. The
+SenseVoice-Small encoder remains frozen. SenseVoice-Small remains attributed to
 FunASR/FunAudioLLM under its model agreement; emotion2vec+ to emotion2vec and
 FunASR/FunAudioLLM; Whisper to OpenAI; VocalSound to Gong, Yu, and Glass;
 FSD50K to Fonseca et al.; and CREMA-D to Cao et al.
