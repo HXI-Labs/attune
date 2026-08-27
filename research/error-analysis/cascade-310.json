@@ -1,0 +1,214 @@
+{
+  "report_version": "1",
+  "source_report": "research/attune-cascade-inspection-results.json",
+  "source_report_version": "2",
+  "gate_decision": "closed",
+  "label_status": "weak source / acted labels; not reviewed gold",
+  "affect_confusion": {
+    "evaluated_clips": 130,
+    "labels": [
+      "anger",
+      "distress",
+      "fear",
+      "joy",
+      "neutral",
+      "other"
+    ],
+    "rows": [
+      {
+        "reference": "anger",
+        "prediction": "anger",
+        "clips": 20
+      },
+      {
+        "reference": "distress",
+        "prediction": "anger",
+        "clips": 1
+      },
+      {
+        "reference": "distress",
+        "prediction": "distress",
+        "clips": 25
+      },
+      {
+        "reference": "distress",
+        "prediction": "joy",
+        "clips": 1
+      },
+      {
+        "reference": "distress",
+        "prediction": "neutral",
+        "clips": 3
+      },
+      {
+        "reference": "fear",
+        "prediction": "anger",
+        "clips": 1
+      },
+      {
+        "reference": "fear",
+        "prediction": "distress",
+        "clips": 1
+      },
+      {
+        "reference": "fear",
+        "prediction": "fear",
+        "clips": 14
+      },
+      {
+        "reference": "fear",
+        "prediction": "joy",
+        "clips": 1
+      },
+      {
+        "reference": "fear",
+        "prediction": "other",
+        "clips": 3
+      },
+      {
+        "reference": "joy",
+        "prediction": "joy",
+        "clips": 30
+      },
+      {
+        "reference": "neutral",
+        "prediction": "neutral",
+        "clips": 10
+      },
+      {
+        "reference": "other",
+        "prediction": "anger",
+        "clips": 2
+      },
+      {
+        "reference": "other",
+        "prediction": "distress",
+        "clips": 1
+      },
+      {
+        "reference": "other",
+        "prediction": "other",
+        "clips": 17
+      }
+    ],
+    "by_source": {}
+  },
+  "annotation_errors": {
+    "event:breath": {
+      "true_positive": 0,
+      "false_positive": 12,
+      "false_negative": 0
+    },
+    "event:cough": {
+      "true_positive": 13,
+      "false_positive": 15,
+      "false_negative": 3
+    },
+    "event:laugh": {
+      "true_positive": 15,
+      "false_positive": 7,
+      "false_negative": 1
+    },
+    "event:scream": {
+      "true_positive": 11,
+      "false_positive": 10,
+      "false_negative": 14
+    },
+    "event:sigh": {
+      "true_positive": 11,
+      "false_positive": 4,
+      "false_negative": 5
+    },
+    "event:sneeze": {
+      "true_positive": 14,
+      "false_positive": 1,
+      "false_negative": 2
+    },
+    "event:sob": {
+      "true_positive": 22,
+      "false_positive": 10,
+      "false_negative": 3
+    },
+    "event:throat_clear": {
+      "true_positive": 10,
+      "false_positive": 2,
+      "false_negative": 6
+    },
+    "style:crying_speech": {
+      "true_positive": 0,
+      "false_positive": 1,
+      "false_negative": 0
+    },
+    "style:laughing_speech": {
+      "true_positive": 0,
+      "false_positive": 3,
+      "false_negative": 0
+    },
+    "style:shouting": {
+      "true_positive": 17,
+      "false_positive": 3,
+      "false_negative": 8
+    },
+    "style:whispering": {
+      "true_positive": 21,
+      "false_positive": 15,
+      "false_negative": 4
+    }
+  },
+  "probe_ood_by_source": [
+    {
+      "probe": "vocalsound",
+      "source_dataset": "CREMA-D",
+      "clips": 130,
+      "false_positive_clips": 0,
+      "false_positive_rate": 0.0
+    },
+    {
+      "probe": "vocalsound",
+      "source_dataset": "FSD50K",
+      "clips": 100,
+      "false_positive_clips": 5,
+      "false_positive_rate": 0.05
+    },
+    {
+      "probe": "fsd50k",
+      "source_dataset": "CREMA-D",
+      "clips": 130,
+      "false_positive_clips": 13,
+      "false_positive_rate": 0.1
+    },
+    {
+      "probe": "fsd50k",
+      "source_dataset": "VocalSound",
+      "clips": 80,
+      "false_positive_clips": 2,
+      "false_positive_rate": 0.025
+    }
+  ],
+  "runtime": {
+    "combined": {
+      "clips": 310,
+      "audio_seconds": 1488.748,
+      "elapsed_seconds": 102.00502504800261,
+      "real_time_factor": 0.06851732129816639
+    },
+    "CREMA-D": {
+      "clips": 130,
+      "audio_seconds": 334.513,
+      "elapsed_seconds": 29.652923621002174,
+      "real_time_factor": 0.08864505600978789
+    },
+    "FSD50K": {
+      "clips": 100,
+      "audio_seconds": 830.187,
+      "elapsed_seconds": 51.92355493400191,
+      "real_time_factor": 0.06254440858987423
+    },
+    "VocalSound": {
+      "clips": 80,
+      "audio_seconds": 324.048,
+      "elapsed_seconds": 20.42854649299852,
+      "real_time_factor": 0.06304172990729312
+    }
+  }
+}
