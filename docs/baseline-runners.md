@@ -151,11 +151,16 @@ uv run python scripts/infer.py /tmp/attune-fixture.wav --fixture-mode
 
 Cascade `laugh`, `cough`, and `throat_clear` events use frame spans only when a
 checkpoint carrying the passed held-out gate is explicitly configured. The
-frame head scores 0.7285 segment F1 versus 0.3183 for whole-clip oracle tags and
-0.4637 versus 0 collar event F1. All other `0..duration` event/style spans still
-denote utterance scope and are not localization. The failed DCASE eight-bin
-result remains authoritative for that pooled head. See
+direct frame decoder scores 0.7285 segment / 0.4637 collar F1. Hysteresis
+selected only on development validation scores 0.7059 / 0.5279 on the same
+untouched test, versus 0.3183 / 0 for whole-clip. All other `0..duration`
+event/style spans still denote utterance scope and are not localization. The
+failed DCASE eight-bin result remains authoritative for that pooled head. See
 `research/timing-holes.md`.
+The separate STARSS23 checkpoint maps only laughter to `laugh`. It scores
+0.7381 segment F1 versus 0.4894 whole-clip on held-out natural-scene windows,
+but collar F1 is only 0.1159. Its segment gate passes, yet the boundary result
+is explicitly not merge-quality. Language remains unverified.
 If timing work resumes, the bounded next candidate is a pre-existing,
 hash-verified STARSS23 slice only. STARSS23 is the MIT natural-spatial-audio
 dataset with 100 ms labels; its metadata does not permit filtering for English,

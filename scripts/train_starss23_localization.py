@@ -109,6 +109,94 @@ def spans(
     return result
 
 
+def hysteresis_spans(
+    probabilities: list[Any],
+    *,
+    high_threshold: float,
+    low_threshold: float,
+    max_gap_frames: int,
+    min_active_frames: int,
+    first_frame_center_ms: float,
+    frame_hop_ms: float,
+) -> list[list[dict[str, Any]]]:
+    result = []
+    for clip_tensor in probabilities:
+        values = clip_tensor[:, 0].tolist()
+        low_active = [value >= low_threshold for value in values]
+        intervals = []
+        for seed, value in enumerate(values):
+            if value < high_threshold:
+                continue
+            start = end = seed
+            while start > 0 and low_active[start - 1]:
+                start -= 1
+            while end + 1 < len(values) and low_active[end + 1]:
+                end += 1
+            if intervals and start - intervals[-1][1] - 1 <= max_gap_frames:
+                intervals[-1] = (intervals[-1][0], max(intervals[-1][1], end))
+            elif not intervals or start > intervals[-1][1]:
+                intervals.append((start, end))
+        result.append(
+            [
+                {
+                    "label": "laugh",
+                    "start_ms": max(
+                        0,
+                        round(first_frame_center_ms + start * frame_hop_ms - frame_hop_ms / 2),
+                    ),
+                    "end_ms": min(
+                        DURATION_MS,
+                        round(first_frame_center_ms + (end + 1) * frame_hop_ms - frame_hop_ms / 2),
+                    ),
+                }
+                for start, end in intervals
+                if end - start + 1 >= min_active_frames
+            ]
+        )
+    return result
+
+
+def select_hysteresis_decoder(
+    probabilities: list[Any],
+    references: list[list[dict[str, Any]]],
+    *,
+    first_frame_center_ms: float,
+    frame_hop_ms: float,
+) -> dict[str, float | int]:
+    candidates = []
+    for high_threshold in (0.5, 0.6, 0.7, 0.8, 0.9, 0.95):
+        for low_ratio in (0.5, 0.7, 0.9):
+            for max_gap_frames in (0, 1, 2):
+                for min_active_frames in (1, 2, 3):
+                    decoder = {
+                        "high_threshold": high_threshold,
+                        "low_threshold": high_threshold * low_ratio,
+                        "max_gap_frames": max_gap_frames,
+                        "min_active_frames": min_active_frames,
+                    }
+                    predictions = hysteresis_spans(
+                        probabilities,
+                        **decoder,
+                        first_frame_center_ms=first_frame_center_ms,
+                        frame_hop_ms=frame_hop_ms,
+                    )
+                    collar = collar_event_metrics(references, predictions)
+                    segment = segment_f1(
+                        references,
+                        predictions,
+                        duration_ms=DURATION_MS,
+                    )
+                    candidates.append(
+                        (
+                            float(collar["f1"]),
+                            float(segment["f1"]),
+                            -int(collar["false_positive"]),
+                            decoder,
+                        )
+                    )
+    return max(candidates, key=lambda candidate: candidate[:3])[3]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sensevoice-path", type=Path, required=True)
@@ -260,8 +348,24 @@ def main() -> None:
         )["f1"],
     )
     references = [row["events"] for row in inspection]
-    predictions = spans(inspection_probabilities, threshold, **span_arguments)
+    direct_predictions = spans(inspection_probabilities, threshold, **span_arguments)
+    decoder = select_hysteresis_decoder(
+        validation_probabilities,
+        references_validation,
+        **span_arguments,
+    )
+    predictions = hysteresis_spans(
+        inspection_probabilities,
+        **decoder,
+        **span_arguments,
+    )
     baseline = whole_clip_predictions(references, duration_ms=DURATION_MS)
+    direct_segment = segment_f1(
+        references,
+        direct_predictions,
+        duration_ms=DURATION_MS,
+    )
+    direct_collar = collar_event_metrics(references, direct_predictions)
     temporal_segment = segment_f1(references, predictions, duration_ms=DURATION_MS)
     baseline_segment = segment_f1(references, baseline, duration_ms=DURATION_MS)
     temporal_collar = collar_event_metrics(references, predictions)
@@ -284,6 +388,7 @@ def main() -> None:
             "labels": LABELS,
             "hidden_size": 64,
             "threshold": threshold,
+            "decoder": {"type": "hysteresis", **decoder},
             "dataset": "starss23",
             "embedding": SENSEVOICE_FRAME_EMBEDDING,
             "frame_hop_ms_approx": encoder.frame_hop_ms,
@@ -345,6 +450,12 @@ def main() -> None:
                 "segment_f1": temporal_segment,
                 "collar_event_metrics": temporal_collar,
             },
+            "direct_threshold_before_decoder": {
+                "threshold": threshold,
+                "segment_f1": direct_segment,
+                "collar_event_metrics": direct_collar,
+            },
+            "validation_selected_hysteresis_decoder": decoder,
             "whole_clip_oracle_tag_baseline": {
                 "definition": (
                     "uses each window's known laughter presence but assigns 0..10000 ms; "

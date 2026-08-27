@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "dataset": "STARSS23 v1.1 development set",
+  "record": "https://zenodo.org/records/7880637",
+  "doi": "10.5281/zenodo.7880637",
+  "licence": "MIT",
+  "licence_file_md5": "1c11108eda7c915172b10c48276cc189",
+  "metadata_archive_md5": "e73af95a6d5f3f7e009ac6a70804f44a",
+  "microphone_development_archive_md5": "06967bcc8def1580c2425fabc311dbd2",
+  "selection": "80 official dev-train and 40 official dev-test 10-second windows; 62.5% laughter target where available; natural overlap ranked first; at most two windows per source recording; any window containing Music class 8 excluded",
+  "mapping": {
+    "4_laughter": "laugh"
+  },
+  "source_identity_mapping": "simultaneous source-specific laughter frames are unioned because Attune events do not carry source identity",
+  "unmapped_classes": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+  ],
+  "music_class_excluded": 8,
+  "language": "unverified; STARSS23 metadata has no language field",
+  "source_format": {
+    "sample_rate_hz": 24000,
+    "channels": 4,
+    "format": "MIC"
+  },
+  "derived_format": {
+    "sample_rate_hz": 16000,
+    "channels": 1
+  },
+  "development_manifest": "data/manifests/starss23-localization-development.jsonl",
+  "development_rows": 80,
+  "development_manifest_sha256": "1e2ad11b477b6d3359ac1b4060caff9b5469949869b0d79ef2b232ed4796b4f0",
+  "inspection_manifest": "data/manifests/starss23-localization-inspection.jsonl",
+  "inspection_rows": 40,
+  "inspection_manifest_sha256": "edc136db1fb108f72657962c9308b939100071b5cc540f69f2a094722b0dcfd8",
+  "audio_committed": false,
+  "privacy_consent": "Natural participant recordings; collection included consent and published face-blurring procedures, but this operational review is not independent consent verification. Use only for bounded research.",
+  "attribution": "STARSS23 by Politis, Shimada, Sudarsanam, Hakala, Takahashi, Krause, Adavanne, Koyama, Uchida, Mitsufuji, Virtanen, and collaborators."
+}

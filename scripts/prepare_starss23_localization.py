@@ -47,38 +47,42 @@ def metadata_rows(path: Path) -> list[tuple[int, int, int]]:
 def laughter_events(
     rows: list[tuple[int, int, int]], *, window_start_ms: int
 ) -> list[dict[str, Any]]:
-    """Convert source-specific active frames to contiguous laughter events."""
+    """Union source-specific activity because Attune events have no source ID."""
     window_start_frame = window_start_ms // LABEL_FRAME_MS
     window_end_frame = (window_start_ms + WINDOW_MS) // LABEL_FRAME_MS
-    by_source: dict[int, set[int]] = defaultdict(set)
+    sources_by_frame: dict[int, set[int]] = defaultdict(set)
     for frame, class_index, source_index in rows:
         if class_index == LAUGHTER_CLASS and window_start_frame <= frame < window_end_frame:
-            by_source[source_index].add(frame)
+            sources_by_frame[frame].add(source_index)
 
     events = []
-    for source_index, frames in sorted(by_source.items()):
-        start = previous = None
-        for frame in [*sorted(frames), None]:
-            if start is None:
-                start = previous = frame
-                continue
-            if frame is not None and previous is not None and frame == previous + 1:
-                previous = frame
-                continue
-            assert previous is not None
-            events.append(
-                {
-                    "label": "laugh",
-                    "start_ms": max(0, start * LABEL_FRAME_MS - window_start_ms),
-                    "end_ms": min(
-                        WINDOW_MS,
-                        (previous + 1) * LABEL_FRAME_MS - window_start_ms,
-                    ),
-                    "source_class": LAUGHTER_CLASS,
-                    "source_index": source_index,
-                }
-            )
+    start = previous = None
+    active_sources: set[int] = set()
+    for frame in [*sorted(sources_by_frame), None]:
+        if start is None:
             start = previous = frame
+            if frame is not None:
+                active_sources = set(sources_by_frame[frame])
+            continue
+        if frame is not None and previous is not None and frame == previous + 1:
+            previous = frame
+            active_sources.update(sources_by_frame[frame])
+            continue
+        assert previous is not None
+        events.append(
+            {
+                "label": "laugh",
+                "start_ms": max(0, start * LABEL_FRAME_MS - window_start_ms),
+                "end_ms": min(
+                    WINDOW_MS,
+                    (previous + 1) * LABEL_FRAME_MS - window_start_ms,
+                ),
+                "source_class": LAUGHTER_CLASS,
+                "source_indices": sorted(active_sources),
+            }
+        )
+        start = previous = frame
+        active_sources = set() if frame is None else set(sources_by_frame[frame])
     return events
 
 
@@ -339,6 +343,10 @@ def main() -> None:
             "class 8 excluded"
         ),
         "mapping": {"4_laughter": "laugh"},
+        "source_identity_mapping": (
+            "simultaneous source-specific laughter frames are unioned because "
+            "Attune events do not carry source identity"
+        ),
         "unmapped_classes": list(range(13)),
         "music_class_excluded": 8,
         "language": "unverified; STARSS23 metadata has no language field",

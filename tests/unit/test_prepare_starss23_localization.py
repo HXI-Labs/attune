@@ -16,11 +16,12 @@ def load_script() -> ModuleType:
     return module
 
 
-def test_laughter_frames_become_source_specific_contiguous_events() -> None:
+def test_laughter_frames_union_sources_into_contiguous_attune_events() -> None:
     script = load_script()
     rows = [
         (10, 4, 1),
         (11, 4, 1),
+        (11, 4, 2),
         (11, 0, 2),
         (13, 4, 1),
         (20, 4, 2),
@@ -34,21 +35,21 @@ def test_laughter_frames_become_source_specific_contiguous_events() -> None:
             "start_ms": 0,
             "end_ms": 200,
             "source_class": 4,
-            "source_index": 1,
+            "source_indices": [1, 2],
         },
         {
             "label": "laugh",
             "start_ms": 300,
             "end_ms": 400,
             "source_class": 4,
-            "source_index": 1,
+            "source_indices": [1],
         },
         {
             "label": "laugh",
             "start_ms": 1000,
             "end_ms": 1100,
             "source_class": 4,
-            "source_index": 2,
+            "source_indices": [2],
         },
     ]
 

@@ -1,6 +1,6 @@
 {
   "report_version": "1",
-  "generated_at_utc": "2026-08-27T08:41:08.659870Z",
+  "generated_at_utc": "2026-08-27T09:14:02.087565Z",
   "gate_decision": "closed",
   "encoder_frozen": true,
   "data_verification": {
@@ -46,6 +46,17 @@
     "segment_f1_margin": 0.4102002402330536,
     "collar_event_f1": 0.46366782006920415,
     "whole_clip_oracle_tag_collar_event_f1": 0.0,
+    "validation_selected_hysteresis": {
+      "high_threshold": 0.95,
+      "low_threshold": 0.855,
+      "max_gap_frames": 1,
+      "min_active_frames": 1,
+      "segment_f1": 0.7058823529411765,
+      "segment_f1_margin": 0.3876057719821772,
+      "collar_event_f1": 0.5278810408921933,
+      "collar_f1_improvement": 0.06421322082298915,
+      "selected_on": "development validation only"
+    },
     "eligible_for_cascade_wiring": true,
     "timestamps_wired": true,
     "protocol_implementation": "scripts/train_temporal_localization.py",
@@ -53,7 +64,7 @@
     "checkpoint_committed": false
   },
   "cascade_timestamps": {
-    "event_style_policy": "gated frame spans for laugh/cough/throat_clear when the temporal checkpoint is configured; all other event/style labels remain utterance-scoped",
+    "event_style_policy": "gated STARSS23 laugh or DCASE laugh/cough/throat_clear frame spans when the corresponding temporal checkpoint is configured; all other event/style labels remain utterance-scoped",
     "zero_to_duration_is_localization": false,
     "changed_in_this_pr": true
   },
@@ -73,21 +84,46 @@
     "cascade_passes_real_words_through": true
   },
   "starss23": {
-    "download_started": false,
-    "cached_hashed_slice_found": false,
-    "next_experiment": true,
-    "dataset": "MIT STARSS23",
+    "status": "completed",
+    "dataset": "STARSS23 v1.1 development",
+    "record": "https://zenodo.org/records/7880637",
+    "licence": "MIT",
     "label_resolution_ms": 100,
+    "mapping": {
+      "class_4_laughter": "laugh"
+    },
+    "music_class_8_excluded": true,
+    "development_windows": 80,
+    "inspection_test_windows": 40,
+    "inspection_natural_overlap_windows": 40,
+    "source_format": "4-channel 24 kHz MIC",
+    "derived_format": "mono 16 kHz",
+    "development_manifest_sha256": "1e2ad11b477b6d3359ac1b4060caff9b5469949869b0d79ef2b232ed4796b4f0",
+    "inspection_manifest_sha256": "edc136db1fb108f72657962c9308b939100071b5cc540f69f2a094722b0dcfd8",
+    "segment_f1": 0.7380952380952381,
+    "whole_clip_oracle_tag_segment_f1": 0.48942598187311176,
+    "segment_f1_margin": 0.24866925622212638,
+    "collar_event_f1": 0.11594202898550725,
+    "whole_clip_oracle_tag_collar_event_f1": 0.0,
+    "collar_true_positive": 4,
+    "reference_event_count": 31,
+    "eligible_for_cascade_wiring": true,
+    "timestamps_wired": true,
     "english_metadata_filter_available": false,
-    "natural_overlap": true,
+    "language": "unverified",
+    "merge_quality_localization": false,
+    "detailed_result": "research/starss23-localization-results.json",
     "caveats": [
-      "licence review remains required for intended use",
-      "natural recordings require privacy and consent review"
+      "collar event F1 is weak despite the segment-F1 gate passing",
+      "natural participant recordings require ongoing privacy and consent care",
+      "human activity labels are not independently reviewed Attune gold"
     ]
   },
   "claims": {
     "dcase_labels": "synthetic strong labels; not Attune gold",
+    "starss23_labels": "human 100 ms activity labels; not Attune gold",
     "gold_gate": "closed",
+    "merge_quality_localization": false,
     "phase3_joint_training_authorized": false
   }
 }

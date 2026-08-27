@@ -94,16 +94,18 @@ The DCASE 2016 eight-bin temporal MLP remains a negative result: segment F1 0.19
 0.3183 for the whole-clip comparator, with 0 collar event F1 for both. It is not
 wired into cascade timestamps. A later frame-level retry protocol is documented
 in `research/timing-holes.md`: segment F1 0.7285 versus 0.3183 whole-clip and
-200 ms collar F1 0.4637 versus 0. The +0.4102 segment margin clears the
-predeclared +0.05 gate, so only its three overlapping event labels may use
-frame spans when the gated checkpoint is configured.
+200 ms collar F1 0.4637 versus 0 directly. Validation-selected hysteresis
+improves collar F1 to 0.5279 while segment F1 becomes 0.7059. Its active +0.3876
+segment margin clears the predeclared +0.05 gate, so only its three overlapping
+event labels may use frame spans when the gated checkpoint is configured.
 
-No small pre-cached, hash-verified natural-audio timing slice was present.
-STARSS23 is therefore only the next Phase-2-adjacent candidate: it is the MIT
-natural-spatial-audio dataset with 100 ms labels, English cannot be selected
-from its metadata, and licence/privacy review is required for natural
-recordings. The authorized timing follow-up fetched DCASE only; STARSS23 was
-not downloaded.
+The authorized follow-up created a hash-verified 80/40-window STARSS23
+development slice, excluding Music and mapping only laughter to `laugh`.
+Held-out natural-scene segment F1 is 0.7381 versus 0.4894 whole-clip, while
+collar F1 is only 0.1159 versus 0. Language is unverified because STARSS23 has
+no language metadata, and natural participant recordings retain privacy and
+consent caveats. The segment gate passes, but this is not merge-quality
+event-boundary alignment.
 
 ## What Phase 2 established
 
@@ -117,7 +119,8 @@ not downloaded.
 - A complete offline local-cascade CLI can preserve trusted structured
   channels without a product UI or model downloads.
 - Acoustic frames justify bounded timing for three synthetic-DCASE overlap
-  labels; they do not localize other cascade labels or establish natural gold.
+  labels and coarse STARSS23 laughter activity; weak natural-scene collar F1
+  does not establish merge-quality boundaries or natural gold.
 
 ## What still requires Phase 3 evidence
 

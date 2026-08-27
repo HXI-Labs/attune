@@ -55,19 +55,23 @@ Archive MD5s, derived-clip SHA-256 values, and the pinned SenseVoice `model.pt`
 SHA-256 were verified before training. On the same untouched 100-clip public
 test:
 
-| Method | 1 s segment F1 | 200 ms collar event F1 |
+| DCASE method | 1 s segment F1 | 200 ms collar event F1 |
 |---|---:|---:|
-| Frame head | **0.7285** | **0.4637** |
+| Direct threshold (kept original) | **0.7285** | 0.4637 |
+| Validation-selected hysteresis | 0.7059 | **0.5279** |
 | Whole-clip oracle tags | 0.3183 | 0.0000 |
 
-The absolute segment-F1 margin is `+0.4102`, well above the predeclared `+0.05`
-gate. The threshold is `0.95`, selected only on the 48-clip development
-validation partition after fitting on 168 development clips. The runtime
-checkpoint records the held-out scores and refuses loading if the gate did not
-pass. Consequently the cascade now prefers frame spans for the three
-DCASE-overlap labels when this gitignored checkpoint is explicitly configured.
-It may emit multiple localized occurrences of one event. VocalSound/FSD50K-only
-labels and styles keep honest utterance scope.
+The cheap decoder retry selected hysteresis entirely on development validation:
+high threshold `0.95`, low threshold `0.855`, bridge at most one frame, and no
+additional minimum-duration pruning. On the same untouched test this improves
+collar F1 by `+0.0642` while reducing segment F1 by `0.0226`. Both direct and
+hysteresis segment results remain well above the predeclared `+0.05` gate; the
+active runtime margin is `+0.3876`. The checkpoint records the held-out scores
+and refuses loading if the gate did not pass. Consequently the cascade now
+prefers validation-selected frame spans for the three DCASE-overlap labels when
+this gitignored checkpoint is explicitly configured. It may emit multiple
+localized occurrences of one event. VocalSound/FSD50K-only labels and styles
+keep honest utterance scope.
 
 ## Word alignment
 
@@ -89,13 +93,39 @@ real ASR words when present.
 
 ## STARSS23 and scope
 
-No small hash-verified STARSS23 slice was present, and no multi-gigabyte
-download was attempted. STARSS23 remains the next natural-audio timing
-experiment: MIT dataset, 100 ms labels, natural overlap, and no metadata field
-that reliably filters English. Licence, privacy, and consent implications of
-the natural recordings require review before use.
+The authorized STARSS23 v1.1 development fetch produced a bounded 120-window
+slice: 80 official dev-train windows and 40 official dev-test inspection
+windows, downmixed from 4-channel/24 kHz MIC recordings to mono/16 kHz. All
+derived audio is hash-verified and gitignored. Selection capped each source
+file at two windows, preferred natural overlap (40/40 inspection windows), and
+excluded every window containing Music class 8 loudspeaker playback.
+
+Only STARSS23 class 4 `laughter` maps to Attune `laugh`. The source identities
+were unioned because Attune events have no source identity. Speech, footsteps,
+doors, and all other classes are not forced into the Attune ontology.
+
+| STARSS23 laugh method | 1 s segment F1 | 200 ms collar event F1 |
+|---|---:|---:|
+| Frozen frame head | **0.7381** | **0.1159** |
+| Whole-clip oracle tags | 0.4894 | 0.0000 |
+
+The `+0.2487` segment-F1 margin clears the predeclared `+0.05` wiring gate, so
+the separate gated STARSS23 checkpoint may supply `laugh` spans when explicitly
+configured. Collar F1 remains weak: only 4 of 31 held-out event intervals match
+at the 200 ms criterion. This is bounded evidence of coarse natural-scene
+activity localization, not merge-quality event-boundary alignment.
+
+STARSS23 metadata has no language field and its README states that speech spans
+multiple languages. Language is therefore `unverified`; no English claim or
+filter was invented. These are natural participant recordings. The dataset
+reports consent and face blurring for synchronized video, but Attune has not
+independently verified individual consent records, so privacy/consent care
+remains required.
 
 DCASE labels remain synthetic strong labels, not reviewed Attune gold.
+STARSS23 labels are human 100 ms activity labels but are likewise not reviewed
+Attune gold. The scientific gold gate remains closed, and the current collar
+results are not merge-quality localization.
 SenseVoiceSmall remains attributed to FunASR/FunAudioLLM under the FunASR Model
 Open Source License Agreement v1.1. No audio, weights, embeddings, or
 checkpoints are committed.
