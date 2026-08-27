@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train one frozen-frame laughter MLP on STARSS23 60-second scene rasters."""
+"""Train one frozen-frame laughter BiGRU on STARSS23 60-second scene rasters."""
 
 from __future__ import annotations
 
@@ -21,6 +21,13 @@ from attune.evaluation.localization import (
 from attune.models.sensevoice_probe import (
     SENSEVOICE_FRAME_EMBEDDING,
     FrozenSenseVoiceFrameEncoder,
+)
+from attune.models.temporal_probe import (
+    BIGRU_ARCHITECTURE,
+    BIGRU_DROPOUT,
+    BIGRU_HIDDEN_SIZE,
+    BIGRU_NUM_LAYERS,
+    build_bigru_head,
 )
 
 LABELS = ("laugh",)
@@ -104,6 +111,18 @@ PRIOR_ONSET_SHIFT_PASS = {
         "median_filter_frames": 1,
         "onset_shift_ms": -120,
     },
+}
+PRIOR_BOUNDARY_WEIGHTED_PASS = {
+    "epochs_completed": 214,
+    "segment_f1": 0.3673469387755102,
+    "whole_clip_segment_f1": 0.17212490479817213,
+    "collar_event_f1": 0.058823529411764705,
+    "collar_true_positive": 2,
+    "collar_false_positive": 18,
+    "collar_false_negative": 46,
+    "reference_event_count": 48,
+    "median_onset_error_ms_on_overlapping_misses": 300,
+    "decoder": dict(PREDECLARED_DECODER),
 }
 
 
@@ -208,6 +227,68 @@ def bce_with_logits(logits: Any, targets: Any, torch: Any, *, weight: Any | None
     if weight is None:
         return per_frame.mean()
     return (per_frame * weight).mean()
+
+
+def pad_clip_batch(clips: list[Any], torch: Any) -> tuple[Any, Any, Any]:
+    """Pad ``(T, C)`` clips to ``(B, T_max, C)`` plus a boolean mask of real frames."""
+    if not clips:
+        raise ValueError("clips must not be empty")
+    lengths = [int(clip.shape[0]) for clip in clips]
+    max_len = max(lengths)
+    feature_size = int(clips[0].shape[1])
+    batch = clips[0].new_zeros((len(clips), max_len, feature_size))
+    mask = torch.zeros((len(clips), max_len), dtype=torch.bool, device=clips[0].device)
+    for index, clip in enumerate(clips):
+        if clip.ndim != 2 or int(clip.shape[1]) != feature_size:
+            raise ValueError("each clip must have shape (frames, features)")
+        batch[index, : lengths[index]] = clip
+        mask[index, : lengths[index]] = True
+    return batch, mask, torch.tensor(lengths, dtype=torch.long, device=clips[0].device)
+
+
+def masked_bce_with_logits(logits: Any, targets: Any, mask: Any, torch: Any) -> Any:
+    """Mean BCE over unpadded frames; padded frames never enter the loss."""
+    per_frame = torch.nn.functional.binary_cross_entropy_with_logits(
+        logits,
+        targets,
+        reduction="none",
+    )
+    weights = mask.to(dtype=per_frame.dtype)
+    if weights.ndim == per_frame.ndim - 1:
+        weights = weights.unsqueeze(-1)
+    return (per_frame * weights).sum() / weights.sum().clamp_min(1)
+
+
+def sequence_probabilities(
+    head: Any,
+    clips: list[Any],
+    mean: Any,
+    scale: Any,
+    torch: Any,
+) -> list[Any]:
+    """Per-clip sigmoid probabilities from a sequence head; padding is masked out."""
+    normalized = [(clip - mean) / scale for clip in clips]
+    batch, _mask, lengths = pad_clip_batch(normalized, torch)
+    head.eval()
+    with torch.inference_mode():
+        probabilities = torch.sigmoid(head(batch, lengths=lengths))
+    return [probabilities[index, :length] for index, length in enumerate(lengths.tolist())]
+
+
+def assert_head_is_bigru_not_conv(head: Any, torch: Any) -> None:
+    """Refuse Conv1d and anything other than the predeclared 1-layer BiGRU."""
+    if any(isinstance(module, torch.nn.Conv1d) for module in head.modules()):
+        raise RuntimeError("STARSS23 BiGRU head must not contain Conv1d")
+    gru = getattr(head, "gru", None)
+    if (
+        gru is None
+        or not isinstance(gru, torch.nn.GRU)
+        or gru.bidirectional is not True
+        or int(gru.num_layers) != BIGRU_NUM_LAYERS
+        or int(gru.hidden_size) != BIGRU_HIDDEN_SIZE
+        or float(gru.dropout) != BIGRU_DROPOUT
+    ):
+        raise RuntimeError("STARSS23 head is not the predeclared 1-layer BiGRU")
 
 
 def gold_event_durations_ms(rows: list[dict[str, Any]]) -> list[int]:
@@ -1403,7 +1484,7 @@ def main() -> None:
     parser.add_argument(
         "--checkpoint-output",
         type=Path,
-        default=Path("artifacts/starss23-scene-raster/frame-head.pt"),
+        default=Path("artifacts/starss23-scene-raster/bigru-head.pt"),
     )
     parser.add_argument(
         "--output",
@@ -1514,22 +1595,24 @@ def main() -> None:
         **target_arguments,
     )
     train_matrix = torch.cat(train_x)
-    validation_matrix = torch.cat(validation_x)
-    inspection_lengths = [len(clip) for clip in inspection_x]
-    inspection_matrix = torch.cat(inspection_x)
     train_targets = torch.cat(train_y)
-    validation_targets = torch.cat(validation_y)
     mean = train_matrix.mean(dim=0)
     scale = train_matrix.std(dim=0).clamp_min(1e-5)
-    train_matrix = (train_matrix - mean) / scale
-    validation_matrix = (validation_matrix - mean) / scale
-    inspection_matrix = (inspection_matrix - mean) / scale
-    train_weights = boundary_weights_from_train_clips(train_y, torch=torch)
-    head = torch.nn.Sequential(
-        torch.nn.Linear(512, 64),
-        torch.nn.ReLU(),
-        torch.nn.Linear(64, 1),
+    normalized_train = [(clip - mean) / scale for clip in train_x]
+    normalized_validation = [(clip - mean) / scale for clip in validation_x]
+    train_batch, train_mask, train_lengths = pad_clip_batch(normalized_train, torch)
+    validation_batch, validation_mask, validation_lengths = pad_clip_batch(
+        normalized_validation, torch
     )
+    train_target_batch, _, _ = pad_clip_batch(train_y, torch)
+    validation_target_batch, _, _ = pad_clip_batch(validation_y, torch)
+    head = build_bigru_head(torch, hidden_size=BIGRU_HIDDEN_SIZE)
+    assert_head_is_bigru_not_conv(head, torch)
+    trainable_parameters = sum(parameter.numel() for parameter in head.parameters())
+    if trainable_parameters >= 1_000_000:
+        raise RuntimeError(f"BiGRU head has {trainable_parameters} params; expected <<1M")
+    if any(parameter.requires_grad for parameter in encoder.model.parameters()):
+        raise RuntimeError("SenseVoice encoder must stay frozen while training the BiGRU head")
     optimizer = torch.optim.AdamW(head.parameters(), lr=1e-3)
     best_state = None
     best_loss = math.inf
@@ -1538,18 +1621,23 @@ def main() -> None:
     for epoch in range(1, arguments.epochs + 1):
         head.train()
         optimizer.zero_grad()
-        train_loss = bce_with_logits(
-            head(train_matrix),
-            train_targets,
+        train_loss = masked_bce_with_logits(
+            head(train_batch, lengths=train_lengths),
+            train_target_batch,
+            train_mask,
             torch,
-            weight=train_weights,
         )
         train_loss.backward()
         optimizer.step()
         head.eval()
         with torch.inference_mode():
             validation_loss = float(
-                bce_with_logits(head(validation_matrix), validation_targets, torch).item()
+                masked_bce_with_logits(
+                    head(validation_batch, lengths=validation_lengths),
+                    validation_target_batch,
+                    validation_mask,
+                    torch,
+                ).item()
             )
         history.append(
             {
@@ -1566,15 +1654,18 @@ def main() -> None:
             stale += 1
             if stale >= arguments.patience:
                 break
+        if epoch == 1 or epoch % 10 == 0 or stale == 0:
+            print(
+                f"epoch {epoch} train={train_loss.item():.6f} "
+                f"val={validation_loss:.6f} best={best_loss:.6f} stale={stale}",
+                flush=True,
+            )
     if best_state is None:
         raise RuntimeError("STARSS23 temporal head training produced no checkpoint")
     head.load_state_dict(best_state)
     head.eval()
-    with torch.inference_mode():
-        validation_flat = torch.sigmoid(head(validation_matrix))
-        inspection_flat = torch.sigmoid(head(inspection_matrix))
-    validation_probabilities = list(validation_flat.split([len(clip) for clip in validation_x]))
-    inspection_probabilities = list(inspection_flat.split(inspection_lengths))
+    validation_probabilities = sequence_probabilities(head, validation_x, mean, scale, torch)
+    inspection_probabilities = sequence_probabilities(head, inspection_x, mean, scale, torch)
     references_validation = [row["events"] for row in validation_rows]
     span_arguments = {
         "first_frame_center_ms": encoder.first_frame_center_ms,
@@ -1652,7 +1743,11 @@ def main() -> None:
             "feature_mean": mean,
             "feature_scale": scale,
             "labels": LABELS,
-            "hidden_size": 64,
+            "architecture": BIGRU_ARCHITECTURE,
+            "hidden_size": BIGRU_HIDDEN_SIZE,
+            "bidirectional": True,
+            "num_layers": BIGRU_NUM_LAYERS,
+            "dropout": BIGRU_DROPOUT,
             "threshold": threshold,
             "decoder": {"type": "hysteresis", **decoder},
             "dataset": "starss23",
@@ -1678,13 +1773,13 @@ def main() -> None:
             "wire STARSS23 laugh timing from the 60s scene raster"
             if gate_passed
             else (
-                "leave STARSS23 unwired; boundary-weighted BCE did not clear "
+                "leave STARSS23 unwired; BiGRU head did not clear "
                 "the collar gate; reported best remains 0.1395"
             )
         )
     else:
         reported_best = {
-            "id": "boundary_weighted_bce",
+            "id": "bigru_head",
             "epochs_completed": len(history),
             "segment_f1": float(temporal_segment["f1"]),
             "whole_clip_segment_f1": float(baseline_segment["f1"]),
@@ -1703,10 +1798,7 @@ def main() -> None:
         wiring_decision = (
             "wire STARSS23 laugh timing from the 60s scene raster"
             if gate_passed
-            else (
-                "leave STARSS23 unwired; boundary-weighted BCE improved collar "
-                "but still failed the 0.25 gate"
-            )
+            else ("leave STARSS23 unwired; BiGRU improved collar but still failed the 0.25 gate")
         )
     overlapping_onset = {
         "prior_best_median_ms": PRIOR_BEST_PASS["median_onset_error_ms_on_overlapping_misses"],
@@ -1740,12 +1832,20 @@ def main() -> None:
         "encoder": encoder.metadata(),
         "encoder_frozen": True,
         "head": {
-            "type": "two-layer binary MLP over frozen 512-d acoustic frames",
-            "trainable_parameters": sum(parameter.numel() for parameter in head.parameters()),
+            "type": (
+                "1-layer bidirectional GRU then Linear(128->1) over frozen 512-d acoustic frames"
+            ),
+            "architecture": BIGRU_ARCHITECTURE,
+            "hidden_size": BIGRU_HIDDEN_SIZE,
+            "bidirectional": True,
+            "num_layers": BIGRU_NUM_LAYERS,
+            "dropout": BIGRU_DROPOUT,
+            "trainable_parameters": trainable_parameters,
             "threshold": threshold,
             "threshold_selected_on": "development validation rooms",
             "checkpoint_committed": False,
             "source_checkpoint": str(arguments.checkpoint_output),
+            "control_mlp_checkpoint": str(arguments.checkpoint_unweighted),
             "retrained": True,
         },
         "partitions": {
@@ -1765,18 +1865,15 @@ def main() -> None:
             "seed": arguments.seed,
             "epochs_completed": len(history),
             "patience": arguments.patience,
-            "loss": "boundary_weighted_BCEWithLogitsLoss",
+            "loss": "masked_unweighted_BCEWithLogitsLoss",
             "positive_class_weight": None,
             "positive_class_weight_source": "unused; 44x pos_weight banned",
-            "boundary_weight": BOUNDARY_WEIGHT,
-            "boundary_neighbor_weight": BOUNDARY_NEIGHBOR_WEIGHT,
-            "boundary_neighbor_radius": BOUNDARY_NEIGHBOR_RADIUS,
-            "default_frame_weight": DEFAULT_FRAME_WEIGHT,
-            "boundary_weight_source": "train_gold_event_boundaries_only",
+            "boundary_weight": None,
+            "padded_frames_in_loss": False,
             "train_positive_frames": train_positive_frames,
             "train_total_frames": train_total_frames,
             "train_positive_frame_prior": train_positive_frames / train_total_frames,
-            "early_stop_on": "unweighted_validation_bce",
+            "early_stop_on": "masked_validation_bce",
             "history": history,
             "retrained": True,
         },
@@ -1853,6 +1950,7 @@ def main() -> None:
             "decoder": dict(PREDECLARED_DECODER),
         },
         "prior_onset_shift_pass": PRIOR_ONSET_SHIFT_PASS,
+        "prior_boundary_weighted_pass": PRIOR_BOUNDARY_WEIGHTED_PASS,
         "prior_best": PRIOR_BEST_PASS,
         "reported_best": reported_best,
         "this_pass_replaced_reported_best": not keep_prior,
@@ -1888,7 +1986,8 @@ def main() -> None:
         "protocol": "first_60s_scene_raster",
         "partition": "official_dev_test_inspection",
         "audio_committed": False,
-        "loss": "boundary_weighted_BCEWithLogitsLoss",
+        "loss": "masked_unweighted_BCEWithLogitsLoss",
+        "architecture": BIGRU_ARCHITECTURE,
         "epochs_completed": len(history),
         "predeclared_decoder": json_safe_decoder(decoder),
         "this_pass": durations,
@@ -1941,6 +2040,15 @@ def main() -> None:
             "median_onset_error_ms_on_overlapping_misses": 360,
             "note": "onset-shift decoder search regressed; not reported best",
         },
+        "previous_boundary_weighted_pass": {
+            "collar_true_positive": 2,
+            "collar_false_positive": 18,
+            "collar_false_negative": 46,
+            "collar_event_f1": 0.058823529411764705,
+            "segment_f1": 0.3673469387755102,
+            "median_onset_error_ms_on_overlapping_misses": 300,
+            "note": "boundary-weighted BCE retrain regressed; not reported best",
+        },
     }
     arguments.duration_error_output.parent.mkdir(parents=True, exist_ok=True)
     arguments.duration_error_output.write_text(
@@ -1950,8 +2058,9 @@ def main() -> None:
     print(f"Wrote {arguments.output}")
     print(f"Wrote {arguments.duration_error_output}")
     print(
-        "boundary-weighted train epochs "
-        f"{len(history)}; inspection collar {collar_f1:.4f} TP/FP/FN "
+        "BiGRU train epochs "
+        f"{len(history)}; params {trainable_parameters}; "
+        f"inspection collar {collar_f1:.4f} TP/FP/FN "
         f"{temporal_collar['true_positive']}/"
         f"{temporal_collar['false_positive']}/"
         f"{temporal_collar['false_negative']}; "

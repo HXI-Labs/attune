@@ -1,14 +1,15 @@
 {
   "report_version": "1",
-  "generated_at_utc": "2026-08-27T11:39:17.487187Z",
+  "generated_at_utc": "2026-08-27T12:02:10.698920Z",
   "gate_decision": "closed",
   "label_status": "human 100 ms activity label; not reviewed Attune gold",
   "language": "unverified",
   "protocol": "first_60s_scene_raster",
   "partition": "official_dev_test_inspection",
   "audio_committed": false,
-  "loss": "boundary_weighted_BCEWithLogitsLoss",
-  "epochs_completed": 214,
+  "loss": "masked_unweighted_BCEWithLogitsLoss",
+  "architecture": "bigru",
+  "epochs_completed": 86,
   "predeclared_decoder": {
     "high_threshold": 0.95,
     "low_threshold": 0.855,
@@ -32,76 +33,66 @@
       "shorter_than_600ms": 12
     },
     "predicted": {
-      "count": 20,
-      "min_ms": 180,
-      "p25_ms": 360,
+      "count": 11,
+      "min_ms": 360,
+      "p25_ms": 420,
       "median_ms": 480,
-      "p75_ms": 660,
-      "max_ms": 900,
-      "mean_ms": 498.0,
-      "shorter_than_300ms": 4,
-      "shorter_than_600ms": 14
+      "p75_ms": 780,
+      "max_ms": 960,
+      "mean_ms": 572.7272727272727,
+      "shorter_than_300ms": 0,
+      "shorter_than_600ms": 7
     },
     "true_positive": {
-      "count": 2,
-      "min_ms": 540,
-      "p25_ms": 540,
-      "median_ms": 540,
-      "p75_ms": 780,
-      "max_ms": 780,
-      "mean_ms": 660.0,
+      "count": 1,
+      "min_ms": 480,
+      "p25_ms": 480,
+      "median_ms": 480,
+      "p75_ms": 480,
+      "max_ms": 480,
+      "mean_ms": 480.0,
       "shorter_than_300ms": 0,
       "shorter_than_600ms": 1,
       "gold_durations_ms": [
-        500,
-        1000
+        500
       ],
       "predicted_durations_ms": [
-        540,
-        780
+        480
       ]
     },
     "false_positive": {
-      "count": 18,
-      "min_ms": 180,
-      "p25_ms": 300,
-      "median_ms": 420,
-      "p75_ms": 660,
-      "max_ms": 900,
-      "mean_ms": 480.0,
-      "shorter_than_300ms": 4,
-      "shorter_than_600ms": 13,
+      "count": 10,
+      "min_ms": 360,
+      "p25_ms": 420,
+      "median_ms": 480,
+      "p75_ms": 780,
+      "max_ms": 960,
+      "mean_ms": 582.0,
+      "shorter_than_300ms": 0,
+      "shorter_than_600ms": 6,
       "durations_ms": [
-        480,
-        480,
-        180,
-        180,
+        960,
+        600,
+        420,
         360,
-        780,
-        660,
-        180,
-        480,
-        420,
-        900,
+        540,
         900,
         480,
         420,
-        420,
-        300,
-        780,
-        240
+        360,
+        780
       ],
-      "shorter_than_gold_p25": 13,
+      "shorter_than_gold_p25": 6,
       "gold_p25_ms": 600
     },
     "false_negative": {
-      "count": 46,
+      "count": 47,
       "min_ms": 300,
       "p25_ms": 600,
       "median_ms": 1200,
-      "p75_ms": 1900,
+      "p75_ms": 1600,
       "max_ms": 8100,
-      "mean_ms": 1495.6521739130435,
+      "mean_ms": 1485.1063829787233,
       "shorter_than_300ms": 0,
       "shorter_than_600ms": 11,
       "durations_ms": [
@@ -126,6 +117,7 @@
         400,
         1500,
         400,
+        1000,
         500,
         500,
         700,
@@ -156,27 +148,27 @@
     "false_positives_are_short_fragments": true
   },
   "this_pass_collar": {
-    "true_positive": 2,
-    "false_positive": 18,
-    "false_negative": 46,
-    "f1": 0.058823529411764705,
-    "segment_f1": 0.3673469387755102,
+    "true_positive": 1,
+    "false_positive": 10,
+    "false_negative": 47,
+    "f1": 0.03389830508474576,
+    "segment_f1": 0.21212121212121213,
     "whole_clip_segment_f1": 0.17212490479817213
   },
   "miss_mechanism": {
-    "false_negative": 46,
-    "head_never_fires": 29,
-    "decoder_suppressed": 5,
-    "predicted_but_collar_failed": 12,
+    "false_negative": 47,
+    "head_never_fires": 39,
+    "decoder_suppressed": 0,
+    "predicted_but_collar_failed": 8,
     "median_onset_error_ms_on_overlapping_misses": 300,
-    "mean_onset_error_ms_on_overlapping_misses": 366.6666666666667,
+    "mean_onset_error_ms_on_overlapping_misses": 960.0,
     "dominant_miss": "head_never_fires",
     "interpretation": "most missed gold events have no head fire inside the gold span"
   },
   "overlapping_onset_error_vs_prior_best": {
     "prior_best_median_ms": 200,
     "this_pass_median_ms": 300,
-    "this_pass_mae_ms": 366.6666666666667,
+    "this_pass_mae_ms": 960.0,
     "improved_vs_200ms": false
   },
   "reported_best": {
@@ -238,5 +230,14 @@
     "segment_f1": 0.37163814180929094,
     "median_onset_error_ms_on_overlapping_misses": 360,
     "note": "onset-shift decoder search regressed; not reported best"
+  },
+  "previous_boundary_weighted_pass": {
+    "collar_true_positive": 2,
+    "collar_false_positive": 18,
+    "collar_false_negative": 46,
+    "collar_event_f1": 0.058823529411764705,
+    "segment_f1": 0.3673469387755102,
+    "median_onset_error_ms_on_overlapping_misses": 300,
+    "note": "boundary-weighted BCE retrain regressed; not reported best"
   }
 }

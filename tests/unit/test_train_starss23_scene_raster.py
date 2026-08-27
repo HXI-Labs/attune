@@ -197,15 +197,21 @@ def test_hysteresis_spans_rejects_min_duration_ms_kwarg() -> None:
         )
 
 
-def test_main_keeps_inspection_out_of_boundary_weights_and_uses_predeclared_decoder() -> None:
+def test_main_trains_bigru_with_masked_loss_and_predeclared_decoder() -> None:
     script = load_script()
     source = inspect.getsource(script.main)
-    assert "boundary_weights_from_train_clips(train_y, torch=torch)" in source
+    assert "build_bigru_head" in source
+    assert "masked_bce_with_logits" in source
+    assert "pad_clip_batch" in source
+    assert "AdamW(head.parameters()" in source
+    assert "Conv1d" not in source
+    assert "boundary_weights_from_train_clips(train_y, torch=torch)" not in source
     assert "gold_event_durations_ms(train_rows)" in source
     assert "PREDECLARED_DECODER" in source
     assert "select_hysteresis_decoder(" not in source
     assert "iter_hysteresis_decoder_candidates" not in source
     assert "BCEWithLogitsLoss(pos_weight" not in source
+    assert "requires_grad_(True)" not in source
     assert "validation_probabilities" in source
     assert "references_validation" in source
     assert "decode_spans(" in source
@@ -215,6 +221,8 @@ def test_main_keeps_inspection_out_of_boundary_weights_and_uses_predeclared_deco
     assert "positive_class_weight_from_train_frames(inspection" not in source
     assert "select_hysteresis_decoder(\n        inspection" not in source
     assert "hysteresis_spans(\n        inspection_probabilities,\n        **decoder," not in source
+    assert 'default=Path("artifacts/starss23-scene-raster/bigru-head.pt")' in source
+    assert 'default=Path("artifacts/starss23-scene-raster/frame-head-40epoch.pt")' in source
     assert script.COLLAR_F1_REQUIRED == 0.25
     assert script.SEGMENT_MARGIN_REQUIRED == 0.05
     assert script.PRIOR_40_EPOCH_PASS["collar_true_positive"] == 8
@@ -363,3 +371,79 @@ def test_predeclared_decoder_matches_0a27733() -> None:
     source = inspect.getsource(script.main)
     assert "PREDECLARED_DECODER" in source
     assert "select_hysteresis_decoder(" not in source
+
+
+def test_masked_bce_ignores_padded_frames() -> None:
+    torch = pytest.importorskip("torch")
+    script = load_script()
+    logits = torch.tensor([[[4.0], [-4.0], [4.0]]])
+    targets = torch.tensor([[[1.0], [0.0], [1.0]]])
+    mask = torch.tensor([[True, True, True]])
+    unpadded = script.masked_bce_with_logits(logits, targets, mask, torch)
+    padded_logits = torch.cat([logits, torch.tensor([[[80.0]]])], dim=1)
+    padded_targets = torch.cat([targets, torch.tensor([[[0.0]]])], dim=1)
+    padded_mask = torch.tensor([[True, True, True, False]])
+    padded = script.masked_bce_with_logits(padded_logits, padded_targets, padded_mask, torch)
+    leaked = script.bce_with_logits(padded_logits, padded_targets, torch)
+    assert float(padded) == pytest.approx(float(unpadded))
+    assert float(leaked) > float(padded) + 1.0
+
+
+def test_pad_clip_batch_masks_only_real_frames() -> None:
+    torch = pytest.importorskip("torch")
+    script = load_script()
+    short = torch.ones((2, 3))
+    long = torch.arange(12, dtype=torch.float32).reshape(4, 3)
+    batch, mask, lengths = script.pad_clip_batch([short, long], torch)
+    assert tuple(batch.shape) == (2, 4, 3)
+    assert mask.tolist() == [[True, True, False, False], [True, True, True, True]]
+    assert lengths.tolist() == [2, 4]
+    assert torch.equal(batch[0, :2], short)
+    assert torch.equal(batch[0, 2:], torch.zeros((2, 3)))
+
+
+def test_bigru_head_is_not_conv1d_and_stays_tiny() -> None:
+    torch = pytest.importorskip("torch")
+    script = load_script()
+    head = script.build_bigru_head(torch)
+    script.assert_head_is_bigru_not_conv(head, torch)
+    assert not any(isinstance(module, torch.nn.Conv1d) for module in head.modules())
+    assert isinstance(head.gru, torch.nn.GRU)
+    assert head.gru.bidirectional is True
+    assert head.gru.num_layers == 1
+    assert head.gru.hidden_size == 64
+    trainable = sum(parameter.numel() for parameter in head.parameters())
+    assert trainable == 222081
+    assert trainable < 1_000_000
+    conv = torch.nn.Conv1d(512, 128, kernel_size=7, padding=3)
+    with pytest.raises(RuntimeError, match="must not contain Conv1d"):
+        script.assert_head_is_bigru_not_conv(conv, torch)
+
+
+def test_bigru_packing_ignores_padded_suffix() -> None:
+    torch = pytest.importorskip("torch")
+    script = load_script()
+    torch.manual_seed(0)
+    head = script.build_bigru_head(torch)
+    head.eval()
+    real = torch.randn(5, 512)
+    padded = torch.cat([real, torch.randn(4, 512)])
+    with torch.inference_mode():
+        from_real = head(real.unsqueeze(0), lengths=torch.tensor([5]))[0]
+        from_padded = head(padded.unsqueeze(0), lengths=torch.tensor([5]))[0, :5]
+    assert torch.allclose(from_real, from_padded, atol=1e-5)
+
+
+def test_wiring_gate_and_decoder_constants_stay_locked() -> None:
+    script = load_script()
+    assert script.COLLAR_F1_REQUIRED == 0.25
+    assert script.SEGMENT_MARGIN_REQUIRED == 0.05
+    assert script.PREDECLARED_DECODER["high_threshold"] == 0.95
+    assert script.PREDECLARED_DECODER["low_threshold"] == 0.855
+    assert script.PREDECLARED_DECODER["max_gap_frames"] == 0
+    assert script.PREDECLARED_DECODER["min_active_frames"] == 1
+    assert script.PREDECLARED_DECODER["median_filter_frames"] == 3
+    assert script.PREDECLARED_DECODER["onset_shift_ms"] == 0
+    source = inspect.getsource(script.main)
+    assert "encoder.model.parameters()" in source
+    assert "AdamW(head.parameters()" in source

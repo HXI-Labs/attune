@@ -126,3 +126,19 @@ def test_hysteresis_decoder_applies_median_filter_and_min_duration() -> None:
         duration_ms=540,
     )
     assert [(annotation.start_ms, annotation.end_ms) for annotation in annotations] == [(180, 420)]
+
+
+def test_bigru_factory_is_not_conv1d() -> None:
+    from attune.models.temporal_probe import BIGRU_ARCHITECTURE, build_bigru_head
+
+    head = build_bigru_head(torch)
+    frames = torch.randn(6, 512)
+    logits = head(frames)
+    assert head.architecture == BIGRU_ARCHITECTURE
+    assert logits.shape == (6, 1)
+    assert not any(isinstance(module, torch.nn.Conv1d) for module in head.modules())
+    restored = build_bigru_head(torch)
+    restored.load_state_dict(head.state_dict())
+    restored.eval()
+    with torch.inference_mode():
+        assert torch.allclose(restored(frames), logits)

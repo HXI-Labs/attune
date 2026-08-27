@@ -21,6 +21,63 @@ TEMPORAL_LABELS = {
     "cough": EventLabel.COUGH,
     "throat_clear": EventLabel.THROAT_CLEAR,
 }
+BIGRU_ARCHITECTURE = "bigru"
+BIGRU_HIDDEN_SIZE = 64
+BIGRU_NUM_LAYERS = 1
+BIGRU_DROPOUT = 0.0
+
+
+def build_bigru_head(
+    torch: Any,
+    *,
+    input_size: int = 512,
+    hidden_size: int = BIGRU_HIDDEN_SIZE,
+) -> Any:
+    """Return the predeclared 1-layer bidirectional GRU then Linear(128→1)."""
+
+    class BiGRUFrameHead(torch.nn.Module):
+        architecture = BIGRU_ARCHITECTURE
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.hidden_size = hidden_size
+            self.gru = torch.nn.GRU(
+                input_size,
+                hidden_size,
+                num_layers=BIGRU_NUM_LAYERS,
+                batch_first=True,
+                bidirectional=True,
+                dropout=BIGRU_DROPOUT,
+            )
+            self.proj = torch.nn.Linear(hidden_size * 2, 1)
+
+        def forward(self, frames: Any, lengths: Any | None = None) -> Any:
+            squeezed = frames.ndim == 2
+            if squeezed:
+                frames = frames.unsqueeze(0)
+            if lengths is None:
+                lengths = torch.full(
+                    (frames.size(0),),
+                    frames.size(1),
+                    dtype=torch.long,
+                    device=frames.device,
+                )
+            packed = torch.nn.utils.rnn.pack_padded_sequence(
+                frames,
+                lengths.detach().cpu().long(),
+                batch_first=True,
+                enforce_sorted=False,
+            )
+            packed_out, _ = self.gru(packed)
+            hidden, _ = torch.nn.utils.rnn.pad_packed_sequence(
+                packed_out,
+                batch_first=True,
+                total_length=int(frames.size(1)),
+            )
+            logits = self.proj(hidden)
+            return logits.squeeze(0) if squeezed else logits
+
+    return BiGRUFrameHead()
 
 
 class FrozenTemporalProbeHead:
@@ -146,6 +203,11 @@ class FrozenTemporalProbeHead:
                 ),
                 torch.nn.ReLU(),
                 torch.nn.Conv1d(channels, len(labels), kernel_size=1),
+            )
+        elif payload.get("architecture") == BIGRU_ARCHITECTURE:
+            head = build_bigru_head(
+                torch,
+                hidden_size=int(payload.get("hidden_size", BIGRU_HIDDEN_SIZE)),
             )
         else:
             hidden_size = int(payload["hidden_size"])

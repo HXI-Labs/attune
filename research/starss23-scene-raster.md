@@ -22,10 +22,12 @@ distinct. Official `dev-train` vs `dev-test` rooms and files remain disjoint.
 Audio, embeddings, and checkpoints are gitignored.
 
 Development yielded 62 scenes and inspection 49 scenes. Room-disjoint
-validation used `sony-room21` and `tau-room6` (43/19). One frozen-frame MLP
-(`sensevoice-small-encoder-frames-v1`, dither 0) and one seed were trained.
-Hysteresis decoding was selected on validation only. Inspection was scored
-once per pass. No Conv/GRU/CRNN head was added. The encoder stayed frozen.
+validation used `sony-room21` and `tau-room6` (43/19). Frozen-frame MLP
+passes (`sensevoice-small-encoder-frames-v1`, dither 0, seed 0) were
+exhausted first. This pass trains one predeclared 1-layer bidirectional GRU
+(hidden 64, Linear 128→1, 222,081 params) on padded clip sequences with a
+loss mask. Inspection was scored once with the locked 0a27733 decoder. No
+Conv1d, attention, CRF, or TCN. The encoder stayed frozen.
 
 ## Decoder-validity pass
 
@@ -98,6 +100,21 @@ median 3, onset shift 0). No decoder grid. Inspection unused for weights.
 Training stopped at **214** epochs. Validation sanity with the fixed decoder
 was collar 0.25 (2/0/12); that score did not select a decoder.
 
+## BiGRU pass
+
+Hypothesis: a small recurrent head can use temporal context the per-frame
+MLP cannot. One predeclared architecture, one train, one inspection. Head:
+1-layer bidirectional GRU, hidden 64 (128 concat), dropout 0, then
+Linear(128→1). Train per-clip sequences with padding/mask so padded frames
+do not enter the loss. Seed 0, AdamW 1e-3, unweighted BCEWithLogits (no 44×
+`pos_weight`, no boundary weights). Early-stop on masked validation loss,
+patience 25, cap 400. Encoder frozen. Decode with the predeclared 0a27733
+decoder only. No decoder grid.
+
+Training stopped at **86** epochs (best masked val at 61). Trainable params
+**222,081**. Validation sanity with the fixed decoder was collar 0.25
+(2/0/12); that score did not select a decoder.
+
 ## Held-out official test rooms
 
 | Pass | 1 s segment F1 | whole-clip segment F1 | 200 ms collar F1 | TP/FP/FN |
@@ -106,18 +123,19 @@ was collar 0.25 (2/0/12); that score did not select a decoder.
 | Frozen frame MLP, 73 epochs + 900 ms decoder | 0.3974 | 0.1721 | 0.0303 | 1/17/47 |
 | Frozen frame MLP, 40 epochs + repaired decoder | 0.5124 | 0.1721 | 0.1395 | 9/72/39 |
 | Frozen frame MLP, 40 epochs + onset-shift decoder | 0.3716 | 0.1721 | 0.0585 | 6/151/42 |
-| Frozen frame MLP, 214-epoch boundary-weighted BCE | **0.3673** | 0.1721 | **0.0588** | 2/18/46 |
+| Frozen frame MLP, 214-epoch boundary-weighted BCE | 0.3673 | 0.1721 | 0.0588 | 2/18/46 |
+| Frozen frame BiGRU, 86-epoch masked BCE | **0.2121** | 0.1721 | **0.0339** | 1/10/47 |
 | Whole-clip oracle tags | 0.1721 | 0.1721 | 0.0000 | 0/20/48 |
 
-This pass segment margin is `+0.1952` (clears `+0.05`). Collar F1 **fails**
+This pass segment margin is `+0.0400` (**fails** `+0.05`). Collar F1 **fails**
 `>= 0.25` and is worse than the 0.1395 decoder-validity pass, so the reported
 cascade decoder/checkpoint remains that 40-epoch config. STARSS23 laugh
 timestamps therefore remain **unwired**. DCASE wiring is unchanged.
 Whole-clip `0..60000` tags are not localization.
 
-Of 46 false negatives: (a) 12 overlap a prediction that fails the 200 ms
-collar (median overlapping onset error 300 ms, MAE 366.7 ms; did **not**
-improve vs the 0.1395 pass median 200 ms); (b) 29 are gold events the head
-never fires; (c) 5 are decoder-suppressed. False positives are short
-fragments (median 420 ms versus gold p25 600 ms). Stopped after this one
-inspection eval. No new architecture. No further decoder grid.
+Of 47 false negatives: (a) 8 overlap a prediction that fails the 200 ms
+collar (median overlapping onset error 300 ms, MAE 960 ms; did **not**
+improve vs the 0.1395 pass median 200 ms); (b) 39 are gold events the head
+never fires; (c) 0 are decoder-suppressed. False positives are short
+fragments (median 480 ms versus gold p25 600 ms). Stopped after this one
+inspection eval. No second temporal architecture. No further decoder grid.

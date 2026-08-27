@@ -142,7 +142,8 @@ per pass. Details are in `research/starss23-scene-raster.md`.
 | Frozen frame MLP, 73 epochs + 900 ms decoder | 0.3974 | 0.0303 | 1/17/47 |
 | Frozen frame MLP, 40 epochs + repaired decoder | 0.5124 | 0.1395 | 9/72/39 |
 | Frozen frame MLP, 40 epochs + onset-shift decoder | 0.3716 | 0.0585 | 6/151/42 |
-| Frozen frame MLP, 214-epoch boundary-weighted BCE | **0.3673** | **0.0588** | 2/18/46 |
+| Frozen frame MLP, 214-epoch boundary-weighted BCE | 0.3673 | 0.0588 | 2/18/46 |
+| Frozen frame BiGRU, 86-epoch masked BCE | **0.2121** | **0.0339** | 1/10/47 |
 | Whole-clip oracle tags | 0.1721 | 0.0000 | 0/20/48 |
 
 A later validation-only onset-shift search (no retrain, 40-epoch checkpoint
@@ -151,18 +152,20 @@ onset shift `{-180,-120,-60,0}` ms on validation rooms. Winner: high `0.9`,
 low `0.63`, gap `8`, min-active `1`, median `1`, onset shift `-120` ms.
 Inspection collar F1 `0.0585` failed `>=0.25`. Decoder-grid path is exhausted.
 
-This pass retrained the same two-layer MLP with train-only onset/boundary
-weighted BCE (first/last gold frames weight 5, ±1 neighbours 3; no 44×
-`pos_weight`), early-stopped at 214 epochs, and decoded inspection once with
-the predeclared 0a27733 decoder (high 0.95, low 0.855, gap 0, min-active 1,
-median 3, onset shift 0). Segment margin is `+0.1952` (clears `+0.05`). Collar
-F1 `0.0588` still fails `>=0.25` and is worse than 0.1395, so the reported
-best remains the 40-epoch repaired decoder. Of 46 misses, 29 are events the
-head never fires, 12 overlap a prediction that fails the 200 ms collar
-(median onset error 300 ms, MAE 366.7 ms; did not improve vs 200 ms), and 5
-are decoder-suppressed. STARSS23 laugh timestamps therefore remain **unwired**.
+MLP-only retrains, decoder search, 44× `pos_weight`, onset-shift, and
+boundary-weighted BCE are exhausted. This pass trained one predeclared
+1-layer bidirectional GRU (hidden 64, Linear 128→1, 222,081 params) on
+padded clip sequences with a masked unweighted BCE, frozen encoder, seed 0,
+early-stop at 86 epochs, and decoded inspection once with the predeclared
+0a27733 decoder. Segment margin is `+0.0400` (fails `+0.05`). Collar F1
+`0.0339` still fails `>=0.25` and is worse than 0.1395, so the reported best
+remains the 40-epoch repaired decoder. Of 47 misses, 39 are events the head
+never fires, 8 overlap a prediction that fails the 200 ms collar (median
+onset error 300 ms, MAE 960 ms; did not improve vs 200 ms), and 0 are
+decoder-suppressed. STARSS23 laugh timestamps therefore remain **unwired**.
 Natural-scene event boundaries remain unsolved. Stopped after this inspection
-eval. No new architecture. No further decoder grid. DCASE wiring is unchanged.
+eval. No second temporal architecture. No further decoder grid. DCASE wiring
+is unchanged.
 
 STARSS23 metadata has no language field and its README states that speech spans
 multiple languages. Language is therefore `unverified`; no English claim or
