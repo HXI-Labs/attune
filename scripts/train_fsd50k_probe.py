@@ -333,7 +333,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--embedding-cache",
         type=Path,
-        default=Path("artifacts/fsd50k-sensevoice-embeddings"),
+        default=Path("artifacts/cascade-sensevoice-embeddings"),
     )
     parser.add_argument(
         "--checkpoint-output",

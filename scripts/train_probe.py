@@ -344,7 +344,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             raise ProbeDataError("--sensevoice-model is required for SenseVoice extraction")
         sensevoice_extractor = FrozenSenseVoiceEncoder(
             sensevoice_model,
-            getattr(args, "embedding_cache", Path("artifacts/sensevoice-embeddings")),
+            getattr(
+                args,
+                "embedding_cache",
+                Path("artifacts/cascade-sensevoice-embeddings"),
+            ),
             torch,
         )
         extractor = sensevoice_extractor
@@ -510,7 +514,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--embedding-cache",
         type=Path,
-        default=Path("artifacts/sensevoice-embeddings"),
+        default=Path("artifacts/cascade-sensevoice-embeddings"),
         help="gitignored cache for frozen SenseVoice encoder embeddings",
     )
     parser.add_argument("--dataset-dir", type=Path, default=DEFAULT_DATASET)

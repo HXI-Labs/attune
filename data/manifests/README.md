@@ -204,3 +204,10 @@ ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/train_fsd50k_probe.py
 Audio, direct-encoder embeddings, and the linear checkpoint remain under
 gitignored paths. The committed provenance file records the manifest hash,
 selection boundary, class/partition counts, and clip-licence counts.
+
+The VocalSound and FSD50K training entry points share
+`artifacts/cascade-sensevoice-embeddings` by default. Each compares max-softmax
+and energy thresholds using its own in-domain validation partition and the
+other probe's validation partition as genuine OOD negatives. The chosen method
+and threshold are written only to the gitignored head checkpoint and metrics
+artifact; inspection/test clips do not choose the operating point.
