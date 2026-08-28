@@ -44,27 +44,27 @@
 <body>
   <h1>Attune cascade demo</h1>
   <p class="muted">Authoritative JSON is separate. This page only projects validated spans.</p>
-  <p class="banner">Partial cascade from local artifacts only: FSD50K probe absent. Missing probes contribute nothing; emotion2vec+ is local; affect is a calibrated distribution and may still abstain when the validation confidence threshold is not met. This is not a full Phase 2 cascade. DCASE frame spans are configured for laugh/cough/throat_clear.</p><p class="banner">DCASE gated head was configured but emitted no bounded laugh/cough/throat_clear spans on this clip. Remaining 0..duration bars are still utterance scope.</p>
-  <audio controls preload="metadata" src="sensevoice-example-en.wav"></audio>
+  <p class="banner">Partial cascade from local artifacts only: FSD50K probe absent. Missing probes contribute nothing; emotion2vec+ is local; affect is a calibrated distribution and may still abstain when the validation confidence threshold is not met. This is not a full Phase 2 cascade. DCASE frame spans are configured for laugh/cough/throat_clear.</p><p class="banner">Solid bars are DCASE frame spans for laugh/cough/throat_clear that do not cover the whole clip. Hatched full-width bars remain utterance scope.</p>
+  <audio controls preload="metadata" src="vocalsound-sigh.wav"></audio>
   <p class="legend">
     <span><i class="swatch frame-local"></i>Frame-local laugh/cough/throat_clear</span>
     <span><i class="swatch utterance-scope"></i>Utterance scope — <em>not</em> localization</span>
   </p>
-  <section class="track"><h2>Words</h2><div class="rail"><div class="span word" style="left:12.124%;width:0.836%" title="the 870–930 ms">the</div><div class="span word" style="left:17.140%;width:5.017%" title="tribal 1230–1590 ms">tribal</div><div class="span word" style="left:25.502%;width:5.853%" title="chieftain 1830–2250 ms">chieftain</div><div class="span word" style="left:33.863%;width:0.836%" title="called 2430–2490 ms">called</div><div class="span word" style="left:38.043%;width:0.836%" title="for 2730–2790 ms">for</div><div class="span word" style="left:41.388%;width:0.836%" title="the 2970–3030 ms">the</div><div class="span word" style="left:43.060%;width:0.836%" title="boy 3090–3150 ms">boy</div><div class="span word" style="left:50.585%;width:0.836%" title="and 3630–3690 ms">and</div><div class="span word" style="left:54.766%;width:0.836%" title="presented 3930–3990 ms">presented</div><div class="span word" style="left:63.127%;width:0.836%" title="him 4530–4590 ms">him</div><div class="span word" style="left:66.472%;width:0.836%" title="with 4770–4830 ms">with</div><div class="span word" style="left:71.488%;width:0.836%" title="fifty 5130–5190 ms">fifty</div><div class="span word" style="left:76.505%;width:0.836%" title="pieces 5490–5550 ms">pieces</div><div class="span word" style="left:82.358%;width:0.836%" title="of 5910–5970 ms">of</div><div class="span word" style="left:86.538%;width:0.836%" title="gold 6210–6270 ms">gold</div></div></section>
-  <section class="track"><h2>Frame-local events</h2><div class="rail"><div class="empty">none</div></div></section><section class="track"><h2>Utterance-scope events (not localization)</h2><div class="rail"><div class="empty">none</div></div></section>
+  <section class="track"><h2>Words</h2><div class="rail"><div class="span word" style="left:34.053%;width:2.197%" title="o 930–990 ms">o</div></div></section>
+  <section class="track"><h2>Frame-local events</h2><div class="rail"><div class="span frame-local" style="left:41.743%;width:28.561%" title="throat_clear 1140–1920 ms (frame-local)">throat_clear 1140–1920ms</div></div></section><section class="track"><h2>Utterance-scope events (not localization)</h2><div class="rail"><div class="span utterance-scope" style="left:0.000%;width:100.000%" title="breath 0–2731 ms (utterance-scope)">breath 0–2731ms</div><div class="span utterance-scope" style="left:0.000%;width:100.000%" title="sigh 0–2731 ms (utterance-scope)">sigh 0–2731ms</div></div></section>
   <section class="track"><h2>Utterance-scope styles (not localization)</h2><div class="rail"><div class="empty">none</div></div></section>
   <h2>Transcript</h2>
-  <p>the tribal chieftain called for the boy and presented him with fifty pieces of gold</p>
+  <p>o</p>
   <h2>Affect</h2>
   <dl class="meta">
-    <dt>top label</dt><dd>neutral</dd>
-    <dt>abstain</dt><dd>false</dd>
-    <dt>top confidence</dt><dd>0.9593</dd>
-    <dt>distribution</dt><dd>neutral 0.959; joy 0.006; distress 0.006; anger 0.006; fear 0.006; surprise 0.006; other 0.006; ambiguous 0.006</dd>
-    <dt>span</dt><dd>0–7176 ms (utterance scope)</dd>
+    <dt>top label</dt><dd>abstain</dd>
+    <dt>abstain</dt><dd>true</dd>
+    <dt>top confidence</dt><dd>0.7152</dd>
+    <dt>distribution</dt><dd>neutral 0.018; joy 0.104; distress 0.045; anger 0.017; fear 0.057; surprise 0.715; other 0.039; ambiguous 0.004</dd>
+    <dt>span</dt><dd>0–2731 ms (utterance scope)</dd>
     <dt>model</dt><dd><code>attune-cascade:sensevoice+emotion2vec+aed+vocalsound-probe+1-gated-frame-heads</code></dd>
   </dl>
-  <script id="attune-timeline" type="application/json">{"duration_ms":7176,"events":[],"styles":[],"words":[{"id":"w1","text":"the","start_ms":870,"end_ms":930},{"id":"w2","text":"tribal","start_ms":1230,"end_ms":1590},{"id":"w3","text":"chieftain","start_ms":1830,"end_ms":2250},{"id":"w4","text":"called","start_ms":2430,"end_ms":2490},{"id":"w5","text":"for","start_ms":2730,"end_ms":2790},{"id":"w6","text":"the","start_ms":2970,"end_ms":3030},{"id":"w7","text":"boy","start_ms":3090,"end_ms":3150},{"id":"w8","text":"and","start_ms":3630,"end_ms":3690},{"id":"w9","text":"presented","start_ms":3930,"end_ms":3990},{"id":"w10","text":"him","start_ms":4530,"end_ms":4590},{"id":"w11","text":"with","start_ms":4770,"end_ms":4830},{"id":"w12","text":"fifty","start_ms":5130,"end_ms":5190},{"id":"w13","text":"pieces","start_ms":5490,"end_ms":5550},{"id":"w14","text":"of","start_ms":5910,"end_ms":5970},{"id":"w15","text":"gold","start_ms":6210,"end_ms":6270}]}</script>
+  <script id="attune-timeline" type="application/json">{"duration_ms":2731,"events":[{"id":"e1","channel":"event","label":"breath","start_ms":0,"end_ms":2731,"confidence":0.0,"kind":"utterance-scope"},{"id":"e2","channel":"event","label":"sigh","start_ms":0,"end_ms":2731,"confidence":0.9995423346135669,"kind":"utterance-scope"},{"id":"e3","channel":"event","label":"throat_clear","start_ms":1140,"end_ms":1920,"confidence":0.964231550693512,"kind":"frame-local"}],"styles":[],"words":[{"id":"w1","text":"o","start_ms":930,"end_ms":990}]}</script>
   <script>
     const data = JSON.parse(document.getElementById("attune-timeline").textContent);
     const audio = document.querySelector("audio");

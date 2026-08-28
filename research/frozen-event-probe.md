@@ -93,3 +93,20 @@ labels are weak labels, not reviewed Attune gold, natural inline events, or
 evidence about speakers' internal states. This probe does not provide temporal
 localization, calibration, abstention, OOD evaluation, or missing demographic
 and recording-condition slices. Those omissions keep the gate closed.
+
+## Cascade-demo retrain (validation shards, 2026-08-28)
+
+A second frozen SenseVoiceSmall encoder probe was fitted on this box for the
+wav-in cascade demo. Training used 562/120 clips from the ten VocalSound
+Zenodo validation shards already needed by the inspection cache, after
+excluding the 16 inspection speakers. The head is `linear_with_none_logit`
+(30,726 parameters). Inspection-test macro-F1 is 0.8174. That is below the
+prior full-pool result 0.8598 and **does not pass the gate**
+(`gate_passed: false`). Metrics only:
+`research/cascade-vocalsound-probe-metrics.json`. The gitignored head may
+be discovered by `scripts/infer.py` as utterance-scope events. It is not
+localization and is not a gate-passing scientific result.
+
+The FSD50K four-way follow-up remains `gate_decision: closed` at 0.7410
+inspection macro-F1. This box does not have a hash-faithful FSD50K head;
+shout/whisper/sob/scream stay omitted rather than lowering that gate.

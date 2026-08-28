@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "model": {
-    "name": "attune-cascade:sensevoice+emotion2vec+aed+1-gated-frame-heads",
+    "name": "attune-cascade:sensevoice+emotion2vec+aed+vocalsound-probe+1-gated-frame-heads",
     "version": "cascade-1",
     "quantization": null
   },

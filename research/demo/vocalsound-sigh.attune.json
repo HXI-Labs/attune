@@ -6,8 +6,8 @@
     "quantization": null
   },
   "audio": {
-    "duration_ms": 10000,
-    "sample_rate_hz": 44100,
+    "duration_ms": 2731,
+    "sample_rate_hz": 16000,
     "channels": 1,
     "quality": {
       "clipping": 0.0,
@@ -20,52 +20,51 @@
     "confidence": 0.5
   },
   "transcript": {
-    "text": "",
+    "text": "o",
     "confidence": 0.5,
-    "words": []
+    "words": [
+      {
+        "start_ms": 930,
+        "end_ms": 990,
+        "id": "w1",
+        "text": "o",
+        "confidence": 0.0
+      }
+    ]
   },
   "styles": [],
   "events": [
     {
-      "start_ms": 3960,
-      "end_ms": 4380,
+      "start_ms": 0,
+      "end_ms": 2731,
       "id": "e1",
-      "label": "laugh",
+      "label": "breath",
       "after_word_id": null,
-      "confidence": 0.9695867896080017,
+      "confidence": 0.0,
       "status": "provisional"
     },
     {
-      "start_ms": 540,
-      "end_ms": 1200,
+      "start_ms": 0,
+      "end_ms": 2731,
       "id": "e2",
-      "label": "cough",
+      "label": "sigh",
       "after_word_id": null,
-      "confidence": 0.9501325488090515,
+      "confidence": 0.9995423346135669,
       "status": "provisional"
     },
     {
-      "start_ms": 3720,
-      "end_ms": 4560,
+      "start_ms": 1140,
+      "end_ms": 1920,
       "id": "e3",
-      "label": "cough",
-      "after_word_id": null,
-      "confidence": 0.9746560454368591,
-      "status": "provisional"
-    },
-    {
-      "start_ms": 540,
-      "end_ms": 1260,
-      "id": "e4",
       "label": "throat_clear",
       "after_word_id": null,
-      "confidence": 0.9934899806976318,
+      "confidence": 0.964231550693512,
       "status": "provisional"
     }
   ],
   "affect": {
     "start_ms": 0,
-    "end_ms": 10000,
+    "end_ms": 2731,
     "valence": {
       "value": 0.0,
       "confidence": 0.0
@@ -79,17 +78,17 @@
       "confidence": 0.0
     },
     "categories": {
-      "neutral": 0.0655053563404322,
-      "joy": 0.09975456622832925,
-      "distress": 0.6765951305938873,
-      "anger": 0.03091349249053881,
-      "fear": 0.03979156047121402,
-      "surprise": 0.030541487269038367,
-      "other": 0.052783085841594996,
-      "ambiguous": 0.004115320764964962
+      "neutral": 0.018479450228462906,
+      "joy": 0.10447309726298688,
+      "distress": 0.04456015561769014,
+      "anger": 0.01654054298846337,
+      "fear": 0.05727460311489955,
+      "surprise": 0.715199284371861,
+      "other": 0.03912558050693836,
+      "ambiguous": 0.004347285908697819
     },
     "top_label": null,
-    "top_label_confidence": 0.6765951305938873,
+    "top_label_confidence": 0.715199284371861,
     "abstain": true
   },
   "uncertainty": {

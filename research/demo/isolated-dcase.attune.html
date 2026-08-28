@@ -44,7 +44,7 @@
 <body>
   <h1>Attune cascade demo</h1>
   <p class="muted">Authoritative JSON is separate. This page only projects validated spans.</p>
-  <p class="banner">Partial cascade from local artifacts only: VocalSound probe, FSD50K probe absent. Missing probes contribute nothing; emotion2vec+ is local; affect is a calibrated distribution and may still abstain when the validation confidence threshold is not met. This is not a full Phase 2 cascade. DCASE frame spans are configured for laugh/cough/throat_clear.</p><p class="banner">Solid bars are DCASE frame spans for laugh/cough/throat_clear that do not cover the whole clip. Hatched full-width bars remain utterance scope.</p><p class="banner">No genuine ASR word timestamps were returned. Attune does not interpolate words.</p>
+  <p class="banner">Partial cascade from local artifacts only: FSD50K probe absent. Missing probes contribute nothing; emotion2vec+ is local; affect is a calibrated distribution and may still abstain when the validation confidence threshold is not met. This is not a full Phase 2 cascade. DCASE frame spans are configured for laugh/cough/throat_clear.</p><p class="banner">Solid bars are DCASE frame spans for laugh/cough/throat_clear that do not cover the whole clip. Hatched full-width bars remain utterance scope.</p><p class="banner">No genuine ASR word timestamps were returned. Attune does not interpolate words.</p>
   <audio controls preload="metadata" src="isolated-dcase.wav"></audio>
   <p class="legend">
     <span><i class="swatch frame-local"></i>Frame-local laugh/cough/throat_clear</span>
@@ -62,7 +62,7 @@
     <dt>top confidence</dt><dd>0.6766</dd>
     <dt>distribution</dt><dd>neutral 0.066; joy 0.100; distress 0.677; anger 0.031; fear 0.040; surprise 0.031; other 0.053; ambiguous 0.004</dd>
     <dt>span</dt><dd>0–10000 ms (utterance scope)</dd>
-    <dt>model</dt><dd><code>attune-cascade:sensevoice+emotion2vec+aed+1-gated-frame-heads</code></dd>
+    <dt>model</dt><dd><code>attune-cascade:sensevoice+emotion2vec+aed+vocalsound-probe+1-gated-frame-heads</code></dd>
   </dl>
   <script id="attune-timeline" type="application/json">{"duration_ms":10000,"events":[{"id":"e1","channel":"event","label":"laugh","start_ms":3960,"end_ms":4380,"confidence":0.9695867896080017,"kind":"frame-local"},{"id":"e2","channel":"event","label":"cough","start_ms":540,"end_ms":1200,"confidence":0.9501325488090515,"kind":"frame-local"},{"id":"e3","channel":"event","label":"cough","start_ms":3720,"end_ms":4560,"confidence":0.9746560454368591,"kind":"frame-local"},{"id":"e4","channel":"event","label":"throat_clear","start_ms":540,"end_ms":1260,"confidence":0.9934899806976318,"kind":"frame-local"}],"styles":[],"words":[]}</script>
   <script>
