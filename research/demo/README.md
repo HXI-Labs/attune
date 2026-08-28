@@ -1,13 +1,33 @@
 # Wav-in Attune cascade demo
 
-Play one local WAV through the reviewed cascade and inspect **words** (only if
-ASR returns genuine stamps), **affect**, and **events**. JSON is authoritative.
-XML and the HTML timeline are deterministic projections of that JSON.
+Play one local WAV through whatever reviewed cascade artifacts are on disk and
+inspect **words** (only if ASR returns genuine stamps), **affect**, and
+**events**. JSON is authoritative. XML and the HTML timeline are deterministic
+projections of that JSON.
 
 This is not a product UI. The scientific gold gate remains closed. STARSS23
 timestamps stay unwired. A later natural-scene head must still clear collar F1
 ≥ 0.25 **and** segment margin ≥ 0.05 on the 48-event first-60s control; a new
 representation cannot be another MLP, GRU, or Conv on frozen SenseVoice frames.
+
+## Live DCASE-stamped HTML: blocker
+
+There is **no** live DCASE-stamped laugh/cough/throat_clear WAV HTML. The gated
+DCASE frame-head was trained on a Cloud Agent VM to
+`artifacts/dcase-frame-localization/frame-head.pt` and was never committed
+(gitignored, as required). This box does not have:
+
+- `artifacts/dcase-frame-localization/` (head, embeddings)
+- `data/raw/dcase2016-task2/` or `data/raw/dcase2016-localization/` (archives / derived clips)
+
+The training protocol is `scripts/train_temporal_localization.py` (seed 0, 30
+epochs, scene/file-disjoint val, source-disjoint 100-clip test, hysteresis
+selected on val). Reproducing it locally needs the hashed DCASE 2016 Task 2
+caches (≈125 MB train/dev + ≈329 MB public-test archives, then 216+100 derived
+10 s clips). Those caches are not on disk. This work does not download them and
+does not use STARSS23 heads as a substitute. Do not fake spans.
+
+Inventory: `research/demo/partial-cascade-status.md`.
 
 ## What is timed, and what is not
 
@@ -22,21 +42,25 @@ representation cannot be another MLP, GRU, or Conv on frozen SenseVoice frames.
 - No STARSS23 / natural-scene audio. Demo WAVs must be isolated
   laugh/cough/throat_clear takes (DCASE-like or a recorded isolated clip).
 
-If no DCASE checkpoint is configured, the cascade still runs: events remain, and
-DCASE spans are omitted honestly. That run is **not** a timing demo.
+If no DCASE checkpoint is configured, SenseVoice AED events still run when
+SenseVoice is local, and DCASE spans are omitted honestly. That run is **not**
+a timing demo.
 
 ## Local artifacts
 
 Set `ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1` after the recorded SenseVoice licence
-review. The CLI does not download weights. It will use explicit flags / env
-vars, otherwise these gitignored local paths when present:
+review. The CLI does not download weights. SenseVoice-Small is required.
+emotion2vec+, VocalSound, FSD50K, and the DCASE frame-head are used when present
+and omitted with an HTML banner when absent. Explicit `--*-path` values that do
+not exist remain hard errors. Evaluation (`scripts/evaluate_attune_cascade.py`)
+still requires the full Phase 2 package.
 
 | Artifact | Local discovery |
 |---|---|
-| SenseVoice-Small | `ATTUNE_SENSEVOICE_SMALL_PATH`, `artifacts/starss23-scene-raster/sensevoice-small`, `data/raw/model-cache/sensevoice-small` |
-| emotion2vec+ | `ATTUNE_EMOTION2VEC_PLUS_PATH`, `data/raw/model-cache/emotion2vec-plus` |
-| VocalSound head | `ATTUNE_VOCALSOUND_PROBE_PATH`, `artifacts/event-probe/head.pt` |
-| FSD50K head | `ATTUNE_FSD50K_PROBE_PATH`, `artifacts/fsd50k-event-probe/head.pt` |
+| SenseVoice-Small (required) | `ATTUNE_SENSEVOICE_SMALL_PATH`, `artifacts/starss23-scene-raster/sensevoice-small`, `data/raw/model-cache/sensevoice-small` |
+| emotion2vec+ (optional) | `ATTUNE_EMOTION2VEC_PLUS_PATH`, `data/raw/model-cache/emotion2vec-plus` |
+| VocalSound head (optional) | `ATTUNE_VOCALSOUND_PROBE_PATH`, `artifacts/event-probe/head.pt` |
+| FSD50K head (optional) | `ATTUNE_FSD50K_PROBE_PATH`, `artifacts/fsd50k-event-probe/head.pt` |
 | DCASE frame head (optional, one only) | `ATTUNE_TEMPORAL_HEAD_PATH`, `artifacts/dcase-frame-localization/frame-head.pt` |
 
 A STARSS23 `frame-head*.pt` is never auto-selected. Passing one as
@@ -56,3 +80,21 @@ Open the HTML file in a browser. Keep the WAV beside it (audio is gitignored).
 
 `display-fixture.*` in this directory is a schema-valid timeline sample used to
 show frame-local vs utterance-scope bars. It is **not** cascade output.
+
+
+## SenseVoice-only live projection on this box
+
+`sensevoice-only.attune.json` / `.xml` / `.html` is a real SenseVoice-Small run
+on the official SenseVoice English example (converted locally to 16 kHz mono
+WAV, gitignored as `research/demo/sensevoice-example-en.wav`). Affect abstains
+because emotion2vec+ is absent. There are no laugh/cough/throat_clear events and
+no DCASE frame spans. This is **not** a timing demo. Regenerate with:
+
+```bash
+export ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1
+uv run python scripts/infer.py research/demo/sensevoice-example-en.wav \
+  --sensevoice-path data/raw/model-cache/sensevoice-small \
+  --output research/demo/sensevoice-only.attune.json \
+  --xml-output research/demo/sensevoice-only.attune.xml \
+  --html-output research/demo/sensevoice-only.attune.html
+```

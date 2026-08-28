@@ -110,7 +110,7 @@ def _first_existing(candidates: Sequence[Path]) -> Path | None:
     return None
 
 
-def _discover_required_artifacts(arguments: argparse.Namespace) -> None:
+def _discover_optional_artifacts(arguments: argparse.Namespace) -> None:
     if arguments.sensevoice_path is None:
         arguments.sensevoice_path = _first_existing(SENSEVOICE_CANDIDATES)
     if arguments.emotion2vec_path is None:
@@ -145,35 +145,56 @@ def _resolve_dcase_temporal_head(path: Path | None, *, explicit: bool) -> Path |
     return None
 
 
-def _require_real_artifacts(arguments: argparse.Namespace) -> None:
+def _optional_present(path: Path | None) -> Path | None:
+    return path if path is not None and path.exists() else None
+
+
+def _require_real_artifacts(arguments: argparse.Namespace) -> list[str]:
+    """Require SenseVoice. Omit missing optional heads; never invent their output."""
     if os.environ.get("ATTUNE_SENSEVOICE_LICENSE_REVIEWED") != "1":
         raise ValueError(
             "review the SenseVoice model licence, then set ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1"
         )
-    _discover_required_artifacts(arguments)
-    required = {
-        "SenseVoice-Small weights (--sensevoice-path or ATTUNE_SENSEVOICE_SMALL_PATH)": (
-            arguments.sensevoice_path
-        ),
-        "emotion2vec+ weights (--emotion2vec-path or ATTUNE_EMOTION2VEC_PLUS_PATH)": (
-            arguments.emotion2vec_path
-        ),
-        "VocalSound probe head (--vocalsound-probe or ATTUNE_VOCALSOUND_PROBE_PATH)": (
-            arguments.vocalsound_probe
-        ),
-        "FSD50K probe head (--fsd50k-probe or ATTUNE_FSD50K_PROBE_PATH)": (arguments.fsd50k_probe),
-        "Phase 2 calibration": arguments.calibration,
+    explicit = {
+        "emotion2vec+": arguments.emotion2vec_path,
+        "VocalSound probe": arguments.vocalsound_probe,
+        "FSD50K probe": arguments.fsd50k_probe,
     }
-    missing = [
-        f"{name}: {path if path is not None else 'path not configured'}"
-        for name, path in required.items()
-        if path is None or not path.exists()
-    ]
-    if missing:
+    _discover_optional_artifacts(arguments)
+    if arguments.sensevoice_path is None or not arguments.sensevoice_path.exists():
+        configured = (
+            arguments.sensevoice_path
+            if arguments.sensevoice_path is not None
+            else "path not configured"
+        )
         raise ValueError(
             "required local artifacts are missing; downloads are disabled:\n  - "
-            + "\n  - ".join(missing)
+            "SenseVoice-Small weights (--sensevoice-path or ATTUNE_SENSEVOICE_SMALL_PATH): "
+            f"{configured}"
         )
+    if not arguments.calibration.exists():
+        raise ValueError(f"Phase 2 calibration is missing: {arguments.calibration}")
+    missing_explicit = [
+        f"{name}: {path}"
+        for name, path in explicit.items()
+        if path is not None and not path.exists()
+    ]
+    if missing_explicit:
+        raise ValueError(
+            "explicit optional artifact path is missing; downloads are disabled:\n  - "
+            + "\n  - ".join(missing_explicit)
+        )
+    omitted: list[str] = []
+    if _optional_present(arguments.emotion2vec_path) is None:
+        arguments.emotion2vec_path = None
+        omitted.append("emotion2vec+")
+    if _optional_present(arguments.vocalsound_probe) is None:
+        arguments.vocalsound_probe = None
+        omitted.append("VocalSound probe")
+    if _optional_present(arguments.fsd50k_probe) is None:
+        arguments.fsd50k_probe = None
+        omitted.append("FSD50K probe")
+    return omitted
 
 
 def _fixture_prediction(audio_path: Path) -> BaselinePrediction:
@@ -201,8 +222,23 @@ def _fixture_prediction(audio_path: Path) -> BaselinePrediction:
     )
 
 
-def _build_cascade(arguments: argparse.Namespace, temporal_head: Path | None) -> AttuneCascade:
-    _require_real_artifacts(arguments)
+def _omission_notes(omitted: Sequence[str]) -> list[str]:
+    if not omitted:
+        return []
+    return [
+        "Partial cascade from local artifacts only: "
+        + ", ".join(omitted)
+        + " absent. Missing probes contribute nothing; missing emotion2vec+ makes "
+        "affect abstain. This is not a full Phase 2 cascade and not DCASE localization."
+    ]
+
+
+def _build_cascade(
+    arguments: argparse.Namespace, temporal_head: Path | None
+) -> tuple[AttuneCascade, list[str]]:
+    omitted = _require_real_artifacts(arguments)
+    if arguments.sensevoice_path is None:
+        raise ValueError("SenseVoice-Small weights are required")
     os.environ.update(
         {
             "HF_HUB_OFFLINE": "1",
@@ -223,7 +259,7 @@ def _build_cascade(arguments: argparse.Namespace, temporal_head: Path | None) ->
     available, reason = cascade.availability()
     if not available:
         raise ValueError(reason or "Attune cascade is unavailable")
-    return cascade
+    return cascade, omitted
 
 
 def _destination_for(audio_path: Path, destination: Path, suffix: str) -> Path:
@@ -289,6 +325,7 @@ def _write_html(
     *,
     dcase_head_configured: bool,
     fixture: bool,
+    notes: Sequence[str] = (),
 ) -> None:
     if destination is None:
         return
@@ -300,6 +337,7 @@ def _write_html(
             audio_src=audio_src,
             dcase_head_configured=dcase_head_configured,
             fixture=fixture,
+            notes=notes,
         )
 
     if destination == "-":
@@ -339,7 +377,10 @@ def run(argv: Sequence[str] | None = None) -> int:
                 arguments.temporal_head,
                 explicit=explicit_temporal,
             )
-        cascade = None if arguments.fixture_mode else _build_cascade(arguments, temporal_head)
+        omitted: list[str] = []
+        cascade = None
+        if not arguments.fixture_mode:
+            cascade, omitted = _build_cascade(arguments, temporal_head)
         outputs = []
         for audio_path in arguments.audio:
             prediction = (
@@ -355,6 +396,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             arguments.html_output,
             dcase_head_configured=temporal_head is not None,
             fixture=arguments.fixture_mode,
+            notes=_omission_notes(omitted),
         )
     except (OSError, ValueError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)

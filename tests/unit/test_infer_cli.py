@@ -6,6 +6,7 @@ import wave
 from pathlib import Path
 from types import ModuleType
 
+from attune.baselines.adapters import BaselinePrediction
 from attune.schema.output import AttuneOutput
 
 
@@ -160,3 +161,92 @@ def test_explicit_starss23_temporal_head_is_refused(
 
     assert result == 2
     assert "STARSS23 timestamps stay unwired" in capsys.readouterr().err
+
+
+def test_real_mode_runs_sensevoice_only_partial_cascade(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    audio = tmp_path / "isolated.wav"
+    write_wav(audio)
+    sensevoice = tmp_path / "sensevoice-small"
+    sensevoice.mkdir()
+    json_path = tmp_path / "out.json"
+    html_path = tmp_path / "out.html"
+    monkeypatch.setenv("ATTUNE_SENSEVOICE_LICENSE_REVIEWED", "1")
+    for name in (
+        "ATTUNE_SENSEVOICE_SMALL_PATH",
+        "ATTUNE_EMOTION2VEC_PLUS_PATH",
+        "ATTUNE_VOCALSOUND_PROBE_PATH",
+        "ATTUNE_FSD50K_PROBE_PATH",
+        "ATTUNE_TEMPORAL_HEAD_PATH",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    module = load_script()
+    captured: dict[str, object] = {}
+
+    class FakeCascade:
+        def __init__(self, **kwargs) -> None:
+            captured.update(kwargs)
+
+        def availability(self) -> tuple[bool, str | None]:
+            return True, None
+
+        def predict(self, item):
+            prediction = module._fixture_prediction(item.audio_path)
+            payload = prediction.output.model_dump(mode="json")
+            payload["model"]["name"] = "attune-cascade:sensevoice+affect-abstain+aed"
+            return BaselinePrediction(
+                output=AttuneOutput.model_validate(payload),
+                runtime=prediction.runtime,
+                diagnostics=prediction.diagnostics,
+            )
+
+    monkeypatch.setattr(module, "AttuneCascade", FakeCascade)
+    result = module.run(
+        [
+            str(audio),
+            "--sensevoice-path",
+            str(sensevoice),
+            "--output",
+            str(json_path),
+            "--html-output",
+            str(html_path),
+        ]
+    )
+
+    assert result == 0
+    assert captured["emotion2vec_checkpoint"] is None
+    assert captured["vocalsound_probe_checkpoint"] is None
+    assert captured["fsd50k_probe_checkpoint"] is None
+    assert captured["temporal_head_checkpoints"] == ()
+    output = AttuneOutput.model_validate_json(json_path.read_text(encoding="utf-8"))
+    assert output.affect.abstain is True
+    html = html_path.read_text(encoding="utf-8")
+    assert "Partial cascade from local artifacts only" in html
+    assert "emotion2vec+" in html
+    assert "DCASE frame timestamps omitted" in html
+    assert "Not a model prediction" not in html
+
+
+def test_explicit_missing_emotion2vec_path_is_an_error(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    audio = tmp_path / "synthetic.wav"
+    write_wav(audio)
+    sensevoice = tmp_path / "sensevoice-small"
+    sensevoice.mkdir()
+    monkeypatch.setenv("ATTUNE_SENSEVOICE_LICENSE_REVIEWED", "1")
+    result = load_script().run(
+        [
+            str(audio),
+            "--sensevoice-path",
+            str(sensevoice),
+            "--emotion2vec-path",
+            str(tmp_path / "missing-emotion2vec"),
+        ]
+    )
+    assert result == 2
+    assert "explicit optional artifact path is missing" in capsys.readouterr().err

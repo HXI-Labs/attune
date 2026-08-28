@@ -104,3 +104,17 @@ def test_html_fixture_banner_omits_dcase_when_unconfigured(example_output: Attun
     assert "Not a model prediction" in rendered
     assert "DCASE frame timestamps omitted" in rendered
     assert "does not interpolate words" not in rendered
+
+
+def test_html_includes_partial_cascade_notes(example_output: AttuneOutput) -> None:
+    rendered = render_demo_html(
+        example_output,
+        dcase_head_configured=False,
+        notes=(
+            "Partial cascade from local artifacts only: emotion2vec+, VocalSound probe, "
+            "FSD50K probe absent.",
+        ),
+    )
+    assert "Partial cascade from local artifacts only" in rendered
+    assert "DCASE frame timestamps omitted" in rendered
+    assert "Not a model prediction" not in rendered

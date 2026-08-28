@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Attune cascade demo</title>
+  <style>
+    :root { font-family: ui-sans-serif, system-ui, sans-serif; color: #1f2328; }
+    body { margin: 1.5rem auto; max-width: 920px; line-height: 1.45; }
+    h1 { font-size: 1.25rem; margin-bottom: 0.3rem; }
+    .muted, .note { color: #656d76; }
+    .banner { background: #fff8c5; border: 1px solid #d4a72c; padding: 0.6rem 0.75rem; }
+    audio { width: 100%; margin: 0.75rem 0; }
+    .legend span { display: inline-block; margin-right: 1rem; }
+    .swatch { display: inline-block; width: 0.9rem; height: 0.9rem;
+      vertical-align: -0.1rem; margin-right: 0.3rem; }
+    .swatch.frame-local { background: #1f6feb; }
+    .swatch.utterance-scope {
+      background: repeating-linear-gradient(135deg, #d0d7de 0 5px, #f6f8fa 5px 10px);
+      border: 1px dashed #656d76;
+    }
+    .track { margin: 0.85rem 0 1.1rem; }
+    .track h2 { font-size: 0.85rem; text-transform: uppercase;
+      letter-spacing: 0.04em; margin: 0 0 0.35rem; }
+    .rail { position: relative; height: 2.4rem; background: #f6f8fa; border: 1px solid #d0d7de; }
+    .span {
+      position: absolute; top: 0.25rem; bottom: 0.25rem; overflow: hidden;
+      font-size: 0.75rem; padding: 0.15rem 0.35rem; box-sizing: border-box; white-space: nowrap;
+    }
+    .span.frame-local { background: #1f6feb; color: #fff; }
+    .span.utterance-scope {
+      background: repeating-linear-gradient(135deg, #d0d7de 0 6px, #eaeef2 6px 12px);
+      border: 1px dashed #656d76; color: #1f2328;
+    }
+    .span.word { background: #ddf4ff; border: 1px solid #54aeff; color: #0a3069; }
+    .playhead {
+      position: absolute; top: 0; bottom: 0; width: 2px; background: #cf222e; pointer-events: none;
+    }
+    .empty { color: #656d76; font-size: 0.85rem; padding: 0.45rem; }
+    dl.meta { display: grid; grid-template-columns: 10rem 1fr; gap: 0.2rem 0.75rem; }
+    code { font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Attune cascade demo</h1>
+  <p class="muted">Authoritative JSON is separate. This page only projects validated spans.</p>
+  <p class="banner">Partial cascade from local artifacts only: emotion2vec+, VocalSound probe, FSD50K probe absent. Missing probes contribute nothing; missing emotion2vec+ makes affect abstain. This is not a full Phase 2 cascade and not DCASE localization.</p><p class="banner">DCASE frame timestamps omitted: no gated DCASE checkpoint was configured. Full-width event/style bars are utterance scope, never localization. STARSS23 stays unwired.</p>
+  <audio controls preload="metadata" src="sensevoice-example-en.wav"></audio>
+  <p class="legend">
+    <span><i class="swatch frame-local"></i>Frame-local laugh/cough/throat_clear</span>
+    <span><i class="swatch utterance-scope"></i>Utterance scope — <em>not</em> localization</span>
+  </p>
+  <section class="track"><h2>Words</h2><div class="rail"><div class="span word" style="left:12.124%;width:0.836%" title="the 870–930 ms">the</div><div class="span word" style="left:17.140%;width:5.017%" title="tribal 1230–1590 ms">tribal</div><div class="span word" style="left:25.502%;width:5.853%" title="chieftain 1830–2250 ms">chieftain</div><div class="span word" style="left:33.863%;width:0.836%" title="called 2430–2490 ms">called</div><div class="span word" style="left:38.043%;width:0.836%" title="for 2730–2790 ms">for</div><div class="span word" style="left:41.388%;width:0.836%" title="the 2970–3030 ms">the</div><div class="span word" style="left:43.060%;width:0.836%" title="boy 3090–3150 ms">boy</div><div class="span word" style="left:50.585%;width:0.836%" title="and 3630–3690 ms">and</div><div class="span word" style="left:54.766%;width:0.836%" title="presented 3930–3990 ms">presented</div><div class="span word" style="left:63.127%;width:0.836%" title="him 4530–4590 ms">him</div><div class="span word" style="left:66.472%;width:0.836%" title="with 4770–4830 ms">with</div><div class="span word" style="left:71.488%;width:0.836%" title="fifty 5130–5190 ms">fifty</div><div class="span word" style="left:76.505%;width:0.836%" title="pieces 5490–5550 ms">pieces</div><div class="span word" style="left:82.358%;width:0.836%" title="of 5910–5970 ms">of</div><div class="span word" style="left:86.538%;width:0.836%" title="gold 6210–6270 ms">gold</div></div></section>
+  <section class="track"><h2>Frame-local events</h2><div class="rail"><div class="empty">none</div></div></section><section class="track"><h2>Utterance-scope events (not localization)</h2><div class="rail"><div class="empty">none</div></div></section>
+  <section class="track"><h2>Utterance-scope styles (not localization)</h2><div class="rail"><div class="empty">none</div></div></section>
+  <h2>Transcript</h2>
+  <p>the tribal chieftain called for the boy and presented him with fifty pieces of gold</p>
+  <h2>Affect</h2>
+  <dl class="meta">
+    <dt>top label</dt><dd>abstain</dd>
+    <dt>abstain</dt><dd>true</dd>
+    <dt>span</dt><dd>0–7176 ms (utterance scope)</dd>
+    <dt>model</dt><dd><code>attune-cascade:sensevoice+affect-abstain+aed</code></dd>
+  </dl>
+  <script id="attune-timeline" type="application/json">{"duration_ms":7176,"events":[],"styles":[],"words":[{"id":"w1","text":"the","start_ms":870,"end_ms":930},{"id":"w2","text":"tribal","start_ms":1230,"end_ms":1590},{"id":"w3","text":"chieftain","start_ms":1830,"end_ms":2250},{"id":"w4","text":"called","start_ms":2430,"end_ms":2490},{"id":"w5","text":"for","start_ms":2730,"end_ms":2790},{"id":"w6","text":"the","start_ms":2970,"end_ms":3030},{"id":"w7","text":"boy","start_ms":3090,"end_ms":3150},{"id":"w8","text":"and","start_ms":3630,"end_ms":3690},{"id":"w9","text":"presented","start_ms":3930,"end_ms":3990},{"id":"w10","text":"him","start_ms":4530,"end_ms":4590},{"id":"w11","text":"with","start_ms":4770,"end_ms":4830},{"id":"w12","text":"fifty","start_ms":5130,"end_ms":5190},{"id":"w13","text":"pieces","start_ms":5490,"end_ms":5550},{"id":"w14","text":"of","start_ms":5910,"end_ms":5970},{"id":"w15","text":"gold","start_ms":6210,"end_ms":6270}]}</script>
+  <script>
+    const data = JSON.parse(document.getElementById("attune-timeline").textContent);
+    const audio = document.querySelector("audio");
+    const rails = Array.from(document.querySelectorAll(".rail"));
+    rails.forEach((rail) => {
+      const head = document.createElement("div");
+      head.className = "playhead";
+      head.style.left = "0%";
+      rail.appendChild(head);
+      rail.addEventListener("click", (event) => {
+        if (!audio || !data.duration_ms) return;
+        const box = rail.getBoundingClientRect();
+        const ratio = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
+        audio.currentTime = (ratio * data.duration_ms) / 1000;
+      });
+    });
+    if (audio) {
+      const move = () => {
+        const ratio = data.duration_ms ? (audio.currentTime * 1000) / data.duration_ms : 0;
+        document.querySelectorAll(".playhead").forEach((head) => {
+          head.style.left = (Math.min(1, Math.max(0, ratio)) * 100).toFixed(3) + "%";
+        });
+      };
+      audio.addEventListener("timeupdate", move);
+      audio.addEventListener("seeked", move);
+    }
+  </script>
+</body>
+</html>
+

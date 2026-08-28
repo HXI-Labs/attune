@@ -87,8 +87,10 @@ unwired. Details are in `research/timing-holes.md`.
 For one or more local WAV files, `scripts/infer.py` emits authoritative JSON,
 optional deterministic XML, and a playable HTML timeline that distinguishes
 DCASE frame-local laugh/cough/throat_clear from utterance-scoped `0..duration`
-bars. How-to: `research/demo/README.md`. Offline path notes remain in
-`docs/baseline-runners.md`.
+bars. SenseVoice is required; emotion2vec+/VocalSound/FSD50K/DCASE heads are
+omitted honestly when absent. There is no live DCASE-stamped demo until the
+gated frame-head is on disk. How-to: `research/demo/README.md`. Offline path
+notes remain in `docs/baseline-runners.md`.
 
 ## Repository map
 

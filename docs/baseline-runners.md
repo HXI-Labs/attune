@@ -102,9 +102,13 @@ target F1, and this implementation never passes the gate automatically.
 
 ## Phase 2 local WAV CLI
 
-`scripts/infer.py` runs the complete reviewed cascade; it is a batch CLI, not a
-product interface. It never downloads a model or silently drops a probe. Set
-all four local artifact paths and acknowledge the separate SenseVoice licence:
+`scripts/infer.py` is a batch CLI, not a product interface. It never downloads
+a model. SenseVoice-Small is required. emotion2vec+, VocalSound, and FSD50K are
+used when present; if they are absent the CLI omits them with an HTML banner
+(affect abstains; missing probes contribute nothing). That is not a silent
+degrade to a fake full cascade. An explicit path that does not exist is still a
+hard error. Inspection evaluation still requires the complete package.
+Acknowledge the separate SenseVoice licence:
 
 ```bash
 export ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1
@@ -136,9 +140,9 @@ an incomplete alignment rather than filling gaps. The cascade passes valid
 words through unchanged.
 
 SenseVoice, emotion2vec+, and the two probe heads are discovered from env vars
-or gitignored local caches listed in `research/demo/README.md`. A missing
-required artifact is a hard error; the CLI does not download weights or silently
-drop a probe. The optional DCASE frame-head is different: if absent, events still
+or gitignored local caches listed in `research/demo/README.md`. SenseVoice is
+required. Missing optional heads are omitted with a banner rather than
+invented. The optional DCASE frame-head is the same: if absent, events still
 run and DCASE spans are omitted. `--fixture-mode` is only a schema/CLI smoke path
 and says so in `model.name`; it does not run or simulate a scientific model. A weight-free smoke command is:
 
