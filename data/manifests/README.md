@@ -233,3 +233,14 @@ partition, and the CREMA validation partition select the candidate and
 operating point. The chosen method and threshold (when applicable) are written
 only to the gitignored head checkpoint and metrics artifact; inspection/test
 clips do not choose the operating point.
+
+## STARSS23 first-60s gold-review pack — not gold
+
+`starss23-gold-review-pack.jsonl` copies the 49 `source_window_start_ms == 0`
+rows (48 class-4 laugh events, 29 true-negative clips) from the unmerged PR 22 scene-raster inspection
+manifest. SHA-256 values and source 100 ms start/end are unchanged. Window-end events are flagged incomplete and collar-ineligible even when clipped_spanning_event_count is 0. Later tiles are excluded. Rows keep
+STARSS23's human 100 ms activity labels and are **not** reviewed Attune gold.
+Ledger status for this pack is `human_100ms_activity_not_attune_gold`. Audio is
+never committed. See `docs/gold-review-starss23.md` and
+`research/gold-sources.md`.
+
