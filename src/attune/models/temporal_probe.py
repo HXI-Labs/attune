@@ -130,6 +130,45 @@ def dcase_checkpoint_acceptance(payload: dict[str, Any]) -> tuple[bool, str | No
     return True, None
 
 
+STARSS23_LABELS = ("laugh",)
+STARSS23_COLLAR_F1_REQUIRED = 0.25
+STARSS23_SEGMENT_MARGIN_REQUIRED = 0.05
+
+
+def starss23_checkpoint_acceptance(payload: dict[str, Any]) -> tuple[bool, str | None]:
+    """Accept STARSS23 laugh timestamps only after the 0.25 collar gate.
+
+    ``dcase_checkpoint_acceptance`` still refuses STARSS23. Infer may call this
+    function only for ``dataset == starss23`` and only when collar F1 >= 0.25.
+    """
+    dataset = payload.get("dataset")
+    if dataset != STARSS23_DATASET:
+        return False, f"STARSS23 acceptance requires dataset==starss23, got {dataset!r}"
+    if tuple(payload.get("labels") or ()) != STARSS23_LABELS:
+        return False, "STARSS23 temporal checkpoint labels must be laugh only"
+    gate = payload.get("gate")
+    if not isinstance(gate, dict) or gate.get("passed") is not True:
+        return False, "STARSS23 checkpoint did not pass the held-out wiring gate"
+    try:
+        collar = float(gate.get("collar_f1_observed", -1))
+        collar_required = float(gate.get("collar_f1_required", STARSS23_COLLAR_F1_REQUIRED))
+        margin = float(gate.get("segment_margin_observed", -1))
+        margin_required = float(
+            gate.get("segment_margin_required", STARSS23_SEGMENT_MARGIN_REQUIRED)
+        )
+    except (TypeError, ValueError):
+        return False, "STARSS23 checkpoint gate is missing collar/margin fields"
+    if collar_required < STARSS23_COLLAR_F1_REQUIRED:
+        return False, "STARSS23 collar gate must not be lowered below 0.25"
+    if margin_required < STARSS23_SEGMENT_MARGIN_REQUIRED:
+        return False, "STARSS23 segment-margin gate must not be lowered below 0.05"
+    if collar < STARSS23_COLLAR_F1_REQUIRED or collar < collar_required:
+        return False, "STARSS23 checkpoint collar F1 is below 0.25"
+    if margin < STARSS23_SEGMENT_MARGIN_REQUIRED or margin < margin_required:
+        return False, "STARSS23 checkpoint segment margin is below 0.05"
+    return True, None
+
+
 class FrozenTemporalProbeHead:
     """Decode event spans from frozen SenseVoice frames after a held-out gate."""
 

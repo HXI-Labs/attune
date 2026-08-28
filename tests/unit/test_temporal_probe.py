@@ -8,6 +8,7 @@ from attune.models.temporal_probe import (  # noqa: E402
     FrozenTemporalProbeHead,
     _decode_annotations,
     dcase_checkpoint_acceptance,
+    starss23_checkpoint_acceptance,
 )
 
 
@@ -153,6 +154,32 @@ def test_dcase_checkpoint_acceptance_rejects_starss23() -> None:
     assert accepted is False
     assert reason is not None and "STARSS23" in reason
 
+    accepted, reason = starss23_checkpoint_acceptance(payload)
+    assert accepted is False  # missing collar_f1_observed; must not sneak through
+
+
+def test_starss23_checkpoint_acceptance_requires_collar_gate() -> None:
+    payload = checkpoint_payload(gate_passed=True)
+    payload["dataset"] = "starss23"
+    payload["labels"] = ("laugh",)
+    payload["gate"] = {
+        "passed": True,
+        "collar_f1_required": 0.25,
+        "collar_f1_observed": 0.40,
+        "segment_margin_required": 0.05,
+        "segment_margin_observed": 0.20,
+    }
+    accepted, reason = starss23_checkpoint_acceptance(payload)
+    assert accepted is True
+    assert reason is None
+    still_refused, dcase_reason = dcase_checkpoint_acceptance(payload)
+    assert still_refused is False
+    assert dcase_reason is not None and "STARSS23" in dcase_reason
+    payload["gate"]["collar_f1_observed"] = 0.24
+    accepted, reason = starss23_checkpoint_acceptance(payload)
+    assert accepted is False
+    assert reason is not None and "0.25" in reason
+
 
 def test_dcase_checkpoint_acceptance_requires_passed_gate() -> None:
     accepted, reason = dcase_checkpoint_acceptance(checkpoint_payload(gate_passed=False))
@@ -164,4 +191,3 @@ def test_dcase_checkpoint_acceptance_accepts_gated_dcase() -> None:
     accepted, reason = dcase_checkpoint_acceptance(checkpoint_payload(gate_passed=True))
     assert accepted is True
     assert reason is None
-
