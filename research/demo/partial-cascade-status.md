@@ -40,22 +40,33 @@ Present under `artifacts/starss23-scene-raster/` on some boxes and unwired.
 | Artifact | On disk |
 |---|---|
 | SenseVoice-Small | yes — `data/raw/model-cache/sensevoice-small/model.pt` sha256 `833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea` |
-| emotion2vec+ | no |
+| emotion2vec+ | yes — `data/raw/model-cache/emotion2vec-plus/model.pt` sha256 `60710b5aae1dbe69bdac8920028fb05882d4314fd09031922b4b61ee9e7aadbd` (revision `b318240bfe67db81a8c572ecb37ce9c3759b81c9`) |
 | VocalSound `artifacts/event-probe/head.pt` | no |
 | FSD50K `artifacts/fsd50k-event-probe/head.pt` | no |
 | DCASE frame-head | yes — `artifacts/dcase-frame-localization/frame-head.pt` |
 
-`scripts/infer.py` therefore runs SenseVoice AED plus gated DCASE frame spans
-for laugh/cough/throat_clear, and abstains affect. This is not a full Phase 2
-cascade. Inspection evaluation still needs the complete probe package.
+`scripts/infer.py` therefore runs SenseVoice AED, gated DCASE frame spans for
+laugh/cough/throat_clear, and emotion2vec+ affect (temperature-scaled, validation
+confidence threshold 0.8337). VocalSound and FSD50K probes remain omitted.
+Clip-level probes, when restored, are utterance scope, never frame timestamps.
+STARSS23 stays refused. This is not a full Phase 2 cascade. Inspection
+evaluation still needs the complete probe package.
 
 ## Live HTML that exists
 
 `research/demo/isolated-dcase.attune.html` is a real cascade run on a gitignored
 held-out DCASE 2016 Task 2 public-test 10 s window
 (`dcase2016-inspection_test-test_1_ebr_0_nec_5_poly_1-090000`). It stamps
-frame-local laugh, cough, and throat_clear. Affect abstains. Companion WAV is
-gitignored.
+frame-local laugh, cough, and throat_clear. emotion2vec+ emits a calibrated
+distribution (distress 0.677 peak) and abstains because that confidence is
+below the validation threshold — this is not a missing-head skip. Companion WAV
+is gitignored. Screenshot: `research/demo/isolated-dcase-timeline.png`.
+
+`research/demo/sensevoice-words.attune.html` is a real run on the official
+SenseVoice English example (gitignored WAV). Fifteen genuine word stamps fire
+and affect emits `neutral` at 0.959 (no abstain). The DCASE head is configured
+and emits no bounded laugh/cough/throat_clear spans on this speech clip.
+Screenshot: `research/demo/sensevoice-words-timeline.png`.
 
 `research/demo/sensevoice-only.attune.html` remains the earlier SenseVoice-only
-projection (no DCASE head).
+projection (no DCASE head, affect missing-head abstain).

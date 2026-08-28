@@ -15,16 +15,16 @@
     <dimension name="arousal" value="0" confidence="0" />
     <dimension name="dominance" value="0" confidence="0" />
     <categories>
-      <category label="neutral" probability="0.125" />
-      <category label="joy" probability="0.125" />
-      <category label="distress" probability="0.125" />
-      <category label="anger" probability="0.125" />
-      <category label="fear" probability="0.125" />
-      <category label="surprise" probability="0.125" />
-      <category label="other" probability="0.125" />
-      <category label="ambiguous" probability="0.125" />
+      <category label="neutral" probability="0.0655054" />
+      <category label="joy" probability="0.0997546" />
+      <category label="distress" probability="0.676595" />
+      <category label="anger" probability="0.0309135" />
+      <category label="fear" probability="0.0397916" />
+      <category label="surprise" probability="0.0305415" />
+      <category label="other" probability="0.0527831" />
+      <category label="ambiguous" probability="0.00411532" />
     </categories>
-    <top label="" confidence="0.125" />
+    <top label="" confidence="0.676595" />
   </affect>
   <uncertainty out_of_distribution_probability="0.5">
     <interpretation_warning>Vocal affect is a probabilistic perception, not a verified internal state.</interpretation_warning>

@@ -22,8 +22,11 @@ The head was reproduced with the committed protocol (seed 0, 30 epochs). Direct
 threshold 0.7285 / 0.4637 and hysteresis 0.7059 / 0.5279 on the untouched
 100-clip inspection matched the prior gated result. STARSS23 heads stay refused.
 
-Affect abstains because emotion2vec+ is not on this box. VocalSound/FSD50K
-probes are omitted. Inventory: `research/demo/partial-cascade-status.md`.
+Affect is a real emotion2vec+ distribution. On this isolated-event clip it
+abstains after calibration (distress 0.677 < 0.8337 threshold), not because
+the head is missing. VocalSound/FSD50K probes are still omitted. Inventory:
+`research/demo/partial-cascade-status.md`. Screenshot:
+`research/demo/isolated-dcase-timeline.png`.
 
 Regenerate with:
 
@@ -32,11 +35,20 @@ export ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1
 export ATTUNE_TEMPORAL_HEAD_PATH=artifacts/dcase-frame-localization/frame-head.pt
 uv run python scripts/infer.py research/demo/isolated-dcase.wav \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
+  --emotion2vec-path data/raw/model-cache/emotion2vec-plus \
   --temporal-head artifacts/dcase-frame-localization/frame-head.pt \
   --output research/demo/isolated-dcase.attune.json \
   --xml-output research/demo/isolated-dcase.attune.xml \
   --html-output research/demo/isolated-dcase.attune.html
 ```
+
+## Speech-example HTML (words + emitted affect)
+
+`sensevoice-words.attune.json` / `.xml` / `.html` is a real cascade run on the
+official SenseVoice English example. Fifteen genuine word timestamps fire.
+emotion2vec+ emits `neutral` at 0.9593 (no abstain). The DCASE head is present
+and finds no bounded laugh/cough/throat_clear on this clip. This is not a
+timing demo for events. Screenshot: `research/demo/sensevoice-words-timeline.png`.
 
 ## What is timed, and what is not
 

@@ -72,6 +72,7 @@ def render_demo_html(
         if affect.abstain
         else (affect.top_label.value if affect.top_label is not None else "unknown")
     )
+    distribution_html = _affect_distribution_html(affect)
     payload = {
         "duration_ms": duration_ms,
         "events": events,
@@ -158,6 +159,8 @@ def render_demo_html(
   <dl class="meta">
     <dt>top label</dt><dd>{html.escape(affect_label)}</dd>
     <dt>abstain</dt><dd>{str(affect.abstain).lower()}</dd>
+    <dt>top confidence</dt><dd>{affect.top_label_confidence:.4f}</dd>
+    <dt>distribution</dt><dd>{distribution_html}</dd>
     <dt>span</dt><dd>{affect.start_ms}–{affect.end_ms} ms (utterance scope)</dd>
     <dt>model</dt><dd><code>{html.escape(output.model.name)}</code></dd>
   </dl>
@@ -192,6 +195,16 @@ def render_demo_html(
 </body>
 </html>
 """
+
+
+
+def _affect_distribution_html(affect) -> str:
+    """Project the schema category distribution; do not invent a label."""
+    parts = []
+    for label, value in affect.categories.items():
+        name = label.value if hasattr(label, "value") else str(label)
+        parts.append(f"{html.escape(name)} {float(value):.3f}")
+    return "; ".join(parts)
 
 
 def _banners(

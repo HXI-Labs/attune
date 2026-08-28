@@ -204,6 +204,9 @@ def test_real_mode_runs_sensevoice_only_partial_cascade(
 
     monkeypatch.setattr(module, "AttuneCascade", FakeCascade)
     monkeypatch.setattr(module, "DCASE_CANDIDATES", ())
+    monkeypatch.setattr(module, "EMOTION2VEC_CANDIDATES", ())
+    monkeypatch.setattr(module, "VOCALSOUND_CANDIDATES", ())
+    monkeypatch.setattr(module, "FSD50K_CANDIDATES", ())
     result = module.run(
         [
             str(audio),
@@ -366,4 +369,19 @@ def test_explicit_dcase_head_is_passed_to_cascade(
     assert "Solid bars are DCASE frame spans" in html
     assert "not DCASE localization" not in html
     assert "STARSS23 stays unwired" not in html or "DCASE frame timestamps omitted" not in html
+
+def test_omission_notes_distinguish_missing_vs_calibrated_affect() -> None:
+    module = load_script()
+    missing = module._omission_notes(
+        ["emotion2vec+", "VocalSound probe"],
+        dcase_head_configured=True,
+    )
+    assert "missing emotion2vec+ makes affect abstain" in missing[0]
+    present = module._omission_notes(
+        ["VocalSound probe", "FSD50K probe"],
+        dcase_head_configured=True,
+    )
+    assert "emotion2vec+ is local" in present[0]
+    assert "uniform placeholder" not in present[0]
+    assert "VocalSound probe" in present[0]
 

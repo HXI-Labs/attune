@@ -118,3 +118,11 @@ def test_html_includes_partial_cascade_notes(example_output: AttuneOutput) -> No
     assert "Partial cascade from local artifacts only" in rendered
     assert "DCASE frame timestamps omitted" in rendered
     assert "Not a model prediction" not in rendered
+
+def test_html_projects_affect_distribution(example_output: AttuneOutput) -> None:
+    rendered = render_demo_html(example_output, dcase_head_configured=False)
+    assert "distribution" in rendered
+    assert "top confidence" in rendered
+    for label in example_output.affect.categories:
+        assert label.value in rendered
+

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "model": {
-    "name": "attune-cascade:sensevoice+affect-abstain+aed+1-gated-frame-heads",
+    "name": "attune-cascade:sensevoice+emotion2vec+aed+1-gated-frame-heads",
     "version": "cascade-1",
     "quantization": null
   },
@@ -79,17 +79,17 @@
       "confidence": 0.0
     },
     "categories": {
-      "neutral": 0.125,
-      "joy": 0.125,
-      "distress": 0.125,
-      "anger": 0.125,
-      "fear": 0.125,
-      "surprise": 0.125,
-      "other": 0.125,
-      "ambiguous": 0.125
+      "neutral": 0.0655053563404322,
+      "joy": 0.09975456622832925,
+      "distress": 0.6765951305938873,
+      "anger": 0.03091349249053881,
+      "fear": 0.03979156047121402,
+      "surprise": 0.030541487269038367,
+      "other": 0.052783085841594996,
+      "ambiguous": 0.004115320764964962
     },
     "top_label": null,
-    "top_label_confidence": 0.125,
+    "top_label_confidence": 0.6765951305938873,
     "abstain": true
   },
   "uncertainty": {

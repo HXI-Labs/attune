@@ -232,11 +232,21 @@ def _omission_notes(
         if dcase_head_configured
         else "This is not DCASE localization."
     )
+    missing_affect = "emotion2vec+" in omitted
+    affect_clause = (
+        "missing emotion2vec+ makes affect abstain with a uniform placeholder"
+        if missing_affect
+        else (
+            "emotion2vec+ is local; affect is a calibrated distribution and may "
+            "still abstain when the validation confidence threshold is not met"
+        )
+    )
     return [
         "Partial cascade from local artifacts only: "
         + ", ".join(omitted)
-        + " absent. Missing probes contribute nothing; missing emotion2vec+ makes "
-        "affect abstain. This is not a full Phase 2 cascade. "
+        + " absent. Missing probes contribute nothing; "
+        + affect_clause
+        + ". This is not a full Phase 2 cascade. "
         + dcase
     ]
 
