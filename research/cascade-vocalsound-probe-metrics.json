@@ -1,0 +1,908 @@
+{
+  "stage": 2,
+  "task": "VocalSound utterance-level 5-way event classification",
+  "gate_passed": false,
+  "encoder_frozen": true,
+  "embedding": {
+    "name": "sensevoice-small-encoder-v2",
+    "model": "SenseVoiceSmall by FunASR/FunAudioLLM",
+    "revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
+    "model_file_sha256": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea",
+    "trainable_parameters": 0,
+    "total_parameters": 233999167,
+    "query_frames_excluded": 4,
+    "frontend_dither": 0.0,
+    "extraction_route": "direct_frontend_and_frozen_encoder",
+    "pooling": "8 temporal means plus acoustic-frame mean/std",
+    "output_size": 5120,
+    "cache_hits": 0,
+    "cache_misses": 1172
+  },
+  "head": {
+    "type": "linear_with_none_logit",
+    "trainable_parameters": 30726,
+    "abstention": {
+      "method": "none_logit",
+      "threshold": 0.9967420697212219,
+      "score_rule": "emit when max class probability minus none probability >= threshold",
+      "score_definition": "max class probability minus trained none probability",
+      "selection_metric": "validation micro-F1 over one expected ID label per in-domain clip and an empty expected set per OOD clip; ties prefer ID macro-F1, lower OOD false-positive rate, then higher ID coverage",
+      "validation": {
+        "threshold": 0.9967420697212219,
+        "id_macro_f1": 0.8086353077816492,
+        "id_accuracy": 0.7666666666666667,
+        "id_coverage": 0.8833333333333333,
+        "id_abstentions": 14,
+        "ood_false_positive_rate": 0.0,
+        "ood_false_positives": 0,
+        "all_prediction_micro_f1": 0.8141592920353983,
+        "counts": {
+          "true_positive": 92,
+          "false_positive": 14,
+          "false_negative": 28
+        }
+      },
+      "method_comparison": {
+        "max_softmax": {
+          "selected_threshold": 0.9980377554893494,
+          "validation": {
+            "threshold": 0.9980377554893494,
+            "id_macro_f1": 0.7951897523724725,
+            "id_accuracy": 0.7666666666666667,
+            "id_coverage": 0.9083333333333333,
+            "id_abstentions": 11,
+            "ood_false_positive_rate": 0.8617021276595744,
+            "ood_false_positives": 81,
+            "all_prediction_micro_f1": 0.5935483870967742,
+            "counts": {
+              "true_positive": 92,
+              "false_positive": 98,
+              "false_negative": 28
+            }
+          },
+          "threshold_sweep": [
+            {
+              "threshold": 0.5843223525451661,
+              "id_macro_f1": 0.7867058193119709,
+              "id_accuracy": 0.7916666666666666,
+              "id_coverage": 1.0,
+              "id_abstentions": 0,
+              "ood_false_positive_rate": 1.0,
+              "ood_false_positives": 94,
+              "all_prediction_micro_f1": 0.5688622754491018,
+              "counts": {
+                "true_positive": 95,
+                "false_positive": 119,
+                "false_negative": 25
+              },
+              "selected": false
+            },
+            {
+              "threshold": 0.9971492886543274,
+              "id_macro_f1": 0.7951897523724725,
+              "id_accuracy": 0.7666666666666667,
+              "id_coverage": 0.9083333333333333,
+              "id_abstentions": 11,
+              "ood_false_positive_rate": 0.8723404255319149,
+              "ood_false_positives": 82,
+              "all_prediction_micro_f1": 0.5916398713826366,
+              "counts": {
+                "true_positive": 92,
+                "false_positive": 99,
+                "false_negative": 28
+              },
+              "selected": false
+            },
+            {
+              "threshold": 0.9980377554893494,
+              "id_macro_f1": 0.7951897523724725,
+              "id_accuracy": 0.7666666666666667,
+              "id_coverage": 0.9083333333333333,
+              "id_abstentions": 11,
+              "ood_false_positive_rate": 0.8617021276595744,
+              "ood_false_positives": 81,
+              "all_prediction_micro_f1": 0.5935483870967742,
+              "counts": {
+                "true_positive": 92,
+                "false_positive": 98,
+                "false_negative": 28
+              },
+              "selected": true
+            },
+            {
+              "threshold": 0.9983789920806885,
+              "id_macro_f1": 0.7895799962749115,
+              "id_accuracy": 0.7583333333333333,
+              "id_coverage": 0.9,
+              "id_abstentions": 12,
+              "ood_false_positive_rate": 0.8617021276595744,
+              "ood_false_positives": 81,
+              "all_prediction_micro_f1": 0.5889967637540453,
+              "counts": {
+                "true_positive": 91,
+                "false_positive": 98,
+                "false_negative": 29
+              },
+              "selected": false
+            },
+            {
+              "threshold": 1.0000001,
+              "id_macro_f1": 0.0,
+              "id_accuracy": 0.0,
+              "id_coverage": 0.0,
+              "id_abstentions": 120,
+              "ood_false_positive_rate": 0.0,
+              "ood_false_positives": 0,
+              "all_prediction_micro_f1": 0.0,
+              "counts": {
+                "true_positive": 0,
+                "false_positive": 0,
+                "false_negative": 120
+              },
+              "selected": false
+            }
+          ]
+        },
+        "energy": {
+          "selected_threshold": 32.62373733520508,
+          "validation": {
+            "threshold": 32.62373733520508,
+            "id_macro_f1": 0.7365643112590948,
+            "id_accuracy": 0.6333333333333333,
+            "id_coverage": 0.7,
+            "id_abstentions": 36,
+            "ood_false_positive_rate": 0.40425531914893614,
+            "ood_false_positives": 38,
+            "all_prediction_micro_f1": 0.628099173553719,
+            "counts": {
+              "true_positive": 76,
+              "false_positive": 46,
+              "false_negative": 44
+            }
+          },
+          "threshold_sweep": [
+            {
+              "threshold": 10.070160148508739,
+              "id_macro_f1": 0.7867058193119709,
+              "id_accuracy": 0.7916666666666666,
+              "id_coverage": 1.0,
+              "id_abstentions": 0,
+              "ood_false_positive_rate": 1.0,
+              "ood_false_positives": 94,
+              "all_prediction_micro_f1": 0.5688622754491018,
+              "counts": {
+                "true_positive": 95,
+                "false_positive": 119,
+                "false_negative": 25
+              },
+              "selected": false
+            },
+            {
+              "threshold": 32.20197296142578,
+              "id_macro_f1": 0.7365643112590948,
+              "id_accuracy": 0.6333333333333333,
+              "id_coverage": 0.7,
+              "id_abstentions": 36,
+              "ood_false_positive_rate": 0.4148936170212766,
+              "ood_false_positives": 39,
+              "all_prediction_micro_f1": 0.6255144032921811,
+              "counts": {
+                "true_positive": 76,
+                "false_positive": 47,
+                "false_negative": 44
+              },
+              "selected": false
+            },
+            {
+              "threshold": 32.62373733520508,
+              "id_macro_f1": 0.7365643112590948,
+              "id_accuracy": 0.6333333333333333,
+              "id_coverage": 0.7,
+              "id_abstentions": 36,
+              "ood_false_positive_rate": 0.40425531914893614,
+              "ood_false_positives": 38,
+              "all_prediction_micro_f1": 0.628099173553719,
+              "counts": {
+                "true_positive": 76,
+                "false_positive": 46,
+                "false_negative": 44
+              },
+              "selected": true
+            },
+            {
+              "threshold": 32.81008529663086,
+              "id_macro_f1": 0.7287211740041929,
+              "id_accuracy": 0.625,
+              "id_coverage": 0.6916666666666667,
+              "id_abstentions": 37,
+              "ood_false_positive_rate": 0.40425531914893614,
+              "ood_false_positives": 38,
+              "all_prediction_micro_f1": 0.6224066390041494,
+              "counts": {
+                "true_positive": 75,
+                "false_positive": 46,
+                "false_negative": 45
+              },
+              "selected": false
+            },
+            {
+              "threshold": 112.61036181651812,
+              "id_macro_f1": 0.0,
+              "id_accuracy": 0.0,
+              "id_coverage": 0.0,
+              "id_abstentions": 120,
+              "ood_false_positive_rate": 0.0,
+              "ood_false_positives": 0,
+              "all_prediction_micro_f1": 0.0,
+              "counts": {
+                "true_positive": 0,
+                "false_positive": 0,
+                "false_negative": 120
+              },
+              "selected": false
+            }
+          ]
+        },
+        "none_logit": {
+          "selected_threshold": 0.9967420697212219,
+          "validation": {
+            "threshold": 0.9967420697212219,
+            "id_macro_f1": 0.8086353077816492,
+            "id_accuracy": 0.7666666666666667,
+            "id_coverage": 0.8833333333333333,
+            "id_abstentions": 14,
+            "ood_false_positive_rate": 0.0,
+            "ood_false_positives": 0,
+            "all_prediction_micro_f1": 0.8141592920353983,
+            "counts": {
+              "true_positive": 92,
+              "false_positive": 14,
+              "false_negative": 28
+            }
+          },
+          "threshold_sweep": [
+            {
+              "threshold": -1.0000002,
+              "id_macro_f1": 0.7867058193119709,
+              "id_accuracy": 0.7916666666666666,
+              "id_coverage": 1.0,
+              "id_abstentions": 0,
+              "ood_false_positive_rate": 1.0,
+              "ood_false_positives": 94,
+              "all_prediction_micro_f1": 0.5688622754491018,
+              "counts": {
+                "true_positive": 95,
+                "false_positive": 119,
+                "false_negative": 25
+              },
+              "selected": false
+            },
+            {
+              "threshold": 0.988781750202179,
+              "id_macro_f1": 0.8086353077816492,
+              "id_accuracy": 0.7666666666666667,
+              "id_coverage": 0.8833333333333333,
+              "id_abstentions": 14,
+              "ood_false_positive_rate": 0.010638297872340425,
+              "ood_false_positives": 1,
+              "all_prediction_micro_f1": 0.8105726872246696,
+              "counts": {
+                "true_positive": 92,
+                "false_positive": 15,
+                "false_negative": 28
+              },
+              "selected": false
+            },
+            {
+              "threshold": 0.9967420697212219,
+              "id_macro_f1": 0.8086353077816492,
+              "id_accuracy": 0.7666666666666667,
+              "id_coverage": 0.8833333333333333,
+              "id_abstentions": 14,
+              "ood_false_positive_rate": 0.0,
+              "ood_false_positives": 0,
+              "all_prediction_micro_f1": 0.8141592920353983,
+              "counts": {
+                "true_positive": 92,
+                "false_positive": 14,
+                "false_negative": 28
+              },
+              "selected": true
+            },
+            {
+              "threshold": 0.9969722628593445,
+              "id_macro_f1": 0.801562137049942,
+              "id_accuracy": 0.7583333333333333,
+              "id_coverage": 0.875,
+              "id_abstentions": 15,
+              "ood_false_positive_rate": 0.0,
+              "ood_false_positives": 0,
+              "all_prediction_micro_f1": 0.8088888888888889,
+              "counts": {
+                "true_positive": 91,
+                "false_positive": 14,
+                "false_negative": 29
+              },
+              "selected": false
+            },
+            {
+              "threshold": 1.0000002,
+              "id_macro_f1": 0.0,
+              "id_accuracy": 0.0,
+              "id_coverage": 0.0,
+              "id_abstentions": 120,
+              "ood_false_positive_rate": 0.0,
+              "ood_false_positives": 0,
+              "all_prediction_micro_f1": 0.0,
+              "counts": {
+                "true_positive": 0,
+                "false_positive": 0,
+                "false_negative": 120
+              },
+              "selected": false
+            }
+          ]
+        }
+      }
+    },
+    "candidate_trainable_parameters": {
+      "closed_set": 25605,
+      "closed_set_plus_none_checkpoint": 30726
+    },
+    "fitted_none_logit_parameters": 5121,
+    "closed_set_rows_preserved": true
+  },
+  "seed": 0,
+  "epochs_completed": 4,
+  "early_stopping_patience": 3,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 3.7648133467949156,
+      "validation_loss": 4.324200630187988
+    },
+    {
+      "epoch": 2,
+      "train_loss": 1.9455022065240717,
+      "validation_loss": 5.077202796936035
+    },
+    {
+      "epoch": 3,
+      "train_loss": 1.2797392634310332,
+      "validation_loss": 4.834556579589844
+    },
+    {
+      "epoch": 4,
+      "train_loss": 1.140557727779782,
+      "validation_loss": 5.345562934875488
+    }
+  ],
+  "none_logit_history": [
+    {
+      "epoch": 1,
+      "train_loss": 2.671415394812887,
+      "validation_loss": 1.051509976387024
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.46369002987577757,
+      "validation_loss": 0.8646417260169983
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.1976732362727863,
+      "validation_loss": 0.835671603679657
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.15063885585421452,
+      "validation_loss": 0.6053540110588074
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.050446405173399426,
+      "validation_loss": 0.8360871076583862
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.050324748336553655,
+      "validation_loss": 1.2367864847183228
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.04499910766022195,
+      "validation_loss": 0.5227652192115784
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.07268148399931872,
+      "validation_loss": 0.7635167837142944
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.036856427100718576,
+      "validation_loss": 0.5906013250350952
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.041135728397018796,
+      "validation_loss": 0.8195227980613708
+    }
+  ],
+  "partitions": {
+    "train": {
+      "clips": 562,
+      "speakers": [
+        "vocalsound:f0029",
+        "vocalsound:f0096",
+        "vocalsound:f0116",
+        "vocalsound:f0117",
+        "vocalsound:f0124",
+        "vocalsound:f0151",
+        "vocalsound:f0182",
+        "vocalsound:f0194",
+        "vocalsound:f0226",
+        "vocalsound:f0237",
+        "vocalsound:f0285",
+        "vocalsound:f0383",
+        "vocalsound:f0410",
+        "vocalsound:f0422",
+        "vocalsound:f0448",
+        "vocalsound:f0463",
+        "vocalsound:f0516",
+        "vocalsound:f0593",
+        "vocalsound:f0605",
+        "vocalsound:f0613",
+        "vocalsound:f0615",
+        "vocalsound:f0623",
+        "vocalsound:f0631",
+        "vocalsound:f0661",
+        "vocalsound:f0674",
+        "vocalsound:f0710",
+        "vocalsound:f0748",
+        "vocalsound:f0788",
+        "vocalsound:f0858",
+        "vocalsound:f0923",
+        "vocalsound:f0969",
+        "vocalsound:f1322",
+        "vocalsound:f1343",
+        "vocalsound:f1354",
+        "vocalsound:f1392",
+        "vocalsound:f1405",
+        "vocalsound:f1414",
+        "vocalsound:f1434",
+        "vocalsound:f1509",
+        "vocalsound:f1585",
+        "vocalsound:f1630",
+        "vocalsound:f1639",
+        "vocalsound:f1660",
+        "vocalsound:f1689",
+        "vocalsound:f1746",
+        "vocalsound:f1748",
+        "vocalsound:f1798",
+        "vocalsound:f1811",
+        "vocalsound:f1871",
+        "vocalsound:f1939",
+        "vocalsound:f1942",
+        "vocalsound:f1961",
+        "vocalsound:f1987",
+        "vocalsound:f2192",
+        "vocalsound:f2207",
+        "vocalsound:f2257",
+        "vocalsound:f2337",
+        "vocalsound:f2342",
+        "vocalsound:f2350",
+        "vocalsound:f2365",
+        "vocalsound:f2414",
+        "vocalsound:f2438",
+        "vocalsound:f2441",
+        "vocalsound:f2459",
+        "vocalsound:f2462",
+        "vocalsound:f2470",
+        "vocalsound:f2478",
+        "vocalsound:f2594",
+        "vocalsound:f2644",
+        "vocalsound:f2716",
+        "vocalsound:f2725",
+        "vocalsound:f2728",
+        "vocalsound:f2770",
+        "vocalsound:f2779",
+        "vocalsound:f2836",
+        "vocalsound:f2847",
+        "vocalsound:f2912",
+        "vocalsound:f2937",
+        "vocalsound:f2972",
+        "vocalsound:f3024",
+        "vocalsound:f3055",
+        "vocalsound:f3075",
+        "vocalsound:f3118",
+        "vocalsound:f3127",
+        "vocalsound:f3149",
+        "vocalsound:f3156",
+        "vocalsound:f3167",
+        "vocalsound:f3184",
+        "vocalsound:f3216",
+        "vocalsound:f3309",
+        "vocalsound:f3332",
+        "vocalsound:f3334",
+        "vocalsound:m0013",
+        "vocalsound:m0022",
+        "vocalsound:m0047",
+        "vocalsound:m0063",
+        "vocalsound:m0075",
+        "vocalsound:m0106",
+        "vocalsound:m0121",
+        "vocalsound:m0168",
+        "vocalsound:m0223",
+        "vocalsound:m0231",
+        "vocalsound:m0289",
+        "vocalsound:m0326",
+        "vocalsound:m0351",
+        "vocalsound:m0390",
+        "vocalsound:m0425",
+        "vocalsound:m0452",
+        "vocalsound:m0493",
+        "vocalsound:m0618",
+        "vocalsound:m0625",
+        "vocalsound:m0628",
+        "vocalsound:m0665",
+        "vocalsound:m0670",
+        "vocalsound:m0672",
+        "vocalsound:m0682",
+        "vocalsound:m0695",
+        "vocalsound:m0697",
+        "vocalsound:m0708",
+        "vocalsound:m0730",
+        "vocalsound:m0754",
+        "vocalsound:m0766",
+        "vocalsound:m0778",
+        "vocalsound:m0825",
+        "vocalsound:m0846",
+        "vocalsound:m0870",
+        "vocalsound:m0902",
+        "vocalsound:m0921",
+        "vocalsound:m0960",
+        "vocalsound:m1025",
+        "vocalsound:m1067",
+        "vocalsound:m1093",
+        "vocalsound:m1126",
+        "vocalsound:m1150",
+        "vocalsound:m1170",
+        "vocalsound:m1178",
+        "vocalsound:m1182",
+        "vocalsound:m1187",
+        "vocalsound:m1202",
+        "vocalsound:m1215",
+        "vocalsound:m1222",
+        "vocalsound:m1275",
+        "vocalsound:m1306",
+        "vocalsound:m1338",
+        "vocalsound:m1370",
+        "vocalsound:m1403",
+        "vocalsound:m1409",
+        "vocalsound:m1410",
+        "vocalsound:m1482",
+        "vocalsound:m1523",
+        "vocalsound:m1577",
+        "vocalsound:m1609",
+        "vocalsound:m1617",
+        "vocalsound:m1624",
+        "vocalsound:m1735",
+        "vocalsound:m1783",
+        "vocalsound:m1797",
+        "vocalsound:m1891",
+        "vocalsound:m1892",
+        "vocalsound:m1910",
+        "vocalsound:m1912",
+        "vocalsound:m1925",
+        "vocalsound:m1927",
+        "vocalsound:m1933",
+        "vocalsound:m1938",
+        "vocalsound:m2007",
+        "vocalsound:m2069",
+        "vocalsound:m2099",
+        "vocalsound:m2150",
+        "vocalsound:m2154",
+        "vocalsound:m2158",
+        "vocalsound:m2174",
+        "vocalsound:m2200",
+        "vocalsound:m2221",
+        "vocalsound:m2274",
+        "vocalsound:m2277",
+        "vocalsound:m2284",
+        "vocalsound:m2291",
+        "vocalsound:m2304",
+        "vocalsound:m2353",
+        "vocalsound:m2381",
+        "vocalsound:m2395",
+        "vocalsound:m2401",
+        "vocalsound:m2415",
+        "vocalsound:m2429",
+        "vocalsound:m2490",
+        "vocalsound:m2509",
+        "vocalsound:m2539",
+        "vocalsound:m2545",
+        "vocalsound:m2565",
+        "vocalsound:m2651",
+        "vocalsound:m2669",
+        "vocalsound:m2685",
+        "vocalsound:m2688",
+        "vocalsound:m2708",
+        "vocalsound:m2710",
+        "vocalsound:m2721",
+        "vocalsound:m2753",
+        "vocalsound:m2758",
+        "vocalsound:m2762",
+        "vocalsound:m2763",
+        "vocalsound:m2883",
+        "vocalsound:m2896",
+        "vocalsound:m2930",
+        "vocalsound:m2982",
+        "vocalsound:m2999",
+        "vocalsound:m3015",
+        "vocalsound:m3041",
+        "vocalsound:m3051",
+        "vocalsound:m3056",
+        "vocalsound:m3072",
+        "vocalsound:m3180",
+        "vocalsound:m3189",
+        "vocalsound:m3238",
+        "vocalsound:m3244",
+        "vocalsound:m3289",
+        "vocalsound:m3345"
+      ],
+      "label_counts": {
+        "cough": 112,
+        "laugh": 109,
+        "sigh": 120,
+        "sneeze": 112,
+        "throat_clear": 109
+      }
+    },
+    "validation": {
+      "clips": 120,
+      "speakers": [
+        "vocalsound:f0091",
+        "vocalsound:f0128",
+        "vocalsound:f0332",
+        "vocalsound:f0496",
+        "vocalsound:f0743",
+        "vocalsound:f0755",
+        "vocalsound:f0791",
+        "vocalsound:f0835",
+        "vocalsound:f1073",
+        "vocalsound:f1234",
+        "vocalsound:f1254",
+        "vocalsound:f1310",
+        "vocalsound:f1366",
+        "vocalsound:f1438",
+        "vocalsound:f1547",
+        "vocalsound:f1686",
+        "vocalsound:f1800",
+        "vocalsound:f1813",
+        "vocalsound:f1874",
+        "vocalsound:f2003",
+        "vocalsound:f2228",
+        "vocalsound:f2248",
+        "vocalsound:f2299",
+        "vocalsound:f2675",
+        "vocalsound:f2777",
+        "vocalsound:f2796",
+        "vocalsound:f2837",
+        "vocalsound:m0267",
+        "vocalsound:m0322",
+        "vocalsound:m0404",
+        "vocalsound:m0799",
+        "vocalsound:m0871",
+        "vocalsound:m0903",
+        "vocalsound:m1134",
+        "vocalsound:m1180",
+        "vocalsound:m1195",
+        "vocalsound:m1287",
+        "vocalsound:m1395",
+        "vocalsound:m1503",
+        "vocalsound:m1546",
+        "vocalsound:m1756",
+        "vocalsound:m1808",
+        "vocalsound:m2008",
+        "vocalsound:m2052",
+        "vocalsound:m2128",
+        "vocalsound:m2393",
+        "vocalsound:m2479",
+        "vocalsound:m2577",
+        "vocalsound:m2639",
+        "vocalsound:m2713",
+        "vocalsound:m2803",
+        "vocalsound:m2919",
+        "vocalsound:m2954",
+        "vocalsound:m2964"
+      ],
+      "label_counts": {
+        "cough": 21,
+        "laugh": 25,
+        "sigh": 23,
+        "sneeze": 30,
+        "throat_clear": 21
+      }
+    },
+    "test": {
+      "clips": 80,
+      "speakers": [
+        "vocalsound:f0418",
+        "vocalsound:f0627",
+        "vocalsound:f0951",
+        "vocalsound:f1321",
+        "vocalsound:f2187",
+        "vocalsound:f2355",
+        "vocalsound:f3031",
+        "vocalsound:f3352",
+        "vocalsound:m0831",
+        "vocalsound:m1528",
+        "vocalsound:m1723",
+        "vocalsound:m2445",
+        "vocalsound:m2690",
+        "vocalsound:m2970",
+        "vocalsound:m3148",
+        "vocalsound:m3212"
+      ],
+      "label_counts": {
+        "cough": 16,
+        "laugh": 16,
+        "sigh": 16,
+        "sneeze": 16,
+        "throat_clear": 16
+      }
+    },
+    "ood_training": {
+      "clips": 316,
+      "sources": {
+        "FSD50K": 256,
+        "CREMA-D": 60
+      },
+      "target": "none logit only"
+    },
+    "ood_validation": {
+      "clips": 94,
+      "sources": {
+        "FSD50K": 64,
+        "CREMA-D": 30
+      },
+      "expected_probe_annotations": "empty for the VocalSound head"
+    },
+    "excluded_inspection_speakers": [
+      "vocalsound:f0418",
+      "vocalsound:f0627",
+      "vocalsound:f0951",
+      "vocalsound:f1321",
+      "vocalsound:f2187",
+      "vocalsound:f2355",
+      "vocalsound:f3031",
+      "vocalsound:f3352",
+      "vocalsound:m0831",
+      "vocalsound:m1528",
+      "vocalsound:m1723",
+      "vocalsound:m2445",
+      "vocalsound:m2690",
+      "vocalsound:m2970",
+      "vocalsound:m3148",
+      "vocalsound:m3212"
+    ]
+  },
+  "validation_metrics": {
+    "accuracy": 0.7916666666666666,
+    "macro_f1": 0.7867058193119709,
+    "per_class": {
+      "laugh": {
+        "precision": 0.96,
+        "recall": 0.96,
+        "f1": 0.96,
+        "support": 25
+      },
+      "sigh": {
+        "precision": 0.95,
+        "recall": 0.8260869565217391,
+        "f1": 0.8837209302325583,
+        "support": 23
+      },
+      "cough": {
+        "precision": 0.5714285714285714,
+        "recall": 0.5714285714285714,
+        "f1": 0.5714285714285714,
+        "support": 21
+      },
+      "throat_clear": {
+        "precision": 0.7272727272727273,
+        "recall": 0.7619047619047619,
+        "f1": 0.7441860465116279,
+        "support": 21
+      },
+      "sneeze": {
+        "precision": 0.75,
+        "recall": 0.8,
+        "f1": 0.7741935483870969,
+        "support": 30
+      }
+    }
+  },
+  "test_metrics": {
+    "accuracy": 0.825,
+    "macro_f1": 0.8173993980445594,
+    "per_class": {
+      "laugh": {
+        "precision": 0.8235294117647058,
+        "recall": 0.875,
+        "f1": 0.8484848484848485,
+        "support": 16
+      },
+      "sigh": {
+        "precision": 0.8823529411764706,
+        "recall": 0.9375,
+        "f1": 0.9090909090909091,
+        "support": 16
+      },
+      "cough": {
+        "precision": 0.8,
+        "recall": 0.5,
+        "f1": 0.6153846153846154,
+        "support": 16
+      },
+      "throat_clear": {
+        "precision": 0.7142857142857143,
+        "recall": 0.9375,
+        "f1": 0.8108108108108109,
+        "support": 16
+      },
+      "sneeze": {
+        "precision": 0.9333333333333333,
+        "recall": 0.875,
+        "f1": 0.9032258064516129,
+        "support": 16
+      }
+    }
+  },
+  "attribution": {
+    "SenseVoiceSmall": "FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1",
+    "VocalSound": "Gong, Yu, and Glass (ICASSP 2022); CC BY-SA 4.0"
+  },
+  "h1_comparison": {
+    "hypothesis": "The frozen SenseVoiceSmall encoder contains event information that off-the-shelf AED tags do not expose.",
+    "result": "supported_on_weak_label_inspection_set",
+    "frozen_sensevoice_encoder": {
+      "macro_f1": 0.8173993980445594,
+      "per_class_f1": {
+        "laugh": 0.8484848484848485,
+        "sigh": 0.9090909090909091,
+        "cough": 0.6153846153846154,
+        "throat_clear": 0.8108108108108109,
+        "sneeze": 0.9032258064516129
+      }
+    },
+    "committed_comparators": {
+      "frozen_logmel": {
+        "macro_f1": 0.47082366996978003,
+        "per_class_f1": {
+          "laugh": 0.4117647058823529,
+          "sigh": 0.45161290322580644,
+          "cough": 0.29629629629629634,
+          "throat_clear": 0.4444444444444445,
+          "sneeze": 0.75
+        },
+        "source": "research/stage2-vocalsound-probe-metrics.json"
+      },
+      "off_the_shelf_sensevoice_aed": {
+        "macro_f1": 0.32126884743163814,
+        "per_class_f1": {
+          "laugh": 0.875,
+          "sigh": 0.0,
+          "cough": 0.6046511627906976,
+          "throat_clear": 0.0,
+          "sneeze": 0.7692307692307693
+        },
+        "source": "research/inspection-smoke-results.json"
+      }
+    },
+    "macro_f1_delta_vs_logmel": 0.3465757280747794,
+    "macro_f1_delta_vs_aed": 0.4961305506129213,
+    "scope": "80 standalone acted VocalSound inspection clips with weak source labels; not reviewed gold or natural inline events"
+  }
+}

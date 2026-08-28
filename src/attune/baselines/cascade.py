@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -12,6 +13,7 @@ from attune.baselines.adapters import (
     BaselinePrediction,
     Emotion2VecPlusAdapter,
     SenseVoiceSmallAdapter,
+    build_partial_output,
 )
 from attune.calibration import load_affect_abstention, load_calibration
 from attune.evaluation.report import RuntimeMetrics
@@ -23,7 +25,7 @@ from attune.models.probe_inference import (
     ProbePrediction,
 )
 from attune.models.temporal_probe import FrozenTemporalProbeHead
-from attune.schema.output import AttuneOutput, EventLabel, Status, StyleLabel
+from attune.schema.output import AffectCategory, AttuneOutput, EventLabel, Status, StyleLabel
 
 
 @dataclass(frozen=True)
@@ -38,6 +40,45 @@ class StubEventHead:
     def predict(self, audio_path: Path) -> ProbePrediction:
         del audio_path
         return ProbePrediction(annotations=(), elapsed_seconds=0.0, diagnostics={})
+
+
+class MissingAffectAdapter(BaselineAdapter):
+    """Schema-valid affect abstention when emotion2vec+ weights are not local."""
+
+    name = "affect-abstain-missing-emotion2vec"
+
+    def availability(self) -> tuple[bool, str | None]:
+        return True, None
+
+    def predict(self, item: BaselineInput) -> BaselinePrediction:
+        started = time.perf_counter()
+        category_count = len(AffectCategory)
+        distribution = {label: 1.0 / category_count for label in AffectCategory}
+        output = build_partial_output(
+            item,
+            model_name=self.name,
+            transcript=item.transcript_hint or "",
+            category=AffectCategory.AMBIGUOUS,
+            distribution=distribution,
+            abstain=True,
+        )
+        elapsed = time.perf_counter() - started
+        return BaselinePrediction(
+            output=output,
+            runtime=RuntimeMetrics.measured(
+                audio_seconds=output.audio.duration_ms / 1000,
+                elapsed_seconds=elapsed,
+            ),
+            diagnostics={
+                "affect_source": "missing_emotion2vec_abstain",
+                "raw_affect_label": None,
+                "schema_affect_label": None,
+                "note": (
+                    "emotion2vec+ weights were not local; affect abstains. "
+                    "This is not acoustic affect inference."
+                ),
+            },
+        )
 
 
 class EventStyleHead(Protocol):
@@ -163,61 +204,63 @@ class ModularCascade(BaselineAdapter):
 
 
 class AttuneCascade(ModularCascade):
-    """The inspected Attune cascade built entirely from local reviewed artifacts."""
+    """The inspected Attune cascade built from whatever reviewed artifacts are local."""
 
     def __init__(
         self,
         *,
         sensevoice_checkpoint: Path,
-        emotion2vec_checkpoint: Path,
-        vocalsound_probe_checkpoint: Path,
-        fsd50k_probe_checkpoint: Path,
+        emotion2vec_checkpoint: Path | None = None,
+        vocalsound_probe_checkpoint: Path | None = None,
+        fsd50k_probe_checkpoint: Path | None = None,
         embedding_cache: Path,
         calibration_path: Path | None = None,
         temporal_head_checkpoints: tuple[Path, ...] = (),
     ) -> None:
-        vocalsound_calibration = (
-            load_calibration(calibration_path, component="vocalsound_probe")
-            if calibration_path is not None
-            else None
-        )
-        fsd50k_calibration = (
-            load_calibration(calibration_path, component="fsd50k_probe")
-            if calibration_path is not None
-            else None
-        )
-        encoder = FrozenEncoderProvider(sensevoice_checkpoint, embedding_cache)
-        heads: tuple[EventStyleHead, ...] = (
-            FrozenLinearProbeHead(
-                name="vocalsound-frozen-linear-probe",
-                checkpoint=vocalsound_probe_checkpoint,
-                encoder=encoder,
-                label_mapping=VOCALSOUND_LABEL_MAPPING,
-                calibration=vocalsound_calibration,
-            ),
-            FrozenLinearProbeHead(
-                name="fsd50k-frozen-linear-probe",
-                checkpoint=fsd50k_probe_checkpoint,
-                encoder=encoder,
-                label_mapping=FSD50K_LABEL_MAPPING,
-                calibration=fsd50k_calibration,
-            ),
-        )
-        if temporal_head_checkpoints:
-            heads = (
-                *heads,
-                *(
-                    FrozenTemporalProbeHead(
-                        checkpoint=checkpoint,
-                        sensevoice_checkpoint=sensevoice_checkpoint,
-                        frame_cache=embedding_cache,
+        heads: list[EventStyleHead] = []
+        if vocalsound_probe_checkpoint is not None or fsd50k_probe_checkpoint is not None:
+            encoder = FrozenEncoderProvider(sensevoice_checkpoint, embedding_cache)
+            if vocalsound_probe_checkpoint is not None:
+                heads.append(
+                    FrozenLinearProbeHead(
+                        name="vocalsound-frozen-linear-probe",
+                        checkpoint=vocalsound_probe_checkpoint,
+                        encoder=encoder,
+                        label_mapping=VOCALSOUND_LABEL_MAPPING,
+                        calibration=(
+                            load_calibration(calibration_path, component="vocalsound_probe")
+                            if calibration_path is not None
+                            else None
+                        ),
                     )
-                    for checkpoint in temporal_head_checkpoints
-                ),
+                )
+            if fsd50k_probe_checkpoint is not None:
+                heads.append(
+                    FrozenLinearProbeHead(
+                        name="fsd50k-frozen-linear-probe",
+                        checkpoint=fsd50k_probe_checkpoint,
+                        encoder=encoder,
+                        label_mapping=FSD50K_LABEL_MAPPING,
+                        calibration=(
+                            load_calibration(calibration_path, component="fsd50k_probe")
+                            if calibration_path is not None
+                            else None
+                        ),
+                    )
+                )
+        if temporal_head_checkpoints:
+            heads.extend(
+                FrozenTemporalProbeHead(
+                    checkpoint=checkpoint,
+                    sensevoice_checkpoint=sensevoice_checkpoint,
+                    frame_cache=embedding_cache,
+                )
+                for checkpoint in temporal_head_checkpoints
             )
-        super().__init__(
-            asr=SenseVoiceSmallAdapter(checkpoint=sensevoice_checkpoint),
-            affect=Emotion2VecPlusAdapter(
+        if emotion2vec_checkpoint is None:
+            affect: BaselineAdapter = MissingAffectAdapter()
+        else:
+            affect = Emotion2VecPlusAdapter(
                 checkpoint=emotion2vec_checkpoint,
                 calibration=(
                     load_calibration(
@@ -235,18 +278,25 @@ class AttuneCascade(ModularCascade):
                     if calibration_path is not None
                     else None
                 ),
-            ),
-            event_heads=heads,
+            )
+        super().__init__(
+            asr=SenseVoiceSmallAdapter(checkpoint=sensevoice_checkpoint),
+            affect=affect,
+            event_heads=tuple(heads),
         )
-        temporal_suffix = (
-            f"+{len(temporal_head_checkpoints)}-gated-frame-heads"
-            if temporal_head_checkpoints
-            else ""
-        )
-        self.name = (
-            "attune-cascade:sensevoice+emotion2vec+aed+vocalsound-probe+fsd50k-probe"
-            f"{temporal_suffix}"
-        )
+        tokens = ["sensevoice"]
+        if emotion2vec_checkpoint is None:
+            tokens.append("affect-abstain")
+        else:
+            tokens.append("emotion2vec")
+        tokens.append("aed")
+        if vocalsound_probe_checkpoint is not None:
+            tokens.append("vocalsound-probe")
+        if fsd50k_probe_checkpoint is not None:
+            tokens.append("fsd50k-probe")
+        if temporal_head_checkpoints:
+            tokens.append(f"{len(temporal_head_checkpoints)}-gated-frame-heads")
+        self.name = "attune-cascade:" + "+".join(tokens)
 
 
 def _asr_annotations(output: AttuneOutput, source_name: str) -> dict[str, object]:

@@ -70,11 +70,12 @@ gold record.
 ## Local WAV inference
 
 `scripts/infer.py` accepts one or more local WAV files and emits authoritative
-Attune JSON plus optional deterministic XML. Real inference requires explicit
-local SenseVoice-Small, emotion2vec+, VocalSound-head, and FSD50K-head paths,
-the Phase 2 calibration bundle, and
-`ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1`. A missing item is a hard error; the CLI
-does not download weights or silently degrade to a partial cascade.
+Attune JSON plus optional deterministic XML and HTML. Real inference requires
+local SenseVoice-Small, the Phase 2 calibration bundle, and
+`ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1`. emotion2vec+, VocalSound, and FSD50K
+are used when present; if they are missing the CLI omits them with a banner
+instead of inventing affect or events. The CLI does not download weights.
+Inspection evaluation still requires the complete package.
 
 The weight-free `--fixture-mode` path verifies WAV reading, schema output,
 abstention invariants, and serialization while naming itself as a placeholder.

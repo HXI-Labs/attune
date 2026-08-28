@@ -92,17 +92,32 @@ after a mean-of-4 tiled MLP (first-60s control 0.0308 vs 0.1395), then
 retrain (first-60s control 0.03125 vs 0.1395); the tiled collar gate fails,
 so STARSS23 timestamps stay unwired and the reported best remains 0.1395.
 `data/raw/starss23-scene-raster-v2` is max-RMS audio only and was not this
-eval.
+eval. A single temporal Conv1d follow-up scores 0.7113 / 0.0282 and also
+fails the fixed collar gate.
 Details are in `research/timing-holes.md`.
-For one or more local WAV files, `scripts/infer.py` emits authoritative JSON
-and optional deterministic XML; exact offline commands are in
-`docs/baseline-runners.md`.
+A 49-clip / 48-event STARSS23 first-60s gold-review pack (29 true negatives
+kept) lives in
+`data/manifests/starss23-gold-review-pack.jsonl`. It is human 100 ms activity,
+not Attune gold. Source 100 ms spans are overlays only. Review protocol:
+`docs/gold-review-starss23.md`. Source memo:
+`research/gold-sources.md`. The gate stays closed.
+
+For one or more local WAV files, `scripts/infer.py` emits authoritative JSON,
+optional deterministic XML, and a playable HTML timeline that distinguishes
+DCASE frame-local laugh/cough/throat_clear from utterance-scoped `0..duration`
+bars. SenseVoice is required; emotion2vec+/VocalSound/FSD50K/DCASE heads are
+omitted honestly when absent. There is no live DCASE-stamped demo until the
+gated frame-head is on disk. How-to: `research/demo/README.md`. Offline path
+notes remain in `docs/baseline-runners.md`.
+
 
 ## Repository map
 
 - `src/attune/schema/output.py` — authoritative Pydantic v2 JSON schema (`1.0`)
 - `src/attune/schema/xml.py` — deterministic, injection-safe XML renderer
 - `src/attune/inference/packaging.py` — separated trusted-channel packaging
+- `src/attune/inference/timeline.py` — playable HTML timeline for `scripts/infer.py`
+- `research/demo/` — wav-in cascade demo how-to and display fixture
 - `src/attune/audio/contracts.py` — 16 kHz mono and duration contracts
 - `src/attune/evaluation/` — offline metrics and report harness
 - `src/attune/baselines/` — lazy baseline adapters and modular cascade

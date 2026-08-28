@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "model": {
+    "name": "attune-demo-display-fixture",
+    "version": "cascade-1",
+    "quantization": null
+  },
+  "audio": {
+    "duration_ms": 4000,
+    "sample_rate_hz": 16000,
+    "channels": 1,
+    "quality": {
+      "clipping": 0.0,
+      "low_snr": 0.0,
+      "far_field": 0.0
+    }
+  },
+  "language": {
+    "label": "en",
+    "confidence": 0.0
+  },
+  "transcript": {
+    "text": "okay",
+    "confidence": 0.0,
+    "words": [
+      {
+        "start_ms": 240,
+        "end_ms": 620,
+        "id": "w1",
+        "text": "okay",
+        "confidence": 0.0
+      }
+    ]
+  },
+  "styles": [
+    {
+      "start_ms": 0,
+      "end_ms": 4000,
+      "id": "s1",
+      "label": "shouting",
+      "start_word_id": null,
+      "end_word_id": null,
+      "confidence": 0.22,
+      "status": "provisional"
+    }
+  ],
+  "events": [
+    {
+      "start_ms": 800,
+      "end_ms": 1400,
+      "id": "e1",
+      "label": "laugh",
+      "after_word_id": "w1",
+      "confidence": 0.91,
+      "status": "provisional"
+    },
+    {
+      "start_ms": 2200,
+      "end_ms": 2680,
+      "id": "e2",
+      "label": "cough",
+      "after_word_id": "w1",
+      "confidence": 0.87,
+      "status": "provisional"
+    },
+    {
+      "start_ms": 0,
+      "end_ms": 4000,
+      "id": "e3",
+      "label": "sigh",
+      "after_word_id": null,
+      "confidence": 0.31,
+      "status": "provisional"
+    }
+  ],
+  "affect": {
+    "start_ms": 0,
+    "end_ms": 4000,
+    "valence": {
+      "value": 0.0,
+      "confidence": 0.0
+    },
+    "arousal": {
+      "value": 0.0,
+      "confidence": 0.0
+    },
+    "dominance": {
+      "value": 0.0,
+      "confidence": 0.0
+    },
+    "categories": {
+      "neutral": 0.3,
+      "joy": 0.1,
+      "distress": 0.1,
+      "anger": 0.1,
+      "fear": 0.1,
+      "surprise": 0.1,
+      "other": 0.1,
+      "ambiguous": 0.1
+    },
+    "top_label": null,
+    "top_label_confidence": 0.3,
+    "abstain": true
+  },
+  "uncertainty": {
+    "out_of_distribution_probability": 0.0,
+    "interpretation_warning": "Vocal affect is a probabilistic perception, not a verified internal state."
+  }
+}
