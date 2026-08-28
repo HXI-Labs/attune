@@ -49,3 +49,26 @@ def test_protocol_was_written_before_train_and_excludes_starss23() -> None:
     assert "select_hysteresis_decoder" not in Path(__file__).parents[2].joinpath(
         "scripts/train_dcase_encoder_lastlayer.py"
     ).read_text(encoding="utf-8")
+
+
+def test_last_two_block_protocol_is_predeclared_without_lowering_the_gate() -> None:
+    script = load_lastlayer_script()
+    protocol = Path(__file__).parents[2] / "research" / "dcase-encoder-lastlayer.md"
+    script.require_protocol(protocol, last_blocks=2)
+    text = protocol.read_text(encoding="utf-8")
+    assert "Iterate 3" in text
+    assert "LastTwoBlockSenseVoiceFrameEncoder" in text
+    assert "encoder.tp_encoders.18" in text
+    assert "encoder.tp_encoders.19" in text
+    assert script.GATE_EXACT_COLLAR_F1 == 0.4637
+    assert script.GATE_HYSTERESIS_COLLAR_F1 == 0.5279
+    assert script.CLEAR_SEGMENT_F1_MARGIN == 0.05
+    source = (
+        Path(__file__)
+        .parents[2]
+        .joinpath("scripts/train_dcase_encoder_lastlayer.py")
+        .read_text(encoding="utf-8")
+    )
+    assert "--last-blocks" in source
+    assert "choices=(1, 2)" in source
+    assert "default=1" in source

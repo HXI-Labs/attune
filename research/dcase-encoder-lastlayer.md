@@ -149,3 +149,31 @@ All three predeclared variants missed hysteresis. Exact and segment margin held.
 | 2.3 enc 5e-6 / head 3e-5 / wd 0.05 | 0.4910 | 0.5000 | +0.4070 | 0.6154 | keep |
 
 Closest hysteresis was 0.5247 (variant 2.2) vs 0.5279. Last-block LR/WD is exhausted on this locked decoder. Table: `research/dcase-encoder-lastlayer-iterates.md`.
+
+## Iterate 3 (predeclared 2026-08-28, before any two-block train)
+
+Last-block LR/WD is exhausted on this locked decoder. Closest 1-block miss remains variant 2.2 (exact 0.4911 HOLD, hysteresis 0.5247 MISS vs 0.5279, margin +0.4003, val peak 0.6897). Do **not** rerun 1-block. Do not lower the gate. Do not grid-search the decoder. Decoder stays locked (exact 0.95; hysteresis 0.95/0.855/gap 1/min 1). STARSS23 stays unwired. Seed 0. CPU. Head still initializes from the SHA-pinned PR 26 MLP (`cb74b1d4…`). `FrozenSenseVoiceEncoder` / `FrozenSenseVoiceFrameEncoder` freeze contracts stay untouched. `LastBlockSenseVoiceFrameEncoder` stays a last-ONE-block class.
+
+Unfreeze last TWO SANM blocks: `encoder.tp_encoders.18` and `encoder.tp_encoders.19`, plus the SHA-pinned MLP head. Frontend and everything else frozen. Prefix cache at the input to `tp_encoders.18` (frozen prefix; those weights do not change). Extraction route still dither=0, four query frames stripped after the encoder.
+
+New class: `attune.models.sensevoice_last_block.LastTwoBlockSenseVoiceFrameEncoder`. Do not weaken the 1-block class.
+
+Hyperparams copied from the closest 1-block miss (2.2): `--encoder-lr 5e-6 --head-lr 1e-4 --epochs 15 --patience 5 --seed 0`.
+
+Gate identical: inspection exact collar ≥ 0.4637, hysteresis ≥ 0.5279, segment margin ≥ 0.05. Replace the wired head only if all three pass. Else keep the frozen head.
+
+JSON `research/dcase-encoder-last-two-block-results.json`. Checkpoint dir `artifacts/dcase-encoder-last-two-block/` (gitignored weights).
+
+If iterate 3 misses hysteresis AND time remains, one follow-up only: same two-block with `--encoder-weight-decay 0.05 --head-lr 3e-5` (encoder-lr stays 5e-6, epochs 15, patience 5, seed 0). JSON `research/dcase-encoder-last-two-block-wd-results.json`. Checkpoint dir `artifacts/dcase-encoder-last-two-block-wd/`. Then stop two-block. Do not decoder-grid. Do not STARSS23. Do not merge.
+
+## Iterate 3 result (CPU seed 0, after predeclaration)
+
+Last two SANM blocks `encoder.tp_encoders.18` and `encoder.tp_encoders.19` had 6,316,032 trainable encoder parameters; MLP head 66,051; total trainable 6,382,083. Extraction-route check matched the official encoder (max abs 0). Prefix cache at `tp_encoders.18`. Decoder was not searched. The PR 26 frozen head stays wired (`cb74b1d4…`). STARSS23 was not touched.
+
+| variant | exact | hysteresis | margin | val peak | gate |
+|---|---:|---:|---:|---:|---|
+| 3.1 enc 5e-6 / head 1e-4 (from 2.2) | 0.4929 | 0.5247 | +0.4007 | 0.7059 | keep |
+| 3.2 enc 5e-6 / head 3e-5 / wd 0.05 | 0.4610 | 0.5019 | +0.4152 | 0.6271 | keep |
+
+3.1 exact and segment margin held; hysteresis 0.5247 missed 0.5279 (same collar as 1-block 2.2). 3.2 also missed exact (0.4610 < 0.4637). Two-block search on this locked decoder stops here. JSON: `research/dcase-encoder-last-two-block-results.json`, `research/dcase-encoder-last-two-block-wd-results.json`. Weights remain gitignored.
+

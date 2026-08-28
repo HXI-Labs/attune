@@ -23,7 +23,9 @@ from attune.evaluation.localization import (
 )
 from attune.models.sensevoice_last_block import (
     SENSEVOICE_LAST_BLOCK_FRAMES,
+    SENSEVOICE_LAST_TWO_BLOCK_FRAMES,
     LastBlockSenseVoiceFrameEncoder,
+    LastTwoBlockSenseVoiceFrameEncoder,
 )
 from attune.models.sensevoice_probe import SENSEVOICE_FRAME_EMBEDDING
 
@@ -73,7 +75,7 @@ def append_jsonl(path: Path, row: dict[str, Any]) -> None:
         handle.write(json.dumps(row) + "\n")
 
 
-def require_protocol(path: Path) -> None:
+def require_protocol(path: Path, *, last_blocks: int = 1) -> None:
     if not path.is_file():
         raise RuntimeError(f"research protocol missing; write {path} before training")
     text = path.read_text(encoding="utf-8")
@@ -84,6 +86,13 @@ def require_protocol(path: Path) -> None:
         "Do not grid-search",
         "Last 1 encoder block",
     )
+    if last_blocks == 2:
+        required = required + (
+            "Iterate 3",
+            "tp_encoders.18",
+            "tp_encoders.19",
+            "LastTwoBlockSenseVoiceFrameEncoder",
+        )
     missing = [item for item in required if item not in text]
     if missing:
         raise RuntimeError(f"protocol {path} is missing locked gate language: {missing}")
@@ -225,13 +234,23 @@ def main() -> None:
         "--encoder-weight-decay",
         type=float,
         default=0.0,
-        help="AdamW weight decay applied to encoder.tp_encoders.19 only; 0 keeps the original group defaults",
+        help=(
+            "AdamW weight decay applied to unfrozen encoder blocks only; "
+            "0 keeps the original group defaults"
+        ),
     )
     parser.add_argument("--grad-clip", type=float, default=5.0)
+    parser.add_argument(
+        "--last-blocks",
+        type=int,
+        choices=(1, 2),
+        default=1,
+        help="Unfreeze last 1 SANM block (tp_encoders.19) or last 2 (tp_encoders.18 and .19)",
+    )
     arguments = parser.parse_args()
     import torch
 
-    require_protocol(PROTOCOL_PATH)
+    require_protocol(PROTOCOL_PATH, last_blocks=arguments.last_blocks)
     if torch.cuda.is_available():
         print("CUDA is visible; this run still forces CPU as declared", flush=True)
     os.environ["ATTUNE_SENSEVOICE_LICENSE_REVIEWED"] = "1"
@@ -242,19 +261,28 @@ def main() -> None:
     inspection_rows = dcase.load_rows(arguments.inspection_manifest, arguments.cache_dir)
     train_rows, validation_rows, split_metadata = dcase.development_split(training_rows)
     wired = load_wired_head(arguments.head_init, torch)
-    encoder = LastBlockSenseVoiceFrameEncoder(
+    encoder_cls = (
+        LastTwoBlockSenseVoiceFrameEncoder
+        if arguments.last_blocks == 2
+        else LastBlockSenseVoiceFrameEncoder
+    )
+    encoder = encoder_cls(
         arguments.sensevoice_path,
         arguments.prefix_cache,
         torch,
         prefix_cache=True,
     )
     last_block_params = encoder.trainable_parameter_count()
+    unfrozen_names = list(encoder.unfrozen_module_names())
     print(
-        f"last block {encoder.last_block_name}: {last_block_params} trainable encoder params",
+        f"unfrozen {' '.join(unfrozen_names)}: {last_block_params} trainable encoder params",
         flush=True,
     )
 
-    print("caching frozen last-block prefixes (weights frozen below the last SANM)", flush=True)
+    print(
+        "caching frozen prefixes (weights frozen below the unfrozen SANM block(s))",
+        flush=True,
+    )
     prefix_started = time.perf_counter()
     train_prefix = [encoder.prefix_for(row["_audio"]) for row in train_rows]
     validation_prefix = [encoder.prefix_for(row["_audio"]) for row in validation_rows]
@@ -277,7 +305,7 @@ def main() -> None:
         sanity_frames, full_frames, atol=1e-4, rtol=1e-4
     ):
         raise RuntimeError(
-            "last-block replay does not match the official encoder forward; "
+            "unfrozen-block replay does not match the official encoder forward; "
             "stop rather than train a mismatched extraction route"
         )
     print(
@@ -310,28 +338,34 @@ def main() -> None:
     probe = encoder.frames_from_prefix(*train_prefix[0], train=True)
     probe_loss = loss_function(head((probe - mean) / scale), train_y[0])
     probe_loss.backward()
+    allowed_prefixes = tuple(name + "." for name in encoder.unfrozen_module_names())
     last_grads = [
         name
-        for name, parameter in encoder.last_block.named_parameters()
-        if parameter.grad is not None
+        for name, parameter in encoder.model.named_parameters()
+        if parameter.grad is not None and name.startswith(allowed_prefixes)
     ]
     frozen_leaks = [
         name
         for name, parameter in encoder.model.named_parameters()
-        if parameter.grad is not None and not name.startswith(encoder.last_block_name + ".")
+        if parameter.grad is not None and not name.startswith(allowed_prefixes)
     ]
     if not last_grads:
         raise RuntimeError(
-            "FunASR last block produced no gradients; stop rather than fall back to a frozen MLP"
+            "FunASR unfrozen encoder blocks produced no gradients; "
+            "stop rather than fall back to a frozen MLP"
         )
     if frozen_leaks:
         raise RuntimeError(f"gradients leaked into frozen encoder params: {frozen_leaks[:8]}")
-    encoder.last_block.zero_grad(set_to_none=True)
+    for module in encoder.unfrozen_modules():
+        module.zero_grad(set_to_none=True)
     head.zero_grad(set_to_none=True)
-    print(f"autograd check passed: {len(last_grads)} last-block tensors received grads", flush=True)
+    print(
+        f"autograd check passed: {len(last_grads)} unfrozen encoder tensors received grads",
+        flush=True,
+    )
 
     encoder_group: dict[str, Any] = {
-        "params": list(encoder.last_block.parameters()),
+        "params": list(encoder.unfrozen_parameters()),
         "lr": arguments.encoder_lr,
     }
     # Default 0 leaves AdamW per-group default so seed-0 2e-5/1e-4 stays reproducible.
@@ -365,7 +399,11 @@ def main() -> None:
         "status": "running",
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "gate_decision": "pending",
-        "task": "DCASE 2016 Task 2 isolated-event last-block encoder fine-tune",
+        "task": (
+            "DCASE 2016 Task 2 isolated-event last-two-block encoder fine-tune"
+            if arguments.last_blocks == 2
+            else "DCASE 2016 Task 2 isolated-event last-block encoder fine-tune"
+        ),
         "label_status": "synthetic strong onset/offset; not reviewed Attune gold; not STARSS23",
         "starss23_wired": False,
         "protocol": str(PROTOCOL_PATH),
@@ -403,6 +441,8 @@ def main() -> None:
             "encoder_lr": arguments.encoder_lr,
             "head_lr": arguments.head_lr,
             "encoder_weight_decay": arguments.encoder_weight_decay,
+            "last_blocks": arguments.last_blocks,
+            "unfrozen_modules": unfrozen_names,
             "device": "cpu",
             "epochs_completed": 0,
             "history": [],
@@ -438,7 +478,7 @@ def main() -> None:
             loss = loss_function(logits, train_y[index])
             loss.backward()
             torch.nn.utils.clip_grad_norm_(
-                list(encoder.last_block.parameters()) + list(head.parameters()),
+                list(encoder.unfrozen_parameters()) + list(head.parameters()),
                 arguments.grad_clip,
             )
             optimizer.step()
@@ -493,10 +533,7 @@ def main() -> None:
         if val_hyst > best_collar + 1e-6:
             best_collar = val_hyst
             best_state = {
-                "last_block": {
-                    name: value.detach().clone()
-                    for name, value in encoder.last_block.state_dict().items()
-                },
+                "unfrozen": encoder.snapshot_unfrozen(),
                 "head": {name: value.detach().clone() for name, value in head.state_dict().items()},
             }
             stale = 0
@@ -508,7 +545,7 @@ def main() -> None:
 
     if best_state is None:
         raise RuntimeError("last-block training produced no checkpoint")
-    encoder.last_block.load_state_dict(best_state["last_block"])
+    encoder.load_unfrozen(best_state["unfrozen"])
     head.load_state_dict(best_state["head"])
     encoder.prepare_last_block(train=False)
     head.eval()
@@ -524,37 +561,43 @@ def main() -> None:
     margin = float(inspection["segment_margin_vs_whole_clip"])
     replace = should_replace_wired_head(exact_f1, hyst_f1, margin)
     arguments.checkpoint_output.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(
-        {
-            "last_block_name": encoder.last_block_name,
-            "last_block_state_dict": best_state["last_block"],
-            "head_state_dict": best_state["head"],
-            "feature_mean": mean,
-            "feature_scale": scale,
-            "labels": LABELS,
-            "hidden_size": 128,
-            "threshold": LOCKED_EXACT_THRESHOLD,
-            "decoder": {"type": "hysteresis", **LOCKED_HYSTERESIS_DECODER},
-            "dataset": "dcase2016_task2",
-            "embedding": SENSEVOICE_LAST_BLOCK_FRAMES,
-            "frame_hop_ms_approx": encoder.frame_hop_ms,
-            "first_frame_center_ms_approx": encoder.first_frame_center_ms,
-            "encoder_frozen": False,
-            "encoder_unfrozen_modules": [encoder.last_block_name],
-            "wired_head_init_sha256": WIRED_HEAD_SHA256,
-            "gate": {
-                "passed": replace,
-                "replace_wired_head": replace,
-                "margin_required": CLEAR_SEGMENT_F1_MARGIN,
-                "margin_observed": margin,
-                "exact_collar_f1": exact_f1,
-                "hysteresis_collar_f1": hyst_f1,
-                "exact_collar_f1_min": GATE_EXACT_COLLAR_F1,
-                "hysteresis_collar_f1_min": GATE_HYSTERESIS_COLLAR_F1,
-            },
-        },
-        arguments.checkpoint_output,
+    embedding_name = (
+        SENSEVOICE_LAST_TWO_BLOCK_FRAMES
+        if arguments.last_blocks == 2
+        else SENSEVOICE_LAST_BLOCK_FRAMES
     )
+    checkpoint = {
+        "last_block_name": encoder.last_block_name,
+        "unfrozen_block_names": unfrozen_names,
+        "unfrozen_block_state_dicts": best_state["unfrozen"],
+        "head_state_dict": best_state["head"],
+        "feature_mean": mean,
+        "feature_scale": scale,
+        "labels": LABELS,
+        "hidden_size": 128,
+        "threshold": LOCKED_EXACT_THRESHOLD,
+        "decoder": {"type": "hysteresis", **LOCKED_HYSTERESIS_DECODER},
+        "dataset": "dcase2016_task2",
+        "embedding": embedding_name,
+        "frame_hop_ms_approx": encoder.frame_hop_ms,
+        "first_frame_center_ms_approx": encoder.first_frame_center_ms,
+        "encoder_frozen": False,
+        "encoder_unfrozen_modules": unfrozen_names,
+        "wired_head_init_sha256": WIRED_HEAD_SHA256,
+        "gate": {
+            "passed": replace,
+            "replace_wired_head": replace,
+            "margin_required": CLEAR_SEGMENT_F1_MARGIN,
+            "margin_observed": margin,
+            "exact_collar_f1": exact_f1,
+            "hysteresis_collar_f1": hyst_f1,
+            "exact_collar_f1_min": GATE_EXACT_COLLAR_F1,
+            "hysteresis_collar_f1_min": GATE_HYSTERESIS_COLLAR_F1,
+        },
+    }
+    if arguments.last_blocks == 1:
+        checkpoint["last_block_state_dict"] = best_state["unfrozen"][encoder.last_block_name]
+    torch.save(checkpoint, arguments.checkpoint_output)
     payload = {
         **payload_base,
         "status": "complete",
@@ -595,7 +638,11 @@ def main() -> None:
         },
         "limitations": [
             "Isolated DCASE office mixtures, not in-the-wild overlapping speech.",
-            "Only the last SANM block (tp_encoders.19) was unfrozen.",
+            (
+                "Only the last two SANM blocks (tp_encoders.18 and tp_encoders.19) were unfrozen."
+                if arguments.last_blocks == 2
+                else "Only the last SANM block (tp_encoders.19) was unfrozen."
+            ),
             "Decoder was locked; no threshold or hysteresis search.",
             "STARSS23 was not trained, evaluated, or wired.",
             "Fine-tuned weights stay private and gitignored.",

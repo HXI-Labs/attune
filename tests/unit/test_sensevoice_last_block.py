@@ -6,7 +6,10 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from attune.models.sensevoice_last_block import LastBlockSenseVoiceFrameEncoder  # noqa: E402
+from attune.models.sensevoice_last_block import (  # noqa: E402
+    LastBlockSenseVoiceFrameEncoder,
+    LastTwoBlockSenseVoiceFrameEncoder,
+)
 from attune.models.sensevoice_probe import (  # noqa: E402
     FrozenSenseVoiceEncoder,
     FrozenSenseVoiceFrameEncoder,
@@ -197,6 +200,128 @@ def test_last_block_frames_keep_grad_only_when_training(
         name
         for name, parameter in encoder.model.named_parameters()
         if parameter.grad is not None and not name.startswith(encoder.last_block_name + ".")
+    ]
+    assert leaked == []
+    assert encoder.cache_misses == 1
+    assert encoder.cache_hits == 1
+
+
+class FakeAutoModelTwenty:
+    def __init__(self, **_kwargs: object) -> None:
+        model = FakeSenseVoiceModel()
+        model.encoder.tp_encoders = torch.nn.ModuleList([FakeSANM() for _ in range(20)])
+        self.model = model
+        self.kwargs = {"frontend": FakeFrontend()}
+
+    def generate(self, **_kwargs: object) -> object:
+        raise AssertionError("feature extraction must not call generate()")
+
+
+def last_two_block_encoder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> LastTwoBlockSenseVoiceFrameEncoder:
+    checkpoint = tmp_path / "model"
+    checkpoint.mkdir(exist_ok=True)
+    (checkpoint / "model.pt").write_bytes(b"fake model")
+    monkeypatch.setenv("ATTUNE_SENSEVOICE_LICENSE_REVIEWED", "1")
+    return LastTwoBlockSenseVoiceFrameEncoder(
+        checkpoint,
+        tmp_path / "cache",
+        torch,
+        model_factory=FakeAutoModelTwenty,
+        feature_loader=fake_feature_loader,
+        prefix_cache=True,
+    )
+
+
+def last_block_encoder_twenty(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> LastBlockSenseVoiceFrameEncoder:
+    checkpoint = tmp_path / "model"
+    checkpoint.mkdir(exist_ok=True)
+    (checkpoint / "model.pt").write_bytes(b"fake model")
+    monkeypatch.setenv("ATTUNE_SENSEVOICE_LICENSE_REVIEWED", "1")
+    return LastBlockSenseVoiceFrameEncoder(
+        checkpoint,
+        tmp_path / "cache",
+        torch,
+        model_factory=FakeAutoModelTwenty,
+        feature_loader=fake_feature_loader,
+        prefix_cache=True,
+    )
+
+
+def test_last_two_block_trainable_names_are_only_tp_encoders_18_and_19(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    encoder = last_two_block_encoder(tmp_path, monkeypatch)
+    names = encoder.trainable_parameter_names()
+    assert encoder.unfrozen_module_names() == (
+        "encoder.tp_encoders.18",
+        "encoder.tp_encoders.19",
+    )
+    assert names
+    assert all(
+        name.startswith("encoder.tp_encoders.18.") or name.startswith("encoder.tp_encoders.19.")
+        for name in names
+    )
+    assert any(name.startswith("encoder.tp_encoders.18.") for name in names)
+    assert any(name.startswith("encoder.tp_encoders.19.") for name in names)
+    frozen = [
+        name for name, parameter in encoder.model.named_parameters() if not parameter.requires_grad
+    ]
+    assert any(name.startswith("encoder.tp_encoders.17.") for name in frozen)
+    assert any(name.startswith("encoder.encoders.") for name in frozen)
+    assert any(name.startswith("encoder.tp_norm.") for name in frozen)
+    assert encoder.frontend.dither == 0.0
+    assert encoder.trainable_parameter_count() == sum(
+        parameter.numel() for parameter in encoder.unfrozen_parameters()
+    )
+
+
+def test_last_block_class_still_unfreezes_only_final_sanm_on_twenty_layers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    encoder = last_block_encoder_twenty(tmp_path, monkeypatch)
+    names = encoder.trainable_parameter_names()
+    assert encoder.last_block_name == "encoder.tp_encoders.19"
+    assert encoder.unfrozen_module_names() == ("encoder.tp_encoders.19",)
+    assert names
+    assert all(name.startswith("encoder.tp_encoders.19.") for name in names)
+    frozen = [
+        name for name, parameter in encoder.model.named_parameters() if not parameter.requires_grad
+    ]
+    assert any(name.startswith("encoder.tp_encoders.18.") for name in frozen)
+
+
+def test_last_two_block_frames_keep_grad_only_when_training(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    encoder = last_two_block_encoder(tmp_path, monkeypatch)
+    audio = tmp_path / "clip.wav"
+    audio.write_bytes(b"fixture")
+    eval_frames = encoder(audio, train=False)
+    train_frames = encoder(audio, train=True)
+    assert eval_frames.shape[1] == 512
+    assert eval_frames.grad_fn is None
+    assert train_frames.requires_grad
+    loss = train_frames.sum()
+    loss.backward()
+    allowed = tuple(name + "." for name in encoder.unfrozen_module_names())
+    assert any(
+        parameter.grad is not None
+        for name, parameter in encoder.model.named_parameters()
+        if name.startswith("encoder.tp_encoders.18.")
+    )
+    assert any(
+        parameter.grad is not None
+        for name, parameter in encoder.model.named_parameters()
+        if name.startswith("encoder.tp_encoders.19.")
+    )
+    leaked = [
+        name
+        for name, parameter in encoder.model.named_parameters()
+        if parameter.grad is not None and not name.startswith(allowed)
     ]
     assert leaked == []
     assert encoder.cache_misses == 1

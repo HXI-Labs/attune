@@ -137,6 +137,29 @@ class LastBlockSenseVoiceFrameEncoder:
             parameter.numel() for parameter in self.model.parameters() if parameter.requires_grad
         )
 
+    def unfrozen_modules(self) -> tuple[Any, ...]:
+        return (self.last_block,)
+
+    def unfrozen_module_names(self) -> tuple[str, ...]:
+        return (self.last_block_name,)
+
+    def unfrozen_parameters(self) -> tuple[Any, ...]:
+        return tuple(
+            parameter for module in self.unfrozen_modules() for parameter in module.parameters()
+        )
+
+    def snapshot_unfrozen(self) -> dict[str, dict[str, Any]]:
+        return {
+            name: {key: value.detach().clone() for key, value in module.state_dict().items()}
+            for name, module in zip(
+                self.unfrozen_module_names(), self.unfrozen_modules(), strict=True
+            )
+        }
+
+    def load_unfrozen(self, snapshot: dict[str, dict[str, Any]]) -> None:
+        for name, module in zip(self.unfrozen_module_names(), self.unfrozen_modules(), strict=True):
+            module.load_state_dict(snapshot[name])
+
     def prepare_last_block(self, *, train: bool) -> None:
         """Keep frozen modules in eval; toggle dropout only on the last SANM block."""
         self.model.eval()
@@ -284,3 +307,155 @@ class LastBlockSenseVoiceFrameEncoder:
                 "four non-acoustic query positions are removed; they do not shift audio time"
             ),
         }
+
+
+SENSEVOICE_LAST_TWO_BLOCK_FRAMES = "sensevoice-small-encoder-last-two-blocks-frames-v1"
+LAST_TWO_BLOCK_INDICES = (18, 19)
+LAST_TWO_PREFIX_CACHE_TAG = b"last-two-block-prefix-v1"
+
+
+class LastTwoBlockSenseVoiceFrameEncoder(LastBlockSenseVoiceFrameEncoder):
+    """Unfreeze encoder.tp_encoders.18 and .19; keep the frozen extraction route."""
+
+    def _require_last_block(self) -> None:
+        encoder = getattr(self.model, "encoder", None)
+        blocks = getattr(encoder, "tp_encoders", None)
+        if encoder is None or blocks is None or len(blocks) < 20:
+            raise ProbeDataError(
+                "SenseVoice encoder needs tp_encoders.18 and tp_encoders.19; "
+                "cannot unfreeze the last two SANM blocks"
+            )
+        if not hasattr(encoder, "tp_norm"):
+            raise ProbeDataError("SenseVoice encoder is missing tp_norm after the last SANM block")
+
+    def unfrozen_modules(self) -> tuple[Any, ...]:
+        blocks = self.model.encoder.tp_encoders
+        return tuple(blocks[index] for index in LAST_TWO_BLOCK_INDICES)
+
+    def unfrozen_module_names(self) -> tuple[str, ...]:
+        return tuple(f"encoder.tp_encoders.{index}" for index in LAST_TWO_BLOCK_INDICES)
+
+    def _freeze_except_last_block(self) -> None:
+        for parameter in self.model.parameters():
+            parameter.requires_grad_(False)
+        frontend_parameters = getattr(self.frontend, "parameters", None)
+        if callable(frontend_parameters):
+            for parameter in frontend_parameters():
+                parameter.requires_grad_(False)
+        for module in self.unfrozen_modules():
+            for parameter in module.parameters():
+                parameter.requires_grad_(True)
+
+    def _assert_last_block_only_trainable(self) -> None:
+        allowed = tuple(name + "." for name in self.unfrozen_module_names())
+        trainable = [
+            name for name, parameter in self.model.named_parameters() if parameter.requires_grad
+        ]
+        if not trainable:
+            raise ProbeDataError("last two SenseVoice encoder blocks have no trainable parameters")
+        illegal = [name for name in trainable if not name.startswith(allowed)]
+        if illegal:
+            raise ProbeDataError(
+                "trainable parameters outside the last two encoder blocks: "
+                + ", ".join(illegal[:8])
+            )
+
+    def prepare_last_block(self, *, train: bool) -> None:
+        """Keep frozen modules in eval; toggle dropout only on tp_encoders.18 and .19."""
+        self.model.eval()
+        self.frontend.eval()
+        for module in self.unfrozen_modules():
+            if train:
+                module.train()
+            else:
+                module.eval()
+        self._assert_last_block_only_trainable()
+
+    def _prefix_cache_path(self, audio_path: Path) -> Path:
+        digest = hashlib.sha256()
+        digest.update(SENSEVOICE_LAST_TWO_BLOCK_FRAMES.encode())
+        digest.update(LAST_TWO_PREFIX_CACHE_TAG)
+        digest.update(b"frontend-dither=0")
+        digest.update(b"query-frames-kept-in-prefix=4")
+        digest.update(b"prefix-at-tp_encoders.18")
+        digest.update(",".join(self.unfrozen_module_names()).encode())
+        digest.update(self.model_sha256.encode())
+        digest.update(file_sha256(audio_path).encode())
+        return self.cache_dir / "prefix" / f"{digest.hexdigest()}.pt"
+
+    def prefix_for(self, audio_path: Path) -> tuple[Any, Any]:
+        """Return detached input to tp_encoders.18. Safe to cache; frozen."""
+        cache_path = self._prefix_cache_path(audio_path)
+        if self.prefix_cache and cache_path.is_file():
+            payload = self.torch.load(cache_path, map_location="cpu", weights_only=True)
+            self.cache_hits += 1
+            return payload["x"], payload["mask"]
+
+        captured: dict[str, Any] = {}
+
+        def _hook(_module: Any, inputs: tuple[Any, ...]) -> None:
+            captured["x"] = inputs[0]
+            captured["mask"] = inputs[1] if len(inputs) > 1 else None
+
+        first = self.unfrozen_modules()[0]
+        handle = first.register_forward_pre_hook(_hook)
+        try:
+            with self.torch.no_grad(), _offline_model_environment():
+                self.model.eval()
+                for module in self.unfrozen_modules():
+                    module.eval()
+                speech, speech_lengths = self._prepare_encoder_input(audio_path)
+                self.model.encoder(speech, speech_lengths)
+        finally:
+            handle.remove()
+        if "x" not in captured:
+            raise ProbeDataError(f"failed to capture last-two-block prefix for {audio_path}")
+        prefix = captured["x"].detach().float().cpu().contiguous()
+        mask = captured["mask"]
+        if mask is not None:
+            mask = mask.detach().cpu().contiguous()
+        if self.prefix_cache:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            self.torch.save({"x": prefix, "mask": mask}, cache_path)
+        self.cache_misses += 1
+        return prefix, mask
+
+    def frames_from_prefix(self, prefix: Any, mask: Any, *, train: bool) -> Any:
+        """Run tp_encoders.18/.19 + frozen tp_norm, then strip query frames."""
+        self.prepare_last_block(train=train)
+        encoded = prefix.detach()
+        current_mask = mask.detach() if mask is not None else None
+        for module in self.unfrozen_modules():
+            outputs = module(encoded, current_mask)
+            if isinstance(outputs, tuple):
+                encoded = outputs[0]
+                if len(outputs) > 1:
+                    current_mask = outputs[1]
+            else:
+                encoded = outputs
+        encoded = self.model.encoder.tp_norm(encoded)
+        if mask is None:
+            length = int(encoded.size(1))
+        else:
+            length = int(mask.reshape(mask.size(0), -1)[0].sum().item())
+        if length <= QUERY_FRAMES:
+            raise ProbeDataError("SenseVoice encoder returned no acoustic frames")
+        acoustic = encoded[0, QUERY_FRAMES:length].float()
+        if acoustic.ndim != 2 or acoustic.shape[1] != FRAME_SIZE:
+            raise ProbeDataError(f"unexpected last-two-block frame shape {tuple(acoustic.shape)}")
+        if train:
+            if not acoustic.requires_grad:
+                raise ProbeDataError(
+                    "last-two-block acoustic frames did not retain an autograd graph"
+                )
+            return acoustic
+        return acoustic.detach()
+
+    def metadata(self) -> dict[str, Any]:
+        payload = super().metadata()
+        payload["name"] = SENSEVOICE_LAST_TWO_BLOCK_FRAMES
+        payload["last_block_name"] = self.last_block_name
+        payload["unfrozen_block_names"] = list(self.unfrozen_module_names())
+        payload["prefix_capture"] = "encoder.tp_encoders.18"
+        payload["extraction_route"] = "direct_frontend_and_last_two_block_encoder"
+        return payload
