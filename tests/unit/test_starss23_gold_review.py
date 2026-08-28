@@ -380,3 +380,52 @@ def test_html_pack_protocol_holes(tmp_path: Path) -> None:
     assert "must not be treated as answers" in pos_page.lower()
     assert source_span_id(truncated) in pos_page
     assert "Add missing audible laugh" in neg_page
+
+
+def test_html_pack_listen_pass_playhead_and_mark_now_ui(tmp_path: Path) -> None:
+    wav = tmp_path / "cache" / "clip-a.wav"
+    digest = write_tone(wav)
+    event = {"label": "laugh", "start_ms": 120, "end_ms": 480, "source_class": 4}
+    row = annotate_pack_row(
+        inspection_row(
+            clip_id="clip-a",
+            sha256=digest,
+            cache_path="clip-a.wav",
+            events=[event],
+        )
+    )
+    output = tmp_path / "html"
+    resolved, missing, _ = resolve_pack_audio([row], [tmp_path / "cache"])
+    write_html_pack([row], output, resolved, missing)
+    page = (output / "clips" / "clip-a.html").read_text(encoding="utf-8")
+
+    assert 'id="now_ms"' in page
+    assert 'id="mark-now"' in page
+    assert ">Mark onset</button>" in page
+    assert "Mark offset" in page
+    assert "playheadMs" in page
+    assert 'ctx.fillStyle = "#cf222e"' in page
+    assert 'audio.addEventListener("timeupdate"' in page
+    assert "audio.currentTime = ms / 1000" in page
+    assert "One button. Play." in page
+    assert "Tap at the first voiced burst (onset)." in page
+    assert "Tap again at the last voiced frame (offset)." in page
+    assert "Playback pauses and fills the" in page
+    assert "next empty laugh card" in page
+    assert "Orange = 100 ms source overlay, not gold." in page
+    assert "red line follows playback" in page
+    assert "data-apply-pair" in page
+    assert "Use this start–end on this laugh" in page
+    assert "function stampToggle()" in page
+    assert "applyPairToNextCard" in page
+    assert "audio.pause()" in page
+
+    assert 'value="accept"' not in page
+    assert 'value="retime" selected' in page
+    assert 'value="reject"' in page
+    assert 'value="add"' in page
+    assert "transcript_decision" not in page
+    assert "affect_decision" not in page
+    assert "not_reviewable" in page
+    assert "Do not accept them as onset gold" in page
+    assert 'decision === "accept") return' in page

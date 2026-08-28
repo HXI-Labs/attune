@@ -416,10 +416,19 @@ audio { width:100%; margin:.6rem 0; }
 def _app_js() -> str:
     return r"""
 function $(id) { return document.getElementById(id); }
-function drawWave(canvas, peaks, durationMs, events, selection) {
+function drawWave(canvas, peaks, durationMs, events, selection, playheadMs) {
   const ctx = canvas.getContext("2d");
-  const w = canvas.width = canvas.clientWidth * devicePixelRatio;
-  const h = canvas.height = canvas.clientHeight * devicePixelRatio;
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = Math.max(1, canvas.clientWidth);
+  const cssH = Math.max(1, canvas.clientHeight);
+  const needW = Math.round(cssW * dpr);
+  const needH = Math.round(cssH * dpr);
+  if (canvas.width !== needW || canvas.height !== needH) {
+    canvas.width = needW;
+    canvas.height = needH;
+  }
+  const w = canvas.width;
+  const h = canvas.height;
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "#7db4ff";
   const mid = h / 2;
@@ -437,6 +446,11 @@ function drawWave(canvas, peaks, durationMs, events, selection) {
   events.forEach(ev => mark(ev.start_ms, ev.end_ms, "rgba(243,193,107,0.28)"));
   if (selection && selection.start_ms != null && selection.end_ms != null) {
     mark(selection.start_ms, selection.end_ms, "rgba(143,214,168,0.35)");
+  }
+  if (playheadMs != null && durationMs > 0) {
+    const x = (playheadMs / durationMs) * w;
+    ctx.fillStyle = "#cf222e";
+    ctx.fillRect(Math.max(0, x - dpr), 0, Math.max(2 * dpr, dpr), h);
   }
 }
 function isoNow() { return new Date().toISOString().replace(/\\.\\d{3}Z$/, "Z"); }
@@ -480,15 +494,27 @@ function collectRecord(clip) {
 }
 function boot(clip) {
   const canvas = $("wave");
+  const audio = document.querySelector("audio");
   const selection = { start_ms: null, end_ms: null };
+  let playheadMs = 0;
+  function nowMs() {
+    if (!audio || !isFinite(audio.currentTime)) return 0;
+    return Math.max(0, Math.min(clip.duration_ms, Math.round(audio.currentTime * 1000)));
+  }
+  function redraw() {
+    if (canvas && clip.peaks) {
+      drawWave(canvas, clip.peaks, clip.duration_ms, clip.events, selection, playheadMs);
+    }
+    if ($("now_ms")) $("now_ms").textContent = String(playheadMs);
+  }
   if (canvas && clip.peaks) {
-    const redraw = () => drawWave(canvas, clip.peaks, clip.duration_ms, clip.events, selection);
     redraw();
     window.addEventListener("resize", redraw);
     canvas.addEventListener("click", ev => {
       const rect = canvas.getBoundingClientRect();
-      // Free millisecond resolution; never snap to the 100 ms source grid.
       const ms = Math.round((ev.clientX - rect.left) / rect.width * clip.duration_ms);
+      if (audio) audio.currentTime = ms / 1000;
+      playheadMs = ms;
       if (selection.start_ms == null || (selection.end_ms != null)) {
         selection.start_ms = ms; selection.end_ms = null;
       } else {
@@ -499,6 +525,66 @@ function boot(clip) {
       redraw();
     });
   }
+  if (audio) {
+    const tick = () => { playheadMs = nowMs(); redraw(); };
+    audio.addEventListener("timeupdate", tick);
+    audio.addEventListener("seeked", tick);
+    audio.addEventListener("play", tick);
+    audio.addEventListener("pause", tick);
+  }
+  function syncMarkButton() {
+    const btn = $("mark-now");
+    if (!btn) return;
+    btn.textContent = (selection.start_ms != null && selection.end_ms == null)
+      ? "Mark offset"
+      : "Mark onset";
+  }
+  function applyPairToNextCard() {
+    if (selection.start_ms == null || selection.end_ms == null) return;
+    const cards = Array.from(document.querySelectorAll("[data-span]"));
+    const card = cards.find(c => {
+      const start = c.querySelector("[name=start_ms]");
+      const end = c.querySelector("[name=end_ms]");
+      return start && end && start.value === "" && end.value === "";
+    }) || null;
+    if (!card) return;
+    const decision = card.querySelector("[name=decision]");
+    if (decision && (decision.value === "" || decision.value === "reject")) {
+      decision.value = card.dataset.sourceLabel ? "retime" : "add";
+    }
+    card.querySelector("[name=start_ms]").value = selection.start_ms;
+    card.querySelector("[name=end_ms]").value = selection.end_ms;
+  }
+  function stampToggle() {
+    playheadMs = nowMs();
+    if (selection.start_ms == null || selection.end_ms != null) {
+      selection.start_ms = playheadMs;
+      selection.end_ms = null;
+    } else {
+      selection.end_ms = Math.max(playheadMs, selection.start_ms);
+      if (audio && !audio.paused) audio.pause();
+      applyPairToNextCard();
+    }
+    $("click_start").value = selection.start_ms ?? "";
+    $("click_end").value = selection.end_ms ?? "";
+    syncMarkButton();
+    redraw();
+    return playheadMs;
+  }
+  if ($("mark-now")) $("mark-now").addEventListener("click", stampToggle);
+  syncMarkButton();
+  document.querySelectorAll("[data-span] [data-apply-pair]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const card = btn.closest("[data-span]");
+      if (selection.start_ms == null || selection.end_ms == null) return;
+      const decision = card.querySelector("[name=decision]");
+      if (decision && (decision.value === "" || decision.value === "reject")) {
+        decision.value = card.dataset.sourceLabel ? "retime" : "add";
+      }
+      card.querySelector("[name=start_ms]").value = selection.start_ms;
+      card.querySelector("[name=end_ms]").value = selection.end_ms;
+    });
+  });
   $("save").addEventListener("click", async () => {
     const record = collectRecord(clip);
     if (!record.reviewer) { alert("Reviewer id is required."); return; }
@@ -663,6 +749,9 @@ def render_clip(payload: dict[str, Any]) -> str:
         placeholder="overlay {event["end_ms"]}; free ms, never snap">
     </label>
   </div>
+  <p>
+    <button class="secondary" type="button" data-apply-pair>Use this start–end on this laugh</button>
+  </p>
 </div>
 """
         )
@@ -695,12 +784,17 @@ def render_clip(payload: dict[str, Any]) -> str:
   <div class="panel">
     {audio}
     <canvas id="wave"></canvas>
-    <p class="muted">Orange overlays are STARSS23 class-4 100 ms activity. Click once for onset,
-    again for offset at free millisecond resolution (never snap to 100 ms).
-    Onset = first voiced burst. Offset = last voiced frame.</p>
+    <p><strong>Now <span id="now_ms">0</span> ms</strong>
+      (red line follows playback). Orange = 100 ms source overlay, not gold.</p>
+    <p>
+      <button id="mark-now" type="button">Mark onset</button>
+    </p>
+    <p class="muted">One button. Play. Tap at the first voiced burst (onset).
+    Tap again at the last voiced frame (offset). Playback pauses and fills the
+    next empty laugh card. Tap again for the next laugh.</p>
     <div class="grid">
-      <label>Clicked onset ms <input id="click_start" readonly></label>
-      <label>Clicked offset ms <input id="click_end" readonly></label>
+      <label>Onset ms <input id="click_start" readonly></label>
+      <label>Offset ms <input id="click_end" readonly></label>
     </div>
   </div>
   <div class="panel">
@@ -729,6 +823,9 @@ def render_clip(payload: dict[str, Any]) -> str:
         <label>Offset ms <input type="number" name="end_ms" min="0" step="1"
           max="{payload["duration_ms"]}"></label>
       </div>
+      <p>
+        <button class="secondary" type="button" data-apply-pair>Use this start–end on this laugh</button>
+      </p>
     </div>
     <label>Notes <textarea id="notes" rows="3"></textarea></label>
     <p>
