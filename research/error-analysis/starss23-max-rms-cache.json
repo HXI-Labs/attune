@@ -1,0 +1,17 @@
+{
+  "protocol": "tiled_60s_max_rms_channel",
+  "status": "audio extracted, not the scored inspection",
+  "audio_cache": "data/raw/starss23-scene-raster-v2",
+  "wav_count": 259,
+  "clip_ids_sample": [
+    "starss23-scene-development-fold3_room12_mix001-w000000.wav",
+    "starss23-scene-development-fold3_room12_mix001-w060000.wav",
+    "starss23-scene-development-fold3_room12_mix001-w120000.wav",
+    "starss23-scene-development-fold3_room12_mix001-w180000.wav",
+    "starss23-scene-development-fold3_room12_mix002-w000000.wav"
+  ],
+  "clip_ids_count": 259,
+  "note": "Hash check: v2 wavs match max-RMS channel 1. Tiled cache matches mean-of-4. Do not reuse v2 embeddings for a mean-4 train. Collar numbers 0.015/0.031 belong to mean-4, not this cache.",
+  "do_not_replace_reported_best_0.1395": true,
+  "generated_at_utc": "2026-08-27T12:54:33.538201Z"
+}

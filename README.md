@@ -79,11 +79,22 @@ validation-selected hysteresis trades segment F1 to 0.7059 while improving
 collar F1 to 0.5279, versus 0.3183 / 0 for whole-clip. It enables gated frame
 spans for laugh/cough/throat-clear when its gitignored checkpoint is configured.
 Other `0..duration` event/style spans remain utterance scope, never
-localization. A separate natural-scene STARSS23 laughter head scores 0.7381
-segment F1 versus 0.4894 whole-clip, but only 0.1159 collar F1; it is therefore
-not merge-quality boundary alignment. A single temporal Conv1d follow-up scores
-0.7113 / 0.0282 and fails the fixed collar gate, so STARSS23 timestamps are
-unwired. Details are in `research/timing-holes.md`.
+localization. A separate natural-scene STARSS23 laughter head on 10 s crops scores 0.7381
+segment F1 versus 0.4894 whole-clip, but only 0.1159 collar F1. A 60 s scene
+raster MLP scores 0.4794 versus 0.1721 whole-clip and 0.1074 collar F1 at 40
+epochs, 0.3974 / 0.0303 after a longer decoder pass, 0.5124 / 0.1395 after a
+validation-only decoder repair, 0.3716 / 0.0585 after an onset-shift decoder
+pass, 0.3673 / 0.0588 after a 214-epoch boundary-weighted BCE retrain, then
+0.2121 / 0.0339 after an 86-epoch frozen BiGRU with the predeclared 0.1395
+decoder, then 0.3143 / 0.0148 on tiled inspection (1/26/107 on 108 gold)
+after a mean-of-4 tiled MLP (first-60s control 0.0308 vs 0.1395), then
+0.3143 / 0.0296 on tiled inspection (2/25/106) after a Kyoto first-60s-val
+retrain (first-60s control 0.03125 vs 0.1395); the tiled collar gate fails,
+so STARSS23 timestamps stay unwired and the reported best remains 0.1395.
+`data/raw/starss23-scene-raster-v2` is max-RMS audio only and was not this
+eval. A single temporal Conv1d follow-up scores 0.7113 / 0.0282 and also
+fails the fixed collar gate.
+Details are in `research/timing-holes.md`.
 A 49-clip / 48-event STARSS23 first-60s gold-review pack (29 true negatives
 kept) lives in
 `data/manifests/starss23-gold-review-pack.jsonl`. It is human 100 ms activity,
@@ -98,6 +109,7 @@ bars. SenseVoice is required; emotion2vec+/VocalSound/FSD50K/DCASE heads are
 omitted honestly when absent. There is no live DCASE-stamped demo until the
 gated frame-head is on disk. How-to: `research/demo/README.md`. Offline path
 notes remain in `docs/baseline-runners.md`.
+
 
 ## Repository map
 

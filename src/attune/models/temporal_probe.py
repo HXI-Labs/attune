@@ -24,6 +24,63 @@ TEMPORAL_LABELS = {
 DCASE_DATASET = "dcase2016_task2"
 STARSS23_DATASET = "starss23"
 DCASE_LABELS = ("laugh", "cough", "throat_clear")
+BIGRU_ARCHITECTURE = "bigru"
+BIGRU_HIDDEN_SIZE = 64
+BIGRU_NUM_LAYERS = 1
+BIGRU_DROPOUT = 0.0
+
+
+def build_bigru_head(
+    torch: Any,
+    *,
+    input_size: int = 512,
+    hidden_size: int = BIGRU_HIDDEN_SIZE,
+) -> Any:
+    """Return the predeclared 1-layer bidirectional GRU then Linear(128→1)."""
+
+    class BiGRUFrameHead(torch.nn.Module):
+        architecture = BIGRU_ARCHITECTURE
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.hidden_size = hidden_size
+            self.gru = torch.nn.GRU(
+                input_size,
+                hidden_size,
+                num_layers=BIGRU_NUM_LAYERS,
+                batch_first=True,
+                bidirectional=True,
+                dropout=BIGRU_DROPOUT,
+            )
+            self.proj = torch.nn.Linear(hidden_size * 2, 1)
+
+        def forward(self, frames: Any, lengths: Any | None = None) -> Any:
+            squeezed = frames.ndim == 2
+            if squeezed:
+                frames = frames.unsqueeze(0)
+            if lengths is None:
+                lengths = torch.full(
+                    (frames.size(0),),
+                    frames.size(1),
+                    dtype=torch.long,
+                    device=frames.device,
+                )
+            packed = torch.nn.utils.rnn.pack_padded_sequence(
+                frames,
+                lengths.detach().cpu().long(),
+                batch_first=True,
+                enforce_sorted=False,
+            )
+            packed_out, _ = self.gru(packed)
+            hidden, _ = torch.nn.utils.rnn.pad_packed_sequence(
+                packed_out,
+                batch_first=True,
+                total_length=int(frames.size(1)),
+            )
+            logits = self.proj(hidden)
+            return logits.squeeze(0) if squeezed else logits
+
+    return BiGRUFrameHead()
 
 
 def read_temporal_checkpoint(checkpoint: Path) -> dict[str, Any]:
@@ -197,6 +254,11 @@ class FrozenTemporalProbeHead:
                 torch.nn.ReLU(),
                 torch.nn.Conv1d(channels, len(labels), kernel_size=1),
             )
+        elif payload.get("architecture") == BIGRU_ARCHITECTURE:
+            head = build_bigru_head(
+                torch,
+                hidden_size=int(payload.get("hidden_size", BIGRU_HIDDEN_SIZE)),
+            )
         else:
             hidden_size = int(payload["hidden_size"])
             head = torch.nn.Sequential(
@@ -241,6 +303,10 @@ def _decode_annotations(
                 duration_ms,
                 round(first_frame_center_ms + (end + 1) * frame_hop_ms - frame_hop_ms / 2),
             )
+            if decoder:
+                start_ms = max(0, start_ms + int(decoder.get("onset_shift_ms", 0) or 0))
+                if start_ms >= end_ms:
+                    continue
             confidence = float(probabilities[start : end + 1, label_index].max())
             annotations.append(
                 ProbeAnnotation(
@@ -254,12 +320,30 @@ def _decode_annotations(
     return annotations
 
 
+def _median_filter_values(values: list[float], window: int) -> list[float]:
+    if window <= 1:
+        return list(values)
+    if window % 2 == 0:
+        raise ValueError("median filter window must be odd")
+    radius = window // 2
+    filtered = []
+    count = len(values)
+    for index in range(count):
+        start = max(0, index - radius)
+        end = min(count, index + radius + 1)
+        ordered = sorted(values[start:end])
+        filtered.append(ordered[len(ordered) // 2])
+    return filtered
+
+
 def _active_intervals(
     values: list[float],
     *,
     threshold: float,
     decoder: dict[str, Any] | None,
 ) -> list[tuple[int, int]]:
+    if decoder:
+        values = _median_filter_values(values, int(decoder.get("median_filter_frames", 1) or 1))
     if not decoder or decoder.get("type") != "hysteresis":
         active = [value >= threshold for value in values]
         intervals = []

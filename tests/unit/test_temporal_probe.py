@@ -95,6 +95,56 @@ def test_frame_probabilities_decode_multiple_bounded_event_spans() -> None:
     ] == [("laugh", 0, 120), ("laugh", 180, 240)]
 
 
+def test_hysteresis_decoder_applies_median_filter_and_min_duration() -> None:
+    probabilities = torch.tensor(
+        [
+            [0.1],
+            [0.1],
+            [0.9],
+            [0.1],
+            [0.9],
+            [0.9],
+            [0.9],
+            [0.1],
+            [0.1],
+        ]
+    )
+    decoder = {
+        "type": "hysteresis",
+        "high_threshold": 0.8,
+        "low_threshold": 0.5,
+        "max_gap_frames": 2,
+        "min_active_frames": 3,
+        "median_filter_frames": 3,
+    }
+    annotations = _decode_annotations(
+        probabilities,
+        labels=("laugh",),
+        threshold=0.5,
+        decoder=decoder,
+        first_frame_center_ms=30.0,
+        frame_hop_ms=60.0,
+        duration_ms=540,
+    )
+    assert [(annotation.start_ms, annotation.end_ms) for annotation in annotations] == [(180, 420)]
+
+
+def test_bigru_factory_is_not_conv1d() -> None:
+    from attune.models.temporal_probe import BIGRU_ARCHITECTURE, build_bigru_head
+
+    head = build_bigru_head(torch)
+    frames = torch.randn(6, 512)
+    logits = head(frames)
+    assert head.architecture == BIGRU_ARCHITECTURE
+    assert logits.shape == (6, 1)
+    assert not any(isinstance(module, torch.nn.Conv1d) for module in head.modules())
+    restored = build_bigru_head(torch)
+    restored.load_state_dict(head.state_dict())
+    restored.eval()
+    with torch.inference_mode():
+        assert torch.allclose(restored(frames), logits)
+
+
 def test_dcase_checkpoint_acceptance_rejects_starss23() -> None:
     payload = checkpoint_payload(gate_passed=True)
     payload["dataset"] = "starss23"
@@ -114,3 +164,4 @@ def test_dcase_checkpoint_acceptance_accepts_gated_dcase() -> None:
     accepted, reason = dcase_checkpoint_acceptance(checkpoint_payload(gate_passed=True))
     assert accepted is True
     assert reason is None
+

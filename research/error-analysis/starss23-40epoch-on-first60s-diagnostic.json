@@ -1,0 +1,161 @@
+{
+  "report_version": "1",
+  "generated_at_utc": "2026-08-27T12:59:29.884674Z",
+  "diagnostic": "score_40epoch_head_on_tiled_mean4_first60s",
+  "trained": false,
+  "merged": false,
+  "wired": false,
+  "replaced_reported_best_0.1395": false,
+  "touched_v2_max_rms_audio": false,
+  "touched_v2_max_rms_embeddings": false,
+  "restarted_217epoch_tiled_train": false,
+  "protocol": "first_60s_subset_of_tiled_60s_mean4_mic",
+  "subset_rule": "window_start_ms == 0; keep 3 truncated-at-60s inspection events so gold stays 48",
+  "checkpoint": {
+    "path": "artifacts/starss23-scene-raster/frame-head-40epoch.pt",
+    "sha256": "5374e598f5d1007b84c0805ab1b3ec51f8b2f421587743cf7429bc04ab6e002a",
+    "epochs_completed": 40,
+    "feature_mean_source": "stored in 40-epoch checkpoint (original first-60s train)",
+    "architecture": "mlp",
+    "hidden_size": 64,
+    "encoder_frozen": true
+  },
+  "encoder": {
+    "name": "sensevoice-small-encoder-frames-v1",
+    "path": "artifacts/starss23-scene-raster/sensevoice-small",
+    "model_file_sha256": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea",
+    "frozen": true,
+    "license_env": "ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1",
+    "frame_hop_ms_approx": 60.0,
+    "first_frame_center_ms_approx": 30.0
+  },
+  "decoder": {
+    "id": "locked_0a27733",
+    "high_threshold": 0.95,
+    "low_threshold": 0.855,
+    "max_gap_frames": 0,
+    "min_active_frames": 1,
+    "median_filter_frames": 3,
+    "onset_shift_ms": 0,
+    "min_duration_ms": 60,
+    "note": "not the decoder blob stored inside frame-head-40epoch.pt (old gap=2/min_active=3)"
+  },
+  "data": {
+    "inspection_manifest": "data/manifests/starss23-scene-raster-inspection.jsonl",
+    "development_manifest": "data/manifests/starss23-scene-raster-development.jsonl",
+    "audio_cache": "data/raw/starss23-scene-raster-tiled",
+    "downmix": "mean_of_4_tetrahedral_mic",
+    "validation_rooms": [
+      "sony-room21",
+      "tau-room6"
+    ],
+    "validation_rooms_observed": [
+      "sony-room21",
+      "tau-room6"
+    ],
+    "first_60s_clips": 49,
+    "first_60s_events": 48,
+    "truncated_at_60s_events": 3,
+    "clipped_spanning_event_count_field_sum": 0
+  },
+  "embedding_cache": {
+    "namespace": "artifacts/starss23-scene-raster/embeddings-tiled",
+    "protocol": "tiled_60s_mean4_mic",
+    "reused_v2_max_rms": false,
+    "reused_original_first60s_namespace": false,
+    "tiled_cache_hits": 49,
+    "tiled_cache_misses": 0,
+    "extracted": false,
+    "extract_cache": null,
+    "loaded_without_encoder": true,
+    "compared_to_original_namespace": {
+      "note": "filename-key overlap with original first-60s mean-4 cache; scored tensors still came only from embeddings-tiled",
+      "same_cache_key_count": 49,
+      "tensor_compared": 49,
+      "tensor_equal": 49
+    }
+  },
+  "this_score": {
+    "collar_f1": 0.13953488372093023,
+    "segment_f1": 0.512396694214876,
+    "true_positive": 9,
+    "false_positive": 72,
+    "false_negative": 39,
+    "reference_event_count": 48,
+    "whole_clip_segment_f1": 0.17212490479817213,
+    "whole_clip_collar_f1": 0.0,
+    "segment_margin": 0.3402717894167039,
+    "collar_event_metrics": {
+      "f1": 0.13953488372093023,
+      "true_positive": 9,
+      "false_positive": 72,
+      "false_negative": 39,
+      "onset_collar_ms": 200,
+      "offset_collar_ms": 200,
+      "offset_duration_ratio": 0.2,
+      "matched_onset_mae_ms": 64.44444444444444,
+      "matched_offset_mae_ms": 160.0
+    },
+    "segment": {
+      "f1": 0.512396694214876,
+      "true_positive": 62,
+      "false_positive": 67,
+      "false_negative": 51,
+      "segment_ms": 1000
+    },
+    "miss_mechanism": {
+      "false_negative": 39,
+      "head_never_fires": 14,
+      "decoder_suppressed": 1,
+      "predicted_but_collar_failed": 24,
+      "median_onset_error_ms_on_overlapping_misses": 200,
+      "mean_onset_error_ms_on_overlapping_misses": 259.1666666666667,
+      "dominant_miss": "predicted_but_collar_failed",
+      "interpretation": "most missed gold events were predicted but failed the 200 ms collar"
+    }
+  },
+  "three_way_comparison": {
+    "prior_best_0.1395_40epoch_original_first60s": {
+      "id": "decoder_validity_0a27733",
+      "collar_f1": 0.13953488372093023,
+      "true_positive": 9,
+      "false_positive": 72,
+      "false_negative": 39,
+      "segment_f1": 0.512396694214876,
+      "reference_event_count": 48,
+      "checkpoint": "artifacts/starss23-scene-raster/frame-head-40epoch.pt"
+    },
+    "this_40epoch_head_on_tiled_mean4_first60s": {
+      "collar_f1": 0.13953488372093023,
+      "segment_f1": 0.512396694214876,
+      "true_positive": 9,
+      "false_positive": 72,
+      "false_negative": 39,
+      "reference_event_count": 48
+    },
+    "tiled_217epoch_head_on_tiled_mean4_first60s": {
+      "id": "tiled_mean4_mlp_217epoch_first60s",
+      "collar_f1": 0.03076923076923077,
+      "true_positive": 1,
+      "false_positive": 16,
+      "false_negative": 47,
+      "segment_f1": 0.37410071942446044,
+      "reference_event_count": 48,
+      "checkpoint": "artifacts/starss23-scene-raster/frame-head-tiled.pt",
+      "epochs_completed": 217
+    }
+  },
+  "contamination_verdict": {
+    "verdict": "embeddings_ok_tiling_in_train_was_the_killer",
+    "recovered_near_0.1395": true,
+    "tanks_like_0.0308": false,
+    "note": "40-epoch head + locked 0a27733 decoder recovers near the 0.1395 first-60s control on the new mean-4 tiled first-60s subset. Embeddings are not the contamination source; training on later tiles was."
+  },
+  "do_not_replace_reported_best_0.1395": true,
+  "limitations": [
+    "Diagnostic only; one inspection evaluation of an existing checkpoint.",
+    "Does not retrain, merge, or wire timestamps.",
+    "v2 max-RMS audio and embeddings were not read or written.",
+    "217-epoch tiled train was not restarted."
+  ]
+}

@@ -125,11 +125,87 @@ inspection was evaluated once:
 | Whole-clip oracle tags | 0.4894 | 0.0000 |
 
 The segment margin is `+0.2219`, but collar F1 is only 1/31 matched intervals
-and fails the fixed `0.25` requirement. STARSS23-derived timestamps are
-therefore **unwired**. The prior MLP result remains recorded, but its
-segment-only gate is superseded. Natural-scene event boundaries remain
-unsolved; no second architecture, seed, threshold pass, or larger slice was
-attempted. DCASE wiring is unchanged.
+and fails the fixed `0.25` requirement. STARSS23-derived timestamps stayed
+**unwired**. The prior MLP result remains recorded, but its segment-only gate
+is superseded.
+
+A follow-up replaced laughter-centered 10 s crops with the first 60 seconds of
+every eligible official development recording (no Music class 8 in the excerpt).
+The same frozen-frame MLP (no Conv/GRU) was trained twice on that protocol: a
+40-epoch pass, then one longer pass with train-only class weight, gold-percentile
+min-duration, larger gap-merge, and a median filter. Inspection was scored once
+per pass. Details are in `research/starss23-scene-raster.md`.
+
+| STARSS23 60 s scene raster | 1 s segment F1 | 200 ms collar event F1 | TP/FP/FN |
+|---|---:|---:|---:|
+| Frozen frame MLP, 40 epochs, old decoder | 0.4794 | 0.1074 | 8/93/40 |
+| Frozen frame MLP, 73 epochs + 900 ms decoder | 0.3974 | 0.0303 | 1/17/47 |
+| Frozen frame MLP, 40 epochs + repaired decoder | 0.5124 | 0.1395 | 9/72/39 |
+| Frozen frame MLP, 40 epochs + onset-shift decoder | 0.3716 | 0.0585 | 6/151/42 |
+| Frozen frame MLP, 214-epoch boundary-weighted BCE | 0.3673 | 0.0588 | 2/18/46 |
+| Frozen frame BiGRU, 86-epoch masked BCE | **0.2121** | **0.0339** | 1/10/47 |
+| Whole-clip oracle tags | 0.1721 | 0.0000 | 0/20/48 |
+
+A later validation-only onset-shift search (no retrain, 40-epoch checkpoint
+only) locked median to `{1}`, banned `low_ratio` 0.9, and selected a global
+onset shift `{-180,-120,-60,0}` ms on validation rooms. Winner: high `0.9`,
+low `0.63`, gap `8`, min-active `1`, median `1`, onset shift `-120` ms.
+Inspection collar F1 `0.0585` failed `>=0.25`. Decoder-grid path is exhausted.
+
+MLP-only retrains, decoder search, 44× `pos_weight`, onset-shift, and
+boundary-weighted BCE are exhausted. A later first-60s pass trained one predeclared
+1-layer bidirectional GRU (hidden 64, Linear 128→1, 222,081 params) on
+padded clip sequences with a masked unweighted BCE, frozen encoder, seed 0,
+early-stop at 86 epochs, and decoded inspection once with the predeclared
+0a27733 decoder. Segment margin is `+0.0400` (fails `+0.05`). Collar F1
+`0.0339` still fails `>=0.25` and is worse than 0.1395, so the reported best
+remains the 40-epoch repaired decoder. Of 47 misses, 39 are events the head
+never fires, 8 overlap a prediction that fails the 200 ms collar (median
+onset error 300 ms, MAE 960 ms; did not improve vs 200 ms), and 0 are
+decoder-suppressed. STARSS23 laugh timestamps therefore remain **unwired**.
+Natural-scene event boundaries remain unsolved. Stopped after this inspection
+eval. No second temporal architecture. No further decoder grid. DCASE wiring
+is unchanged.
+
+A follow-up tiled every eligible recording into non-overlapping 60 s windows
+covered by both WAV duration and CSV extent (no unlabeled-tail tiles, no
+remainder padding, Music class 8 skipped). Downmix stayed mean-of-4 MIC omni.
+Later-tile laugh fragments that span a 60 s cut were dropped; first-60s
+truncated-at-60 s events were kept so the 48-event control stayed intact.
+Clip IDs include `window_start_ms`. New audio and embedding caches. Same
+32,897-param MLP, seed 0, unweighted BCE, early-stop 217 epochs, locked
+0a27733 decoder, no decoder grid. Validation rooms unchanged. Whole files
+stay in one split.
+
+| STARSS23 tiled 60 s mean-of-4 | clips / events | 1 s segment F1 | 200 ms collar F1 | TP/FP/FN |
+|---|---:|---:|---:|---:|
+| Tiled inspection (wiring gate) | 109 / 108 | 0.3143 | **0.0148** | 1/26/107 |
+| First-60s subset (matched control) | 49 / 48 | 0.3741 | 0.0308 | 1/16/47 |
+| Whole-clip oracle tags (tiled / first-60s) | — | 0.1538 / 0.1721 | 0.0000 | — |
+
+**The previous tiled pass (full 39-tile val) is negative** (collar 0.0148).
+A follow-up retrained the same MLP under the Kyoto split: train still 111
+non-val-room tiles (0 val-room later tiles in train); early-stop only the
+19 first-60s val-room clips; later val-room tiles unused. Seed 0, unweighted
+BCE, 226 epochs, locked 0a27733 decoder, no decoder grid. Embedding cache
+misses 0.
+
+| STARSS23 Kyoto first-60s-val tiled MLP | clips / events | 1 s segment F1 | 200 ms collar F1 | TP/FP/FN |
+|---|---:|---:|---:|---:|
+| Tiled inspection (wiring gate) | 109 / 108 | 0.3143 | **0.0296** | 2/25/106 |
+| First-60s subset (matched control) | 49 / 48 | 0.3623 | 0.03125 | 1/15/47 |
+| Prior best first-60s (40-epoch) | 49 / 48 | 0.5124 | **0.1395** | 9/72/39 |
+| Whole-clip oracle tags (tiled / first-60s) | — | 0.1538 / 0.1721 | 0.0000 | — |
+
+**This pass is also negative.** Tiled segment margin `+0.1604` clears
+`+0.05`, but collar F1 0.0296 fails `>=0.25`. First-60s control 0.03125
+does not beat 0.1395, so **0.1395 remains the reported best**. Decoder
+locked; a miss cannot be blamed on tiling vs decoder mismatch. STARSS23
+remains **unwired**. DCASE wiring is unchanged. Stopped after the one
+tiled inspection eval. Scored wavs are mean-of-4 in
+`data/raw/starss23-scene-raster-tiled`.
+`data/raw/starss23-scene-raster-v2` is **max-RMS audio only** (259 files)
+and was **not** this eval; do not mix it into embeddings.
 
 STARSS23 metadata has no language field and its README states that speech spans
 multiple languages. Language is therefore `unverified`; no English claim or
