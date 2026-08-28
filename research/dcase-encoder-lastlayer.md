@@ -125,3 +125,27 @@ Inspection (locked decoder, never used for fitting):
 
 JSON: `research/dcase-encoder-lastlayer-results.json`. Weights remain gitignored.
 The PR 26 frozen head stays wired. STARSS23 was not touched.
+
+## Iterate 2 (predeclared 2026-08-28, before any retrain)
+
+The seed-0 `encoder-lr 2e-5` / `head-lr 1e-4` run is frozen evidence: exact 0.4755 HOLD, hysteresis 0.5169 MISS vs 0.5279, segment margin +0.4059 HOLD. Val hysteresis peaked 0.6891 at epoch 6 then failed inspection transfer. Do **not** rerun that config. Do not lower the gate. Do not grid-search the decoder. Decoder stays locked (exact 0.95; hysteresis 0.95/0.855/gap 1/min 1). Last 1 encoder block remains `encoder.tp_encoders.19`. Head still initializes from the SHA-pinned PR 26 MLP (`cb74b1d4…`). Seed 0. CPU. Prefix cache reuse is allowed. STARSS23 stays unwired.
+
+`--encoder-weight-decay` default is 0 so variants that omit it keep the original AdamW group construction (no extra last-block decay). Variant 3 is the only run that sets last-block-only decay.
+
+Three variants, in this order. Stop early if any variant clears the full gate: inspection hysteresis collar ≥ 0.5279 AND exact ≥ 0.4637 AND segment margin ≥ 0.05. If one clears, the demo/infer path MAY point at that new checkpoint for isolated DCASE only; still do not merge; still do not touch STARSS23. If all three miss, last-block LR/WD is exhausted on this locked decoder and the PR 26 frozen head stays wired.
+
+1. Lower LR: `--encoder-lr 5e-6 --head-lr 3e-5 --epochs 10 --patience 3`. JSON `research/dcase-encoder-lastlayer-lr5e6-results.json`. Checkpoint dir `artifacts/dcase-encoder-lastlayer-lr5e6/` (gitignored weights).
+2. If 1 misses hysteresis: `--encoder-lr 5e-6 --head-lr 1e-4 --epochs 15 --patience 5`. JSON `research/dcase-encoder-lastlayer-lr5e6-head1e4-results.json`. Checkpoint dir `artifacts/dcase-encoder-lastlayer-lr5e6-head1e4/`.
+3. If 2 misses: last-block-only weight decay `--encoder-lr 5e-6 --head-lr 3e-5 --encoder-weight-decay 0.05 --epochs 15 --patience 5`. JSON `research/dcase-encoder-lastlayer-wd-results.json`. Checkpoint dir `artifacts/dcase-encoder-lastlayer-wd/`.
+
+## Iterate 2 result (CPU seed 0, after predeclaration)
+
+All three predeclared variants missed hysteresis. Exact and segment margin held. Decoder was not searched. The PR 26 frozen head stays wired (`cb74b1d4…`). STARSS23 was not touched. Prefix cache reused (316 hits / 0 misses).
+
+| variant | exact | hysteresis | margin | val peak | gate |
+|---|---:|---:|---:|---:|---|
+| 2.1 enc 5e-6 / head 3e-5 | 0.4910 | 0.5000 | +0.4070 | 0.6154 | keep |
+| 2.2 enc 5e-6 / head 1e-4 | 0.4911 | 0.5247 | +0.4003 | 0.6897 | keep |
+| 2.3 enc 5e-6 / head 3e-5 / wd 0.05 | 0.4910 | 0.5000 | +0.4070 | 0.6154 | keep |
+
+Closest hysteresis was 0.5247 (variant 2.2) vs 0.5279. Last-block LR/WD is exhausted on this locked decoder. Table: `research/dcase-encoder-lastlayer-iterates.md`.

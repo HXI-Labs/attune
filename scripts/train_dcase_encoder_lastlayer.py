@@ -221,6 +221,12 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--encoder-lr", type=float, default=2e-5)
     parser.add_argument("--head-lr", type=float, default=1e-4)
+    parser.add_argument(
+        "--encoder-weight-decay",
+        type=float,
+        default=0.0,
+        help="AdamW weight decay applied to encoder.tp_encoders.19 only; 0 keeps the original group defaults",
+    )
     parser.add_argument("--grad-clip", type=float, default=5.0)
     arguments = parser.parse_args()
     import torch
@@ -324,9 +330,16 @@ def main() -> None:
     head.zero_grad(set_to_none=True)
     print(f"autograd check passed: {len(last_grads)} last-block tensors received grads", flush=True)
 
+    encoder_group: dict[str, Any] = {
+        "params": list(encoder.last_block.parameters()),
+        "lr": arguments.encoder_lr,
+    }
+    # Default 0 leaves AdamW per-group default so seed-0 2e-5/1e-4 stays reproducible.
+    if arguments.encoder_weight_decay:
+        encoder_group["weight_decay"] = arguments.encoder_weight_decay
     optimizer = torch.optim.AdamW(
         [
-            {"params": list(encoder.last_block.parameters()), "lr": arguments.encoder_lr},
+            encoder_group,
             {"params": list(head.parameters()), "lr": arguments.head_lr},
         ]
     )
@@ -389,6 +402,7 @@ def main() -> None:
             "patience": arguments.patience,
             "encoder_lr": arguments.encoder_lr,
             "head_lr": arguments.head_lr,
+            "encoder_weight_decay": arguments.encoder_weight_decay,
             "device": "cpu",
             "epochs_completed": 0,
             "history": [],
