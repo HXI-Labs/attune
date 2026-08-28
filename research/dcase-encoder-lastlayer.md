@@ -108,3 +108,20 @@ JSON is authoritative. Tests must pass before any wiring. This branch must not
 dirty PR 26 (`cursor/restore-dcase-isolated-demo`). Even if the gate clears,
 do not merge from this protocol; replacement of the wired head is a separate
 deliberate step.
+
+## Result (CPU seed 0, after protocol lock)
+
+Completed 9/10 epochs (patience 3 on validation hysteresis collar). Last block
+`encoder.tp_encoders.19` had 3,158,016 trainable parameters; MLP head 66,051;
+total trainable 3,224,067. Prefix cache 93 s; train ~51 s.
+
+Inspection (locked decoder, never used for fitting):
+
+| metric | this run | gate | verdict |
+|---|---:|---:|---|
+| exact-match collar F1 | 0.4755 | ≥ 0.4637 | hold (no regression) |
+| hysteresis collar F1 | 0.5169 | ≥ 0.5279 | miss; do not replace wired head |
+| segment margin vs whole-clip | +0.4059 | ≥ 0.05 | hold |
+
+JSON: `research/dcase-encoder-lastlayer-results.json`. Weights remain gitignored.
+The PR 26 frozen head stays wired. STARSS23 was not touched.

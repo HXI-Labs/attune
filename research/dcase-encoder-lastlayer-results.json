@@ -1,0 +1,286 @@
+{
+  "report_version": "1",
+  "status": "complete",
+  "generated_at_utc": "2026-08-28T09:02:42.188423Z",
+  "gate_decision": "keep_wired_frozen_head",
+  "task": "DCASE 2016 Task 2 isolated-event last-block encoder fine-tune",
+  "label_status": "synthetic strong onset/offset; not reviewed Attune gold; not STARSS23",
+  "starss23_wired": false,
+  "protocol": "research/dcase-encoder-lastlayer.md",
+  "labels": [
+    "laugh",
+    "cough",
+    "throat_clear"
+  ],
+  "decoder_locked": {
+    "exact_threshold": 0.95,
+    "hysteresis": {
+      "high_threshold": 0.95,
+      "low_threshold": 0.855,
+      "max_gap_frames": 1,
+      "min_active_frames": 1
+    },
+    "grid_search": false
+  },
+  "gate": {
+    "exact_collar_f1_min": 0.4637,
+    "hysteresis_collar_f1_min": 0.5279,
+    "segment_margin_min": 0.05
+  },
+  "encoder": {
+    "name": "sensevoice-small-encoder-lastblock-frames-v1",
+    "model": "SenseVoiceSmall by FunASR/FunAudioLLM",
+    "revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
+    "model_file_sha256": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea",
+    "last_block_name": "encoder.tp_encoders.19",
+    "trainable_parameters": 3158016,
+    "trainable_parameter_names_head": [
+      "encoder.tp_encoders.19.self_attn.linear_out.weight",
+      "encoder.tp_encoders.19.self_attn.linear_out.bias",
+      "encoder.tp_encoders.19.self_attn.linear_q_k_v.weight",
+      "encoder.tp_encoders.19.self_attn.linear_q_k_v.bias",
+      "encoder.tp_encoders.19.self_attn.fsmn_block.weight",
+      "encoder.tp_encoders.19.feed_forward.w_1.weight",
+      "encoder.tp_encoders.19.feed_forward.w_1.bias",
+      "encoder.tp_encoders.19.feed_forward.w_2.weight"
+    ],
+    "total_parameters": 233999167,
+    "query_frames_excluded": 4,
+    "frontend_dither": 0.0,
+    "extraction_route": "direct_frontend_and_last_block_encoder",
+    "prefix_cache": true,
+    "cache_hits": 6,
+    "cache_misses": 310,
+    "output_shape": [
+      "T",
+      512
+    ],
+    "pooling": null,
+    "frame_hop_ms_approx": 60.0,
+    "first_acoustic_frame_center_ms_approx": 30.0,
+    "query_prefix_time_semantics": "four non-acoustic query positions are removed; they do not shift audio time"
+  },
+  "head": {
+    "type": "two-layer temporal MLP, initialized from SHA-pinned wired DCASE head",
+    "init_sha256": "cb74b1d493511d384dea3abf37139cf754a16f540b594b7f92f82647204b01fc",
+    "trainable_parameters": 66051,
+    "encoder_trainable_parameters": 3158016,
+    "total_trainable_parameters": 3224067
+  },
+  "partitions": {
+    "train_clips": 168,
+    "validation_clips": 48,
+    "inspection_test_clips": 100,
+    "source_disjoint_test": true,
+    "validation_scenes": [
+      "dev_1_ebr_6_nec_3",
+      "dev_1_ebr_6_nec_4",
+      "dev_1_ebr_6_nec_5"
+    ],
+    "validation_recordings": [
+      "dev_1_ebr_6_nec_3_poly_0.wav",
+      "dev_1_ebr_6_nec_3_poly_1.wav",
+      "dev_1_ebr_6_nec_4_poly_1.wav",
+      "dev_1_ebr_6_nec_5_poly_1.wav"
+    ],
+    "validation_scene_disjoint": true,
+    "validation_file_disjoint": true
+  },
+  "training": {
+    "seed": 0,
+    "max_epochs": 10,
+    "patience": 3,
+    "encoder_lr": 2e-05,
+    "head_lr": 0.0001,
+    "device": "cpu",
+    "epochs_completed": 9,
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 0.2323961761513991,
+        "validation_loss": 0.2601224717218429,
+        "validation_exact_collar_f1": 0.46511627906976744,
+        "validation_hysteresis_collar_f1": 0.5739130434782609,
+        "validation_hysteresis_segment_f1": 0.7699115044247787,
+        "seconds": 5.608149718000277,
+        "timestamp_utc": "2026-08-28T09:01:56.586014Z"
+      },
+      {
+        "epoch": 2,
+        "train_loss": 0.20079930465380175,
+        "validation_loss": 0.23452055351420617,
+        "validation_exact_collar_f1": 0.4444444444444444,
+        "validation_hysteresis_collar_f1": 0.5982905982905983,
+        "validation_hysteresis_segment_f1": 0.7822222222222223,
+        "seconds": 5.478116647000206,
+        "timestamp_utc": "2026-08-28T09:02:02.066849Z"
+      },
+      {
+        "epoch": 3,
+        "train_loss": 0.18141428292230038,
+        "validation_loss": 0.22230970461775237,
+        "validation_exact_collar_f1": 0.5190839694656488,
+        "validation_hysteresis_collar_f1": 0.5932203389830508,
+        "validation_hysteresis_segment_f1": 0.7822222222222223,
+        "seconds": 5.880488245999004,
+        "timestamp_utc": "2026-08-28T09:02:07.949645Z"
+      },
+      {
+        "epoch": 4,
+        "train_loss": 0.1624529273664978,
+        "validation_loss": 0.20244224301616973,
+        "validation_exact_collar_f1": 0.48854961832061067,
+        "validation_hysteresis_collar_f1": 0.6440677966101694,
+        "validation_hysteresis_segment_f1": 0.8088888888888889,
+        "seconds": 5.669677846999548,
+        "timestamp_utc": "2026-08-28T09:02:13.620426Z"
+      },
+      {
+        "epoch": 5,
+        "train_loss": 0.14874324173433706,
+        "validation_loss": 0.19479441029640535,
+        "validation_exact_collar_f1": 0.5037037037037037,
+        "validation_hysteresis_collar_f1": 0.6611570247933884,
+        "validation_hysteresis_segment_f1": 0.8138528138528138,
+        "seconds": 5.685710665999068,
+        "timestamp_utc": "2026-08-28T09:02:19.308306Z"
+      },
+      {
+        "epoch": 6,
+        "train_loss": 0.13611260140203826,
+        "validation_loss": 0.1786194239005757,
+        "validation_exact_collar_f1": 0.5190839694656488,
+        "validation_hysteresis_collar_f1": 0.6890756302521008,
+        "validation_hysteresis_segment_f1": 0.8281938325991189,
+        "seconds": 5.286528565999106,
+        "timestamp_utc": "2026-08-28T09:02:24.596617Z"
+      },
+      {
+        "epoch": 7,
+        "train_loss": 0.126428309733802,
+        "validation_loss": 0.16345643036765978,
+        "validation_exact_collar_f1": 0.5522388059701493,
+        "validation_hysteresis_collar_f1": 0.6666666666666666,
+        "validation_hysteresis_segment_f1": 0.8245614035087719,
+        "seconds": 5.822881879999841,
+        "timestamp_utc": "2026-08-28T09:02:30.421584Z"
+      },
+      {
+        "epoch": 8,
+        "train_loss": 0.11614990984145108,
+        "validation_loss": 0.1587124744837638,
+        "validation_exact_collar_f1": 0.582089552238806,
+        "validation_hysteresis_collar_f1": 0.65,
+        "validation_hysteresis_segment_f1": 0.8384279475982532,
+        "seconds": 5.408379020000211,
+        "timestamp_utc": "2026-08-28T09:02:35.831030Z"
+      },
+      {
+        "epoch": 9,
+        "train_loss": 0.1076186680029856,
+        "validation_loss": 0.1459859748914217,
+        "validation_exact_collar_f1": 0.5522388059701493,
+        "validation_hysteresis_collar_f1": 0.6666666666666666,
+        "validation_hysteresis_segment_f1": 0.8370044052863436,
+        "seconds": 5.493909724998957,
+        "timestamp_utc": "2026-08-28T09:02:41.325954Z"
+      }
+    ],
+    "elapsed_seconds": 51.22347134999836,
+    "best_validation_hysteresis_collar_f1": 0.6890756302521008
+  },
+  "runtime": {
+    "device": "cpu",
+    "python": "3.12.14",
+    "torch": "2.13.0+cu130",
+    "cuda": false
+  },
+  "inspection_test": {
+    "designation": "test; never used for fitting or decoder selection",
+    "event_counts": {
+      "cough": 44,
+      "laugh": 45,
+      "throat_clear": 41
+    },
+    "exact_match": {
+      "threshold": 0.95,
+      "segment_f1": {
+        "f1": 0.7405764966740577,
+        "true_positive": 167,
+        "false_positive": 55,
+        "false_negative": 62,
+        "segment_ms": 1000
+      },
+      "collar_event_metrics": {
+        "f1": 0.4755244755244755,
+        "true_positive": 68,
+        "false_positive": 88,
+        "false_negative": 62,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": 77.5,
+        "matched_offset_mae_ms": 103.97058823529412
+      }
+    },
+    "hysteresis": {
+      "decoder": {
+        "high_threshold": 0.95,
+        "low_threshold": 0.855,
+        "max_gap_frames": 1,
+        "min_active_frames": 1
+      },
+      "segment_f1": {
+        "f1": 0.7241379310344828,
+        "true_positive": 168,
+        "false_positive": 67,
+        "false_negative": 61,
+        "segment_ms": 1000
+      },
+      "collar_event_metrics": {
+        "f1": 0.5168539325842697,
+        "true_positive": 69,
+        "false_positive": 68,
+        "false_negative": 61,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": 85.21739130434783,
+        "matched_offset_mae_ms": 110.57971014492753
+      }
+    },
+    "whole_clip_oracle_tag_baseline": {
+      "segment_f1": {
+        "f1": 0.3182765809589993,
+        "true_positive": 229,
+        "false_positive": 981,
+        "false_negative": 0,
+        "segment_ms": 1000
+      },
+      "collar_event_metrics": {
+        "f1": 0.0,
+        "true_positive": 0,
+        "false_positive": 121,
+        "false_negative": 130,
+        "onset_collar_ms": 200,
+        "offset_collar_ms": 200,
+        "offset_duration_ratio": 0.2,
+        "matched_onset_mae_ms": null,
+        "matched_offset_mae_ms": null
+      }
+    },
+    "segment_margin_vs_whole_clip": 0.40586135007548346
+  },
+  "cascade_wiring": {
+    "replace_wired_head": false,
+    "timestamps_wired": false,
+    "reason": "gate missed; keep the current frozen DCASE head wired"
+  },
+  "limitations": [
+    "Isolated DCASE office mixtures, not in-the-wild overlapping speech.",
+    "Only the last SANM block (tp_encoders.19) was unfrozen.",
+    "Decoder was locked; no threshold or hysteresis search.",
+    "STARSS23 was not trained, evaluated, or wired.",
+    "Fine-tuned weights stay private and gitignored."
+  ]
+}
