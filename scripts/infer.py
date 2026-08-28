@@ -222,14 +222,22 @@ def _fixture_prediction(audio_path: Path) -> BaselinePrediction:
     )
 
 
-def _omission_notes(omitted: Sequence[str]) -> list[str]:
+def _omission_notes(
+    omitted: Sequence[str], *, dcase_head_configured: bool = False
+) -> list[str]:
     if not omitted:
         return []
+    dcase = (
+        "DCASE frame spans are configured for laugh/cough/throat_clear."
+        if dcase_head_configured
+        else "This is not DCASE localization."
+    )
     return [
         "Partial cascade from local artifacts only: "
         + ", ".join(omitted)
         + " absent. Missing probes contribute nothing; missing emotion2vec+ makes "
-        "affect abstain. This is not a full Phase 2 cascade and not DCASE localization."
+        "affect abstain. This is not a full Phase 2 cascade. "
+        + dcase
     ]
 
 
@@ -396,7 +404,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             arguments.html_output,
             dcase_head_configured=temporal_head is not None,
             fixture=arguments.fixture_mode,
-            notes=_omission_notes(omitted),
+            notes=_omission_notes(omitted, dcase_head_configured=temporal_head is not None),
         )
     except (OSError, ValueError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)

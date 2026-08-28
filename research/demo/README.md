@@ -10,24 +10,33 @@ timestamps stay unwired. A later natural-scene head must still clear collar F1
 ≥ 0.25 **and** segment margin ≥ 0.05 on the 48-event first-60s control; a new
 representation cannot be another MLP, GRU, or Conv on frozen SenseVoice frames.
 
-## Live DCASE-stamped HTML: blocker
+## Live DCASE-stamped HTML
 
-There is **no** live DCASE-stamped laugh/cough/throat_clear WAV HTML. The gated
-DCASE frame-head was trained on a Cloud Agent VM to
-`artifacts/dcase-frame-localization/frame-head.pt` and was never committed
-(gitignored, as required). This box does not have:
+`isolated-dcase.attune.json` / `.xml` / `.html` is a real `scripts/infer.py` run
+with the locally retrained gated DCASE frame-head. The gitignored WAV is a
+held-out DCASE 2016 Task 2 public-test 10 s window
+(`dcase2016-inspection_test-test_1_ebr_0_nec_5_poly_1-090000`) containing
+laugh, cough, and throat_clear. Spans are model output, not interpolated.
 
-- `artifacts/dcase-frame-localization/` (head, embeddings)
-- `data/raw/dcase2016-task2/` or `data/raw/dcase2016-localization/` (archives / derived clips)
+The head was reproduced with the committed protocol (seed 0, 30 epochs). Direct
+threshold 0.7285 / 0.4637 and hysteresis 0.7059 / 0.5279 on the untouched
+100-clip inspection matched the prior gated result. STARSS23 heads stay refused.
 
-The training protocol is `scripts/train_temporal_localization.py` (seed 0, 30
-epochs, scene/file-disjoint val, source-disjoint 100-clip test, hysteresis
-selected on val). Reproducing it locally needs the hashed DCASE 2016 Task 2
-caches (≈125 MB train/dev + ≈329 MB public-test archives, then 216+100 derived
-10 s clips). Those caches are not on disk. This work does not download them and
-does not use STARSS23 heads as a substitute. Do not fake spans.
+Affect abstains because emotion2vec+ is not on this box. VocalSound/FSD50K
+probes are omitted. Inventory: `research/demo/partial-cascade-status.md`.
 
-Inventory: `research/demo/partial-cascade-status.md`.
+Regenerate with:
+
+```bash
+export ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1
+export ATTUNE_TEMPORAL_HEAD_PATH=artifacts/dcase-frame-localization/frame-head.pt
+uv run python scripts/infer.py research/demo/isolated-dcase.wav \
+  --sensevoice-path data/raw/model-cache/sensevoice-small \
+  --temporal-head artifacts/dcase-frame-localization/frame-head.pt \
+  --output research/demo/isolated-dcase.attune.json \
+  --xml-output research/demo/isolated-dcase.attune.xml \
+  --html-output research/demo/isolated-dcase.attune.html
+```
 
 ## What is timed, and what is not
 

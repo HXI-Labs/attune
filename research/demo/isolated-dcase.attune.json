@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "model": {
+    "name": "attune-cascade:sensevoice+affect-abstain+aed+1-gated-frame-heads",
+    "version": "cascade-1",
+    "quantization": null
+  },
+  "audio": {
+    "duration_ms": 10000,
+    "sample_rate_hz": 44100,
+    "channels": 1,
+    "quality": {
+      "clipping": 0.0,
+      "low_snr": 0.0,
+      "far_field": 0.0
+    }
+  },
+  "language": {
+    "label": "en",
+    "confidence": 0.5
+  },
+  "transcript": {
+    "text": "",
+    "confidence": 0.5,
+    "words": []
+  },
+  "styles": [],
+  "events": [
+    {
+      "start_ms": 3960,
+      "end_ms": 4380,
+      "id": "e1",
+      "label": "laugh",
+      "after_word_id": null,
+      "confidence": 0.9695867896080017,
+      "status": "provisional"
+    },
+    {
+      "start_ms": 540,
+      "end_ms": 1200,
+      "id": "e2",
+      "label": "cough",
+      "after_word_id": null,
+      "confidence": 0.9501325488090515,
+      "status": "provisional"
+    },
+    {
+      "start_ms": 3720,
+      "end_ms": 4560,
+      "id": "e3",
+      "label": "cough",
+      "after_word_id": null,
+      "confidence": 0.9746560454368591,
+      "status": "provisional"
+    },
+    {
+      "start_ms": 540,
+      "end_ms": 1260,
+      "id": "e4",
+      "label": "throat_clear",
+      "after_word_id": null,
+      "confidence": 0.9934899806976318,
+      "status": "provisional"
+    }
+  ],
+  "affect": {
+    "start_ms": 0,
+    "end_ms": 10000,
+    "valence": {
+      "value": 0.0,
+      "confidence": 0.0
+    },
+    "arousal": {
+      "value": 0.0,
+      "confidence": 0.0
+    },
+    "dominance": {
+      "value": 0.0,
+      "confidence": 0.0
+    },
+    "categories": {
+      "neutral": 0.125,
+      "joy": 0.125,
+      "distress": 0.125,
+      "anger": 0.125,
+      "fear": 0.125,
+      "surprise": 0.125,
+      "other": 0.125,
+      "ambiguous": 0.125
+    },
+    "top_label": null,
+    "top_label_confidence": 0.125,
+    "abstain": true
+  },
+  "uncertainty": {
+    "out_of_distribution_probability": 0.5,
+    "interpretation_warning": "Vocal affect is a probabilistic perception, not a verified internal state."
+  }
+}

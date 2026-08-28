@@ -203,6 +203,7 @@ def test_real_mode_runs_sensevoice_only_partial_cascade(
             )
 
     monkeypatch.setattr(module, "AttuneCascade", FakeCascade)
+    monkeypatch.setattr(module, "DCASE_CANDIDATES", ())
     result = module.run(
         [
             str(audio),
@@ -250,3 +251,119 @@ def test_explicit_missing_emotion2vec_path_is_an_error(
     )
     assert result == 2
     assert "explicit optional artifact path is missing" in capsys.readouterr().err
+
+
+def test_omission_notes_name_dcase_when_configured() -> None:
+    module = load_script()
+    configured = module._omission_notes(
+        ["emotion2vec+", "VocalSound probe", "FSD50K probe"],
+        dcase_head_configured=True,
+    )
+    assert configured
+    assert "DCASE frame spans are configured for laugh/cough/throat_clear." in configured[0]
+    assert "not DCASE localization" not in configured[0]
+    omitted = module._omission_notes(["emotion2vec+"], dcase_head_configured=False)
+    assert "This is not DCASE localization." in omitted[0]
+
+
+def test_explicit_dcase_head_is_passed_to_cascade(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    import pytest
+
+    torch = pytest.importorskip("torch")
+    audio = tmp_path / "isolated.wav"
+    write_wav(audio)
+    sensevoice = tmp_path / "sensevoice-small"
+    sensevoice.mkdir()
+    json_path = tmp_path / "out.json"
+    html_path = tmp_path / "out.html"
+    checkpoint = tmp_path / "frame-head.pt"
+    head = torch.nn.Sequential(torch.nn.Linear(512, 128), torch.nn.ReLU(), torch.nn.Linear(128, 3))
+    torch.save(
+        {
+            "head_state_dict": head.state_dict(),
+            "feature_mean": torch.zeros(512),
+            "feature_scale": torch.ones(512),
+            "labels": ("laugh", "cough", "throat_clear"),
+            "hidden_size": 128,
+            "threshold": 0.95,
+            "dataset": "dcase2016_task2",
+            "embedding": "sensevoice-small-encoder-frames-v1",
+            "encoder_frozen": True,
+            "gate": {
+                "passed": True,
+                "margin_required": 0.05,
+                "margin_observed": 0.3876,
+                "temporal_segment_f1": 0.7059,
+                "whole_clip_segment_f1": 0.3183,
+            },
+        },
+        checkpoint,
+    )
+    monkeypatch.setenv("ATTUNE_SENSEVOICE_LICENSE_REVIEWED", "1")
+    for name in (
+        "ATTUNE_SENSEVOICE_SMALL_PATH",
+        "ATTUNE_EMOTION2VEC_PLUS_PATH",
+        "ATTUNE_VOCALSOUND_PROBE_PATH",
+        "ATTUNE_FSD50K_PROBE_PATH",
+        "ATTUNE_TEMPORAL_HEAD_PATH",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    module = load_script()
+    captured: dict[str, object] = {}
+
+    class FakeCascade:
+        def __init__(self, **kwargs) -> None:
+            captured.update(kwargs)
+
+        def availability(self) -> tuple[bool, str | None]:
+            return True, None
+
+        def predict(self, item):
+            prediction = module._fixture_prediction(item.audio_path)
+            payload = prediction.output.model_dump(mode="json")
+            payload["model"]["name"] = (
+                "attune-cascade:sensevoice+affect-abstain+aed+1-gated-frame-heads"
+            )
+            payload["events"] = [
+                {
+                    "id": "e1",
+                    "label": "cough",
+                    "start_ms": 20,
+                    "end_ms": 80,
+                    "after_word_id": None,
+                    "confidence": 0.9,
+                    "status": "provisional",
+                }
+            ]
+            return BaselinePrediction(
+                output=AttuneOutput.model_validate(payload),
+                runtime=prediction.runtime,
+                diagnostics=prediction.diagnostics,
+            )
+
+    monkeypatch.setattr(module, "AttuneCascade", FakeCascade)
+    result = module.run(
+        [
+            str(audio),
+            "--sensevoice-path",
+            str(sensevoice),
+            "--temporal-head",
+            str(checkpoint),
+            "--output",
+            str(json_path),
+            "--html-output",
+            str(html_path),
+        ]
+    )
+
+    assert result == 0
+    assert captured["temporal_head_checkpoints"] == (checkpoint,)
+    html = html_path.read_text(encoding="utf-8")
+    assert "DCASE frame spans are configured for laugh/cough/throat_clear." in html
+    assert "Solid bars are DCASE frame spans" in html
+    assert "not DCASE localization" not in html
+    assert "STARSS23 stays unwired" not in html or "DCASE frame timestamps omitted" not in html
+

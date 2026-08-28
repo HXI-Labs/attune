@@ -1,6 +1,6 @@
 {
   "report_version": "2",
-  "generated_at_utc": "2026-08-27T08:51:54.830023Z",
+  "generated_at_utc": "2026-08-28T07:18:18.401035Z",
   "gate_decision": "closed",
   "task": "DCASE 2016 Task 2 synthetic strong-label event localization",
   "labels": [
@@ -30,8 +30,8 @@
     "frontend_dither": 0.0,
     "extraction_route": "direct_frontend_and_frozen_encoder",
     "pooling": null,
-    "cache_hits": 316,
-    "cache_misses": 0,
+    "cache_hits": 6,
+    "cache_misses": 310,
     "output_shape": [
       "T",
       512
@@ -312,7 +312,7 @@
   },
   "runtime": {
     "device": "cpu",
-    "python": "3.12.3",
+    "python": "3.12.14",
     "torch": "2.13.0+cu130"
   },
   "limitations": [
