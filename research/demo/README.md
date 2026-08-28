@@ -10,6 +10,9 @@ timestamps stay unwired. A later natural-scene head must still clear collar F1
 ≥ 0.25 **and** segment margin ≥ 0.05 on the 48-event first-60s control; a new
 representation cannot be another MLP, GRU, or Conv on frozen SenseVoice frames.
 
+Open `index.html` for the three live HTML pages (relative links). Companion
+WAVs are gitignored; keep them beside the HTML so audio plays locally.
+
 ## Live DCASE-stamped HTML
 
 `isolated-dcase.attune.json` / `.xml` / `.html` is a real `scripts/infer.py` run
@@ -119,9 +122,10 @@ still requires the full Phase 2 package.
 A STARSS23 `frame-head*.pt` is never auto-selected. Passing one as
 `--temporal-head` is an error.
 
-On this box the FSD50K probe is absent and its inspection gate remains
-**closed** (`research/fsd50k-frozen-probe-metrics.json`). Shout/whisper/sob/
-scream are omitted rather than lowering that gate.
+On this box the FSD50K probe is absent. Shout/whisper (and sob/scream) stay
+omitted: committed inspection macro-F1 is 0.7410 on standalone Freesound clips
+(`research/fsd50k-frozen-probe-metrics.json`), the gate stays closed, and that
+diagnostic is not speech-embedded shouting.
 
 ```bash
 export ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1
