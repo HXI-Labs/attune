@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from pathlib import Path
 
 from attune.inference.timeline import (
     FRAME_LOCAL,
@@ -104,3 +105,34 @@ def test_html_fixture_banner_omits_dcase_when_unconfigured(example_output: Attun
     assert "Not a model prediction" in rendered
     assert "DCASE frame timestamps omitted" in rendered
     assert "does not interpolate words" not in rendered
+
+
+def test_html_includes_partial_cascade_notes(example_output: AttuneOutput) -> None:
+    rendered = render_demo_html(
+        example_output,
+        dcase_head_configured=False,
+        notes=(
+            "Partial cascade from local artifacts only: emotion2vec+, VocalSound probe, "
+            "FSD50K probe absent.",
+        ),
+    )
+    assert "Partial cascade from local artifacts only" in rendered
+    assert "DCASE frame timestamps omitted" in rendered
+    assert "Not a model prediction" not in rendered
+
+
+def test_html_projects_affect_distribution(example_output: AttuneOutput) -> None:
+    rendered = render_demo_html(example_output, dcase_head_configured=False)
+    assert "distribution" in rendered
+    assert "top confidence" in rendered
+    for label in example_output.affect.categories:
+        assert label.value in rendered
+
+
+def test_demo_index_links_three_working_demos() -> None:
+    html = (Path(__file__).parents[2] / "research" / "demo" / "index.html").read_text()
+    assert 'href="isolated-dcase.attune.html"' in html
+    assert 'href="sensevoice-words.attune.html"' in html
+    assert 'href="vocalsound-sigh.attune.html"' in html
+    assert "STARSS23 timestamps are live" not in html
+    assert "live STARSS23" not in html.lower()
