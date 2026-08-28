@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>fixture-true-negative</title>
+<style>:root { color-scheme: dark; --bg:#10141c; --panel:#1a2130; --ink:#e8eef8; --muted:#9aa8bc;
+        --line:#2a3548; --accent:#7db4ff; --warn:#f3c16b; --pred:#5eead4; }
+* { box-sizing: border-box; }
+body { margin:0; font: 15px/1.45 ui-sans-serif, system-ui, sans-serif; background:var(--bg);
+       color:var(--ink); }
+a { color:var(--accent); }
+header, main { max-width: 1100px; margin: 0 auto; padding: 1.2rem; }
+.banner { background:#3a2a12; color:var(--warn); padding:.75rem 1rem; border:1px solid #6b5424;
+          border-radius:8px; margin-bottom:1rem; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:1rem;
+         margin:1rem 0; }
+.muted { color:var(--muted); }
+.legend span { display:inline-block; width:12px; height:12px; margin-right:.35rem;
+               vertical-align:middle; }
+.orange { background:rgba(243,193,107,0.85); }
+.cyan { background:rgba(94,234,212,0.85); }
+canvas { width:100%; height:140px; background:#0b1018; border-radius:8px; }
+audio { width:100%; margin:.6rem 0; }
+table { width:100%; border-collapse:collapse; }
+th, td { text-align:left; padding:.4rem .5rem; border-bottom:1px solid var(--line); }</style></head>
+<body>
+<header>
+  <p><a href="index.html">← listen pack</a></p>
+  <div class="banner">STARSS23 is unwired in product infer; this pack is a research listen test. Orange = STARSS23 100 ms overlay (owner-authorized activity label, not second-listener gold). Cyan = frozen-MLP predicted spans. Local paths only.</div>
+  <h1>fixture-true-negative</h1>
+  <p class="muted">fixture.wav ·
+  fixture-room · 4000 ms ·
+  true_negative=True</p>
+</header>
+<main>
+  <div class="panel">
+    <p class='banner'>Audio missing locally; waveform peaks still shown.</p>
+    <canvas id="wave"></canvas>
+    <p><strong>Now <span id="now_ms">0</span> ms</strong></p>
+    <p class="legend"><span class="orange"></span> orange 100 ms overlay
+       &nbsp; <span class="cyan"></span> model predicted spans</p>
+  </div>
+  <div class="panel">
+    <table>
+      <thead><tr><th>kind</th><th>span ms</th><th>label</th></tr></thead>
+      <tbody><tr><td colspan='3'>True negative — no 100 ms laugh overlay</td></tr><tr><td colspan='3'>No predicted laugh spans</td></tr></tbody>
+    </table>
+  </div>
+</main>
+<script>
+function drawWave(canvas, peaks, durationMs, overlays, predictions, playheadMs) {
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = Math.max(1, canvas.clientWidth);
+  const cssH = Math.max(1, canvas.clientHeight);
+  const needW = Math.round(cssW * dpr);
+  const needH = Math.round(cssH * dpr);
+  if (canvas.width !== needW || canvas.height !== needH) {
+    canvas.width = needW; canvas.height = needH;
+  }
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#7db4ff";
+  const mid = h / 2;
+  peaks.forEach((peak, i) => {
+    const x = i / peaks.length * w;
+    const mag = peak * (h * 0.42);
+    ctx.fillRect(x, mid - mag, Math.max(1, w / peaks.length), mag * 2);
+  });
+  function mark(start, end, color) {
+    const x0 = start / durationMs * w;
+    const x1 = end / durationMs * w;
+    ctx.fillStyle = color;
+    ctx.fillRect(x0, 0, Math.max(2, x1 - x0), h);
+  }
+  overlays.forEach(ev => mark(ev.start_ms, ev.end_ms, "rgba(243,193,107,0.32)"));
+  predictions.forEach(ev => mark(ev.start_ms, ev.end_ms, "rgba(94,234,212,0.28)"));
+  if (playheadMs != null && durationMs > 0) {
+    const x = (playheadMs / durationMs) * w;
+    ctx.fillStyle = "#cf222e";
+    ctx.fillRect(Math.max(0, x - dpr), 0, Math.max(2 * dpr, dpr), h);
+  }
+}
+function boot(clip) {
+  const canvas = document.getElementById("wave");
+  const audio = document.querySelector("audio");
+  let playheadMs = 0;
+  function redraw() {
+    if (canvas && clip.peaks) {
+      drawWave(canvas, clip.peaks, clip.duration_ms, clip.overlays_100ms,
+               clip.predicted_spans, playheadMs);
+    }
+  }
+  redraw();
+  window.addEventListener("resize", redraw);
+  if (audio) {
+    audio.addEventListener("timeupdate", () => {
+      playheadMs = Math.round(audio.currentTime * 1000);
+      const now = document.getElementById("now_ms");
+      if (now) now.textContent = String(playheadMs);
+      redraw();
+    });
+  }
+}
+</script>
+<script>boot({"schema_version": "1.0", "kind": "starss23-frozen-mlp-listen-test", "wired": false, "caption": "STARSS23 is unwired in product infer; this pack is a research listen test. Orange = STARSS23 100 ms overlay (owner-authorized activity label, not second-listener gold). Cyan = frozen-MLP predicted spans. Local paths only.", "clip_id": "fixture-true-negative", "html_name": "true-negative.attune.html", "source_recording": "fixture.wav", "room": "fixture-room", "duration_ms": 4000, "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "true_negative": true, "label_status": "human_100ms_activity_not_attune_gold", "audio_href": null, "peaks": [0.05, 0.08, 0.04, 0.03, 0.02, 0.02, 0.01, 0.01], "overlays_100ms": [], "predicted_spans": [], "gold": false});</script>
+</body></html>

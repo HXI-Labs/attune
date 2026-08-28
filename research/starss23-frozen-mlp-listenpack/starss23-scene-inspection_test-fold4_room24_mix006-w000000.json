@@ -1,0 +1,113 @@
+{
+  "schema_version": "1.0",
+  "kind": "starss23-frozen-mlp-listen-test",
+  "wired": false,
+  "caption": "STARSS23 is unwired in product infer; this pack is a research listen test. Orange = STARSS23 100 ms overlay (owner-authorized activity label, not second-listener gold). Cyan = frozen-MLP predicted spans. Local paths only.",
+  "clip_id": "starss23-scene-inspection_test-fold4_room24_mix006-w000000",
+  "html_name": "starss23-scene-inspection_test-fold4_room24_mix006-w000000.html",
+  "source_recording": "fold4_room24_mix006.wav",
+  "room": "sony-room24",
+  "duration_ms": 60000,
+  "sha256": "9014738f4881df4376b97d6da3501582e6bc255408fe1a21f9d435c493ea07f1",
+  "true_negative": false,
+  "label_status": "human_100ms_activity_not_attune_gold",
+  "audio_href": "audio/starss23-scene-inspection_test-fold4_room24_mix006-w000000.wav",
+  "overlays_100ms": [
+    {
+      "start_ms": 8800,
+      "end_ms": 9100,
+      "label": "laugh",
+      "source": "starss23_100ms"
+    },
+    {
+      "start_ms": 13700,
+      "end_ms": 14700,
+      "label": "laugh",
+      "source": "starss23_100ms"
+    },
+    {
+      "start_ms": 18000,
+      "end_ms": 20200,
+      "label": "laugh",
+      "source": "starss23_100ms"
+    },
+    {
+      "start_ms": 29900,
+      "end_ms": 36000,
+      "label": "laugh",
+      "source": "starss23_100ms"
+    },
+    {
+      "start_ms": 41000,
+      "end_ms": 42600,
+      "label": "laugh",
+      "source": "starss23_100ms"
+    },
+    {
+      "start_ms": 45600,
+      "end_ms": 47900,
+      "label": "laugh",
+      "source": "starss23_100ms"
+    },
+    {
+      "start_ms": 49600,
+      "end_ms": 52100,
+      "label": "laugh",
+      "source": "starss23_100ms"
+    },
+    {
+      "start_ms": 59400,
+      "end_ms": 60000,
+      "label": "laugh",
+      "source": "starss23_100ms"
+    }
+  ],
+  "predicted_spans": [
+    {
+      "label": "laugh",
+      "start_ms": 13920,
+      "end_ms": 14640
+    },
+    {
+      "label": "laugh",
+      "start_ms": 17940,
+      "end_ms": 19860
+    },
+    {
+      "label": "laugh",
+      "start_ms": 24840,
+      "end_ms": 25320
+    },
+    {
+      "label": "laugh",
+      "start_ms": 29580,
+      "end_ms": 31500
+    },
+    {
+      "label": "laugh",
+      "start_ms": 33000,
+      "end_ms": 33780
+    },
+    {
+      "label": "laugh",
+      "start_ms": 34680,
+      "end_ms": 35940
+    },
+    {
+      "label": "laugh",
+      "start_ms": 46020,
+      "end_ms": 46560
+    },
+    {
+      "label": "laugh",
+      "start_ms": 49680,
+      "end_ms": 50820
+    },
+    {
+      "label": "laugh",
+      "start_ms": 59400,
+      "end_ms": 59760
+    }
+  ],
+  "gold": false
+}

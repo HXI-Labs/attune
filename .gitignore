@@ -29,3 +29,11 @@ model-cache/
 
 # Local demo audio; JSON/XML/HTML may be tracked.
 research/demo/*.wav
+
+# Worktree symlinks to shared local caches (git treats these as files).
+/data/raw
+/artifacts
+
+# STARSS23 listen-pack wavs; HTML/JSON stay tracked.
+research/starss23-frozen-mlp-listenpack/audio/
+research/starss23-frozen-mlp-listenpack/*.wav

@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "kind": "starss23-frozen-mlp-listen-test",
+  "caption": "STARSS23 is unwired in product infer; this pack is a research listen test. Orange = STARSS23 100 ms overlay (owner-authorized activity label, not second-listener gold). Cyan = frozen-MLP predicted spans. Local paths only.",
+  "wired": false,
+  "n_clips": 10,
+  "n_true_laugh_clips": 6,
+  "n_true_negative_clips": 4,
+  "copied_wavs": 10,
+  "clips": [
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room23_mix005-w000000",
+      "html": "starss23-scene-inspection_test-fold4_room23_mix005-w000000.html",
+      "json": "starss23-scene-inspection_test-fold4_room23_mix005-w000000.json",
+      "true_negative": false,
+      "n_overlays_100ms": 4,
+      "n_predicted_spans": 3
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room23_mix006-w000000",
+      "html": "starss23-scene-inspection_test-fold4_room23_mix006-w000000.html",
+      "json": "starss23-scene-inspection_test-fold4_room23_mix006-w000000.json",
+      "true_negative": false,
+      "n_overlays_100ms": 2,
+      "n_predicted_spans": 7
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room23_mix007-w000000",
+      "html": "starss23-scene-inspection_test-fold4_room23_mix007-w000000.html",
+      "json": "starss23-scene-inspection_test-fold4_room23_mix007-w000000.json",
+      "true_negative": false,
+      "n_overlays_100ms": 2,
+      "n_predicted_spans": 6
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room24_mix004-w000000",
+      "html": "starss23-scene-inspection_test-fold4_room24_mix004-w000000.html",
+      "json": "starss23-scene-inspection_test-fold4_room24_mix004-w000000.json",
+      "true_negative": false,
+      "n_overlays_100ms": 2,
+      "n_predicted_spans": 4
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room24_mix006-w000000",
+      "html": "starss23-scene-inspection_test-fold4_room24_mix006-w000000.html",
+      "json": "starss23-scene-inspection_test-fold4_room24_mix006-w000000.json",
+      "true_negative": false,
+      "n_overlays_100ms": 8,
+      "n_predicted_spans": 9
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room24_mix009-w000000",
+      "html": "starss23-scene-inspection_test-fold4_room24_mix009-w000000.html",
+      "json": "starss23-scene-inspection_test-fold4_room24_mix009-w000000.json",
+      "true_negative": false,
+      "n_overlays_100ms": 1,
+      "n_predicted_spans": 2
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room23_mix010-w000000",
+      "html": "starss23-scene-inspection_test-fold4_room23_mix010-w000000.html",
+      "json": "starss23-scene-inspection_test-fold4_room23_mix010-w000000.json",
+      "true_negative": true,
+      "n_overlays_100ms": 0,
+      "n_predicted_spans": 0
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room23_mix011-w000000",
+      "html": "starss23-scene-inspection_test-fold4_room23_mix011-w000000.html",
+      "json": "starss23-scene-inspection_test-fold4_room23_mix011-w000000.json",
+      "true_negative": true,
+      "n_overlays_100ms": 0,
+      "n_predicted_spans": 0
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room23_mix012-w000000",
+      "html": "starss23-scene-inspection_test-fold4_room23_mix012-w000000.html",
+      "json": "starss23-scene-inspection_test-fold4_room23_mix012-w000000.json",
+      "true_negative": true,
+      "n_overlays_100ms": 0,
+      "n_predicted_spans": 0
+    },
+    {
+      "clip_id": "starss23-scene-inspection_test-fold4_room24_mix003-w000000",
+      "html": "starss23-scene-inspection_test-fold4_room24_mix003-w000000.html",
+      "json": "starss23-scene-inspection_test-fold4_room24_mix003-w000000.json",
+      "true_negative": true,
+      "n_overlays_100ms": 0,
+      "n_predicted_spans": 3
+    }
+  ],
+  "local_paths_only": true,
+  "public_tunnel": false
+}

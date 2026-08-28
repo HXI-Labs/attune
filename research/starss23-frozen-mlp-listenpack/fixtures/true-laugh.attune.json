@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "kind": "starss23-frozen-mlp-listen-test",
+  "wired": false,
+  "caption": "STARSS23 is unwired in product infer; this pack is a research listen test. Orange = STARSS23 100 ms overlay (owner-authorized activity label, not second-listener gold). Cyan = frozen-MLP predicted spans. Local paths only.",
+  "clip_id": "fixture-true-laugh",
+  "html_name": "true-laugh.attune.html",
+  "source_recording": "fixture.wav",
+  "room": "fixture-room",
+  "duration_ms": 4000,
+  "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "true_negative": false,
+  "label_status": "human_100ms_activity_not_attune_gold",
+  "audio_href": null,
+  "overlays_100ms": [
+    {
+      "start_ms": 800,
+      "end_ms": 1600,
+      "label": "laugh",
+      "source": "starss23_100ms"
+    }
+  ],
+  "predicted_spans": [
+    {
+      "start_ms": 960,
+      "end_ms": 1500,
+      "label": "laugh"
+    }
+  ],
+  "gold": false
+}

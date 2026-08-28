@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "kind": "starss23-frozen-mlp-listen-test",
+  "wired": false,
+  "caption": "STARSS23 is unwired in product infer; this pack is a research listen test. Orange = STARSS23 100 ms overlay (owner-authorized activity label, not second-listener gold). Cyan = frozen-MLP predicted spans. Local paths only.",
+  "clip_id": "starss23-scene-inspection_test-fold4_room24_mix004-w000000",
+  "html_name": "starss23-scene-inspection_test-fold4_room24_mix004-w000000.html",
+  "source_recording": "fold4_room24_mix004.wav",
+  "room": "sony-room24",
+  "duration_ms": 60000,
+  "sha256": "8e0c95becdba3895cef37004d025ff4d7a384dadcf6ce40212bf66b91f8e6172",
+  "true_negative": false,
+  "label_status": "human_100ms_activity_not_attune_gold",
+  "audio_href": "audio/starss23-scene-inspection_test-fold4_room24_mix004-w000000.wav",
+  "overlays_100ms": [
+    {
+      "start_ms": 19000,
+      "end_ms": 20900,
+      "label": "laugh",
+      "source": "starss23_100ms"
+    },
+    {
+      "start_ms": 50600,
+      "end_ms": 51000,
+      "label": "laugh",
+      "source": "starss23_100ms"
+    }
+  ],
+  "predicted_spans": [
+    {
+      "label": "laugh",
+      "start_ms": 18960,
+      "end_ms": 20220
+    },
+    {
+      "label": "laugh",
+      "start_ms": 45900,
+      "end_ms": 46140
+    },
+    {
+      "label": "laugh",
+      "start_ms": 49500,
+      "end_ms": 49740
+    },
+    {
+      "label": "laugh",
+      "start_ms": 52380,
+      "end_ms": 52680
+    }
+  ],
+  "gold": false
+}
