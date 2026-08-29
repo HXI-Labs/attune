@@ -14,5 +14,6 @@
   "corpus_balancing": true,
   "resume": true,
   "log_interval_steps": 20,
-  "duration_bucket_multiplier": 20
+  "duration_bucket_multiplier": 20,
+  "include_ctc_loss": false
 }

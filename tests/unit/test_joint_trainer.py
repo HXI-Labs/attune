@@ -10,10 +10,12 @@ from torch import nn
 from torch.utils.data import SequentialSampler
 
 from attune.models.joint import AttuneJointModel
+from attune.training.losses import JointTargets
 from attune.training.trainer import (
     DurationBucketBatchSampler,
     TrainerConfig,
     _corpus_balanced_sampler,
+    _targets_for_loss,
     train_joint_model,
 )
 
@@ -77,6 +79,23 @@ def test_duration_bucket_sampler_limits_padding_within_batches() -> None:
         max(durations[index] for index in batch) - min(durations[index] for index in batch) <= 200
         for batch in batches
     )
+
+
+def test_frozen_training_can_exclude_read_only_ctc_monitor() -> None:
+    targets = JointTargets(
+        ctc_targets=torch.tensor([1, 2]),
+        ctc_target_lengths=torch.tensor([2]),
+        ctc_example_mask=torch.tensor([True]),
+        affect_distribution=torch.tensor([[1.0, 0.0]]),
+    )
+
+    selected = _targets_for_loss(targets, include_ctc_loss=False)
+
+    assert selected.ctc_targets is None
+    assert selected.ctc_target_lengths is None
+    assert selected.ctc_example_mask is None
+    assert selected.affect_distribution is targets.affect_distribution
+    assert _targets_for_loss(targets, include_ctc_loss=True) is targets
 
 
 def test_trainer_writes_small_delta_checkpoint(tmp_path: Path) -> None:

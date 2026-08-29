@@ -37,6 +37,8 @@ SUBESCO provide no CTC supervision.
 - Batch size: 24 with duration bucketing.
 - Head learning rate: 5e-5.
 - Corpus-balanced sampling: enabled.
+- CTC optimization loss: excluded because every encoder/CTC parameter is
+  frozen; ASR is checked independently before candidate acceptance.
 - Mixed BF16 precision on CUDA.
 - Cost ceiling: £10 at a declared planning rate of £0.25/hour.
 - Resume state: enabled and hash-bound to source, manifest, and initialization.
@@ -63,8 +65,7 @@ scientific protocol. The MPS configuration changes only the execution device
 and records a zero compute-rental cost:
 
 ```bash
-PYTORCH_ENABLE_MPS_FALLBACK=1 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 \
-uv run python scripts/train_joint.py \
+ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/train_joint.py \
   --manifest artifacts/manifests/joint-affect-v0.6.jsonl \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
   --output-dir artifacts/training/local-frozen-full-head-v0.6 \
@@ -78,10 +79,12 @@ head gradient tensors were present, while the SenseVoice encoder had zero
 gradient tensors. The model reported 235,291,018 total parameters, 1,291,851
 trainable head parameters, and zero trainable encoder parameters.
 
-PyTorch does not currently implement CTC loss natively on MPS. The local
-command therefore enables its documented CPU fallback. CTC is a read-only ASR
-monitor under the frozen policy; the fallback cannot update the locked
-SenseVoice encoder or CTC parameters.
+PyTorch does not currently implement CTC loss natively on MPS. The first local
+attempt was stopped before completing an epoch after that read-only monitor
+fell back to CPU and made the run impractically slow. Excluding a loss whose
+entire parameter path is frozen does not alter any trainable gradient. It also
+keeps early stopping focused on the paralinguistic objectives; transcript
+invariance remains a separate acceptance gate.
 
 ## Acceptance gates
 

@@ -6,7 +6,7 @@ import hashlib
 import json
 import math
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +25,7 @@ from attune.models.joint import (
     load_attune_checkpoint,
 )
 from attune.training.data import JointFeatureDataset, collate_joint_examples, manifest_sha256
-from attune.training.losses import LossWeights, compute_joint_loss
+from attune.training.losses import JointTargets, LossWeights, compute_joint_loss
 
 _TRAINING_SOURCE_FILES = (
     "pyproject.toml",
@@ -56,6 +56,7 @@ class TrainerConfig:
     resume: bool = True
     log_interval_steps: int = 25
     duration_bucket_multiplier: int = 20
+    include_ctc_loss: bool = True
 
     def validate(self) -> None:
         if self.epochs < 1 or self.batch_size < 1 or self.gradient_accumulation < 1:
@@ -90,6 +91,19 @@ def _parameter_groups(model: AttuneJointModel, config: TrainerConfig) -> list[di
 
 def _estimated_cost(started: float, hourly_cost: float) -> float:
     return (time.monotonic() - started) / 3600.0 * hourly_cost
+
+
+def _targets_for_loss(targets: JointTargets, *, include_ctc_loss: bool) -> JointTargets:
+    """Exclude the read-only CTC monitor when every ASR parameter is frozen."""
+
+    if include_ctc_loss:
+        return targets
+    return replace(
+        targets,
+        ctc_targets=None,
+        ctc_target_lengths=None,
+        ctc_example_mask=None,
+    )
 
 
 def _atomic_torch_save(value: Any, path: Path) -> None:
@@ -185,6 +199,9 @@ def train_joint_model(
         raise RuntimeError("CUDA training was requested but CUDA is unavailable")
     device = torch.device(config.device)
     model.to(device)
+    parameter_summary = model.trainable_parameter_summary()
+    if not config.include_ctc_loss and parameter_summary["encoder_trainable"] != 0:
+        raise ValueError("CTC loss may be excluded only when the SenseVoice encoder is frozen")
     train_data = JointFeatureDataset(manifest, split="train")
     validation_data = JointFeatureDataset(manifest, split="development")
     generator = torch.Generator().manual_seed(config.seed)
@@ -264,7 +281,10 @@ def train_joint_model(
             batch = batch.to(device)
             with torch.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=use_amp):
                 output = model(batch.speech, batch.speech_lengths)
-                loss, _ = compute_joint_loss(output, batch.targets, weights)
+                targets = _targets_for_loss(
+                    batch.targets, include_ctc_loss=config.include_ctc_loss
+                )
+                loss, _ = compute_joint_loss(output, targets, weights)
                 scaled_loss = loss / config.gradient_accumulation
             scaler.scale(scaled_loss).backward()
             if step % config.gradient_accumulation == 0 or step == len(train_loader):
@@ -293,7 +313,10 @@ def train_joint_model(
             for batch in validation_loader:
                 batch = batch.to(device)
                 output = model(batch.speech, batch.speech_lengths)
-                loss, _ = compute_joint_loss(output, batch.targets, weights)
+                targets = _targets_for_loss(
+                    batch.targets, include_ctc_loss=config.include_ctc_loss
+                )
+                loss, _ = compute_joint_loss(output, targets, weights)
                 validation_total += float(loss)
         train_mean = training_total / len(train_loader)
         validation_mean = validation_total / len(validation_loader)
