@@ -38,6 +38,47 @@ and [`research/ravdess-affect-external-v0.1.md`](research/ravdess-affect-externa
 
 ## Output
 
+The structured result can be rendered as a compact readable transcript. These
+examples illustrate the intended Attune experience; labels that have not yet
+passed the release gates remain disabled in the current checkpoint.
+
+```text
+[laughing speech; perceived joy 81%]
+I cannot believe you actually did that! [laugh]
+
+[whispering; perceived fear 63%]
+Did you hear that outside? [breath]
+
+[crying speech; perceived distress 76%]
+I said I was fine. [sob]
+
+[shouting; perceived anger 72%]
+Put my cake back in the fridge!
+```
+
+The same words can produce different results when their audible delivery
+changes:
+
+```text
+[neutral] I'm fine.
+[laughing speech; perceived joy 78%] I'm fine. [laugh]
+[crying speech; perceived distress 69%] I'm fine. [sob]
+[affect uncertain] I'm fine.
+```
+
+When turn or VAD boundaries separate changing delivery into distinct
+utterances, a conversation can read:
+
+```text
+[neutral] I thought the parcel was lost.
+[laughing speech; perceived joy 74%] It was behind the door the whole time. [laugh]
+[crying speech; perceived distress 66%] I really needed that today. [sob]
+```
+
+Square brackets are a human-readable projection, not model-generated markup.
+JSON remains authoritative and keeps transcript text separate from trusted
+model metadata.
+
 For speech without supported paralinguistic evidence, a human-readable view may
 be:
 
