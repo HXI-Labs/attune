@@ -106,7 +106,12 @@ def adapt_fsd50k(rows: Iterable[dict[str, Any]], *, cache_root: Path) -> list[di
     return normalized
 
 
-def adapt_crema(rows: Iterable[dict[str, Any]], *, cache_root: Path) -> list[dict[str, Any]]:
+def adapt_crema(
+    rows: Iterable[dict[str, Any]],
+    *,
+    cache_root: Path,
+    auxiliary_negative_controls: bool = False,
+) -> list[dict[str, Any]]:
     normalized = []
     pair_ids: dict[str, int] = {}
     for row in rows:
@@ -127,20 +132,27 @@ def adapt_crema(rows: Iterable[dict[str, Any]], *, cache_root: Path) -> list[dic
                 "duration_ms": row["duration_ms"],
                 "transcript": CREMA_SENTENCES[sentence_code],
                 "events": None,
-                "event_presence": None,
+                "event_presence": [] if auxiliary_negative_controls else None,
                 "styles": None,
                 "affect_distribution": _one_hot_affect(row["target_affect"]),
                 "vad": None,
                 "pair_id": pair_id,
                 "is_ood": False,
                 "lexical_affect_label": "neutral",
+                "auxiliary_negative_tasks": (
+                    ["event_presence"] if auxiliary_negative_controls else []
+                ),
             }
         )
     return normalized
 
 
 def adapt_common_voice(
-    rows: Iterable[dict[str, Any]], *, cache_root: Path, split: str | None
+    rows: Iterable[dict[str, Any]],
+    *,
+    cache_root: Path,
+    split: str | None,
+    auxiliary_negative_controls: bool = False,
 ) -> list[dict[str, Any]]:
     return [
         {
@@ -153,13 +165,16 @@ def adapt_common_voice(
             "duration_ms": round(float(row["duration_s"]) * 1000),
             "transcript": row["transcript"],
             "events": None,
-            "event_presence": None,
-            "styles": None,
+            "event_presence": [] if auxiliary_negative_controls else None,
+            "styles": [] if auxiliary_negative_controls else None,
             "affect_distribution": None,
             "vad": None,
             "pair_id": -1,
             "is_ood": False,
             "lexical_affect_label": None,
+            "auxiliary_negative_tasks": (
+                ["event_presence", "styles"] if auxiliary_negative_controls else []
+            ),
         }
         for row in rows
     ]

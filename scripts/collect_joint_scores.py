@@ -14,7 +14,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--model", type=Path, required=True)
-    parser.add_argument("--split", choices=("development", "sealed_test"), required=True)
+    parser.add_argument("--split", choices=("train", "development", "sealed_test"), required=True)
     parser.add_argument(
         "--sensevoice-path",
         type=Path,

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 import torch
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -31,11 +31,20 @@ class SourceRow(BaseModel):
     pair_id: int = -1
     is_ood: bool = False
     lexical_affect_label: str | None = None
+    auxiliary_negative_tasks: list[Literal["event_presence", "styles"]] = Field(
+        default_factory=list
+    )
 
     @model_validator(mode="after")
     def audio_hash_shape(self) -> SourceRow:
         if len(self.audio_sha256) != 64:
             raise ValueError("audio_sha256 must be a SHA-256 hex digest")
+        if "event_presence" in self.auxiliary_negative_tasks and self.event_presence != []:
+            raise ValueError("event-presence controls require an explicit empty target list")
+        if "styles" in self.auxiliary_negative_tasks and self.styles != []:
+            raise ValueError("style controls require an explicit empty target list")
+        if self.auxiliary_negative_tasks and self.transcript is None:
+            raise ValueError("auxiliary negative controls must contain verified speech")
         return self
 
 
@@ -126,6 +135,7 @@ def prepare_joint_features(
                 pair_id=row.pair_id,
                 is_ood=row.is_ood,
                 lexical_affect_label=row.lexical_affect_label,
+                auxiliary_negative_tasks=row.auxiliary_negative_tasks,
             )
         )
     write_manifest(manifest_path, prepared)
@@ -150,5 +160,6 @@ def write_source_template(path: Path) -> None:
         "pair_id": -1,
         "is_ood": False,
         "lexical_affect_label": None,
+        "auxiliary_negative_tasks": [],
     }
     path.write_text(json.dumps(example, sort_keys=True) + "\n")

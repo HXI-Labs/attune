@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from attune.training.source_adapters import adapt_crema, adapt_dcase, adapt_fsd50k
+from attune.training.source_adapters import (
+    adapt_common_voice,
+    adapt_crema,
+    adapt_dcase,
+    adapt_fsd50k,
+)
 
 
 def test_dcase_preserves_strong_timing_and_derives_presence() -> None:
@@ -83,3 +88,27 @@ def test_crema_pair_keeps_source_label_and_neutral_lexical_control() -> None:
     assert output["affect_distribution"]["anger"] == 1.0
     assert output["lexical_affect_label"] == "neutral"
     assert output["transcript"] == "It's eleven o'clock."
+
+
+def test_v2_speech_controls_are_explicit_and_opt_in() -> None:
+    row = {
+        "clip_id": "cv-1",
+        "cache_path": "cv-1.wav",
+        "sha256": "e" * 64,
+        "duration_s": 1.2,
+        "partition": "train",
+        "client_id": "speaker-1",
+        "transcript": "ordinary read speech",
+    }
+
+    legacy = adapt_common_voice([row], cache_root=Path("/audio"), split=None)[0]
+    controlled = adapt_common_voice(
+        [row],
+        cache_root=Path("/audio"),
+        split=None,
+        auxiliary_negative_controls=True,
+    )[0]
+
+    assert legacy["event_presence"] is None and legacy["styles"] is None
+    assert controlled["event_presence"] == [] and controlled["styles"] == []
+    assert controlled["auxiliary_negative_tasks"] == ["event_presence", "styles"]

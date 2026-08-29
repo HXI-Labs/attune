@@ -65,6 +65,7 @@ def collect_onnx_scores(
             "pair_id": manifest_row.pair_id,
             "lexical_affect_label": manifest_row.lexical_affect_label,
             "frame_hop_ms": manifest_row.frame_hop_ms,
+            "auxiliary_negative_tasks": manifest_row.auxiliary_negative_tasks,
         }
         if manifest_row.transcript is not None and transcript_decoder is not None:
             predicted, _confidence = transcript_decoder(outputs["ctc_logits"][0], length)
@@ -297,10 +298,15 @@ def evaluate_joint_scores(
     speech_controls = [
         row
         for row in rows
-        if "reference_transcript" in row
-        and "event_targets" not in row
-        and "event_presence_targets" not in row
-        and "style_targets" not in row
+        if bool(row.get("auxiliary_negative_tasks"))
+        or (
+            "reference_transcript" in row
+            and (
+                "event_targets" not in row
+                and "event_presence_targets" not in row
+                and "style_targets" not in row
+            )
+        )
     ]
     if speech_controls:
         localized_false_clips = presence_false_clips = style_false_clips = 0

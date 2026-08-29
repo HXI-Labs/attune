@@ -64,6 +64,16 @@ versus 0.4773 at full coverage. These are engineering results on a small,
 source-labelled, partly acted/synthetic bundle—not evidence of broad
 naturalistic emotion understanding.
 
+### Negative-control follow-up
+
+An opt-in v0.2 experiment now distinguishes explicit weak speech negatives from
+missing labels. A lightweight correction over the frozen INT8 embeddings
+reached 0.8152 sealed event-presence macro-F1, but still labeled one neutral
+CREMA-D speech control as `sneeze` at 0.9976. It is therefore **not deployed**,
+and style/event-presence runtime allowlists remain empty. See
+`research/auxiliary-negative-controls-v0.2.md` for the complete train/dev/sealed
+protocol and per-label results.
+
 The first sealed pass exposed excessive ASR drift in the originally selected
 single-tail model. The perception checkpoint and calibration were kept fixed,
 and the architecture was corrected with the frozen ASR tail described above.

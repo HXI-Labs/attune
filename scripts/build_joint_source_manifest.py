@@ -34,6 +34,14 @@ def main() -> None:
     )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
+        "--auxiliary-negative-controls",
+        action="store_true",
+        help=(
+            "Opt into v0.2 speech-negative supervision: Common Voice is negative for "
+            "event presence/styles and CREMA-D for discrete event presence only."
+        ),
+    )
+    parser.add_argument(
         "--normalized-source",
         type=Path,
         action="append",
@@ -67,7 +75,13 @@ def main() -> None:
     if arguments.crema:
         if not arguments.crema_cache:
             parser.error("--crema-cache is required with --crema")
-        rows.extend(adapt_crema(load_jsonl(arguments.crema), cache_root=arguments.crema_cache))
+        rows.extend(
+            adapt_crema(
+                load_jsonl(arguments.crema),
+                cache_root=arguments.crema_cache,
+                auxiliary_negative_controls=arguments.auxiliary_negative_controls,
+            )
+        )
     if arguments.common_voice:
         if not arguments.common_voice_cache:
             parser.error("--common-voice-cache is required with --common-voice")
@@ -80,6 +94,7 @@ def main() -> None:
                     if arguments.common_voice_split == "source"
                     else arguments.common_voice_split
                 ),
+                auxiliary_negative_controls=arguments.auxiliary_negative_controls,
             )
         )
     if not rows:

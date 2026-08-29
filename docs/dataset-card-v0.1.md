@@ -40,6 +40,11 @@ The release artifact manifest records both files and the audit report.
   their event/style tasks.
 - Missing task annotations are masked, never converted to negatives.
 
+An opt-in v0.2 experiment adds explicitly marked weak speech-negative controls;
+it does not alter this v0.1 manifest. See
+`docs/auxiliary-negative-controls.md` and
+`configs/data/auxiliary-negative-controls-v0.2.json`.
+
 ## Leakage controls
 
 The source validator rejects duplicate IDs and known speakers crossing splits.

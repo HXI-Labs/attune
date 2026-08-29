@@ -58,3 +58,29 @@ def test_manifest_hash_verification_and_collation(tmp_path: Path) -> None:
     assert batch.targets.event_targets[0, 2:6, 0].sum() == 4
     assert batch.targets.event_presence_targets[0].sum() == 2
     assert batch.targets.affect_example_mask.tolist() == [True]
+
+
+def test_explicit_speech_controls_supervise_all_negative_auxiliary_labels(
+    tmp_path: Path,
+) -> None:
+    feature = tmp_path / "feature.pt"
+    torch.save(torch.randn(10, 80), feature)
+    digest = hashlib.sha256(feature.read_bytes()).hexdigest()
+    row = _row(feature, digest, "control-1", "train")
+    row.update(
+        {
+            "transcript": "ordinary read speech",
+            "event_presence": [],
+            "styles": [],
+            "auxiliary_negative_tasks": ["event_presence", "styles"],
+        }
+    )
+    manifest = tmp_path / "manifest.jsonl"
+    manifest.write_text(json.dumps(row) + "\n")
+
+    batch = collate_joint_examples([JointFeatureDataset(manifest, split="train")[0]])
+
+    assert batch.targets.event_presence_example_mask.all()
+    assert batch.targets.event_presence_targets.sum() == 0
+    assert batch.targets.style_example_mask.all()
+    assert batch.targets.style_targets.sum() == 0

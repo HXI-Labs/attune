@@ -120,3 +120,33 @@ def test_speech_control_metrics_match_runtime_suppression_and_span_rules() -> No
         "aux_false_positive_rate": 0.0,
         "localized_false_events_per_minute": 0.0,
     }
+
+
+def test_explicit_negative_targets_remain_speech_controls_in_evaluation() -> None:
+    calibration = RuntimeCalibration(
+        event_thresholds={
+            label: 0.5
+            for label in ("laugh", "sob", "scream", "sigh", "cough", "throat_clear", "sneeze")
+        },
+        event_presence_thresholds={
+            label: 0.5
+            for label in ("laugh", "sob", "scream", "sigh", "cough", "throat_clear", "sneeze")
+        },
+        style_thresholds={"shouting": 0.5, "whispering": 0.5},
+    )
+    rows = [
+        {
+            "event_logits": np.full((4, 7), -8.0).tolist(),
+            "event_presence_logits": [-8.0] * 7,
+            "event_presence_targets": [0.0] * 7,
+            "style_logits": [-8.0] * 2,
+            "style_targets": [0.0] * 2,
+            "auxiliary_negative_tasks": ["event_presence", "styles"],
+            "frame_hop_ms": 60.0,
+        }
+    ]
+
+    report = evaluate_joint_scores(rows, calibration)
+
+    assert report["speech_controls"]["clips"] == 1
+    assert report["speech_controls"]["aux_false_positive_rate"] == 0.0
