@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "status": "predeclared_before_subesco_metric_inspection",
+  "purpose": "Test whether speaker-diverse permissive data and nonlinear frozen-output adaptation can generalize without touching ASR.",
+  "seed": 0,
+  "training_scores": {
+    "original_train": "artifacts/evaluation/aux-negative-v0.2/int8-train-scores.jsonl",
+    "thorsten_train": "artifacts/evaluation/thorsten-emotional-v0.1/train-raw.jsonl",
+    "subesco_train": "artifacts/evaluation/subesco-affect-v0.1/train-raw.jsonl"
+  },
+  "selection_scores": {
+    "original_development": "artifacts/evaluation/aux-negative-v0.2/int8-development-scores.jsonl",
+    "thorsten_development": "artifacts/evaluation/thorsten-emotional-v0.1/development-raw.jsonl",
+    "subesco_development": "artifacts/evaluation/subesco-affect-v0.1/development-raw.jsonl"
+  },
+  "diagnostic_scores": {
+    "original_opened_sealed": "artifacts/evaluation/aux-negative-v0.2/int8-sealed-scores.jsonl",
+    "thorsten_opened_sealed": "artifacts/evaluation/thorsten-emotional-v0.1/sealed-raw.jsonl",
+    "subesco_sealed": "artifacts/evaluation/subesco-affect-v0.1/sealed-raw.jsonl",
+    "external_ravdess_opened": "artifacts/evaluation/ravdess-affect-external-v0.1/int8-scores.jsonl"
+  },
+  "features": ["ood_embedding_32d", "affect_logits_8d", "vad_prediction_3d"],
+  "model": {
+    "type": "two_layer_mlp",
+    "hidden_sizes": [128, 64],
+    "activation": "gelu",
+    "dropout": 0.1,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "maximum_epochs": 300,
+    "patience": 35,
+    "weighting": "inverse_dataset_and_class_group_frequency",
+    "selection": "mean_per_dataset_development_macro_f1_then_cross_entropy"
+  },
+  "acceptance": {
+    "primary_external_report": "external_ravdess_opened",
+    "macro_f1_minimums": {
+      "original_development": 0.55,
+      "subesco_sealed": 0.6,
+      "external_ravdess_opened": 0.4
+    },
+    "external_maximum_predicted_class_share": 0.6,
+    "external_minimum_coverage": 0.5,
+    "external_selective_error_must_improve": true,
+    "asr_path_must_remain_byte_identical": true
+  },
+  "constraints": {
+    "subesco_sealed_unopened_at_protocol_commit": true,
+    "ravdess_is_repeated_opened_diagnostic": true,
+    "no_encoder_or_ctc_training": true,
+    "deployment_enabled_only_after_original_audio_retest": false
+  },
+  "deployment_enabled": false
+}
