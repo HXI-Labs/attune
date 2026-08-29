@@ -1,6 +1,6 @@
 {
   "epochs": 10,
-  "batch_size": 12,
+  "batch_size": 10,
   "gradient_accumulation": 2,
   "head_learning_rate": 0.00002,
   "encoder_learning_rate": 0.000005,
