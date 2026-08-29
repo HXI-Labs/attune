@@ -32,6 +32,11 @@ def main() -> None:
         type=Path,
         help="Frozen-probe delta used to warm-start heads for an adapted candidate",
     )
+    parser.add_argument(
+        "--preserve-base-asr",
+        action="store_true",
+        help="Route CTC through frozen base tail blocks while adapting perception",
+    )
     parser.add_argument("--gpu-hour-cost-gbp", type=float)
     parser.add_argument("--maximum-cost-gbp", type=float)
     arguments = parser.parse_args()
@@ -48,7 +53,9 @@ def main() -> None:
     config = TrainerConfig(**values)
     backbone = load_local_sensevoice(arguments.sensevoice_path, device=config.device)
     model = AttuneJointModel(
-        backbone, adaptation_policy=AdaptationPolicy(arguments.adaptation_policy)
+        backbone,
+        adaptation_policy=AdaptationPolicy(arguments.adaptation_policy),
+        preserve_base_asr=arguments.preserve_base_asr,
     )
     initial_checkpoint_sha256 = None
     if arguments.initial_checkpoint:

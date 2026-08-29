@@ -167,6 +167,21 @@ def test_frozen_heads_warm_start_upper_two_without_overwriting_encoder() -> None
     assert torch.equal(target.sensevoice.encoder.encoders[-1].weight, encoder_before)
 
 
+def test_frozen_heads_warm_start_split_tail_without_loading_base_asr_copies() -> None:
+    source = AttuneJointModel(SplitFakeSenseVoice())
+    target = AttuneJointModel(
+        SplitFakeSenseVoice(),
+        adaptation_policy=AdaptationPolicy.UPPER_TWO,
+        preserve_base_asr=True,
+    )
+    base_tail_before = target.base_asr_tail[-1].projection.weight.detach().clone()
+
+    warm_start_attune_heads(target, attune_delta_checkpoint(source))
+
+    assert torch.equal(target.affect_head.weight, source.affect_head.weight)
+    assert torch.equal(target.base_asr_tail[-1].projection.weight, base_tail_before)
+
+
 def test_same_policy_initial_checkpoint_continues_all_trainable_parameters() -> None:
     source = AttuneJointModel(FakeSenseVoice(), adaptation_policy=AdaptationPolicy.FROZEN)
     target = AttuneJointModel(FakeSenseVoice(), adaptation_policy=AdaptationPolicy.FROZEN)

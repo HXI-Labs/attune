@@ -382,7 +382,9 @@ def warm_start_attune_heads(model: AttuneJointModel, checkpoint: dict[str, Any])
     if any(name.startswith("sensevoice.") for name in state):
         raise ValueError("frozen warm-start checkpoint unexpectedly contains encoder tensors")
     expected = {
-        name for name, _parameter in model.named_parameters() if not name.startswith("sensevoice.")
+        name
+        for name, _parameter in model.named_parameters()
+        if not name.startswith(("sensevoice.", "base_asr_"))
     }
     if set(state) != expected:
         missing = sorted(expected - set(state))

@@ -64,6 +64,43 @@ def _affect_threshold(probabilities: np.ndarray, targets: np.ndarray) -> float:
     return best[1]
 
 
+def _speech_controls(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        row
+        for row in rows
+        if bool(row.get("auxiliary_negative_tasks"))
+        or (
+            "reference_transcript" in row
+            and "event_targets" not in row
+            and "event_presence_targets" not in row
+            and "style_targets" not in row
+        )
+    ]
+
+
+def _event_thresholds(
+    probabilities: np.ndarray,
+    targets: np.ndarray,
+    control_rows: list[dict[str, Any]],
+    temperature: float,
+) -> dict[str, float]:
+    thresholds = {}
+    for index, label in enumerate(SUPPORTED_EVENTS):
+        threshold = _f1_threshold(probabilities[..., index], targets[..., index])
+        if control_rows:
+            highest_control_probability = max(
+                float(
+                    _sigmoid(
+                        np.asarray(row["event_logits"], dtype=np.float32)[..., index] / temperature
+                    ).max()
+                )
+                for row in control_rows
+            )
+            threshold = max(threshold, min(1.0, highest_control_probability + 1e-4))
+        thresholds[label.value] = threshold
+    return thresholds
+
+
 def fit_runtime_calibration(rows: list[dict[str, Any]]) -> RuntimeCalibration:
     if not rows:
         raise ValueError("calibration requires validation rows")
@@ -118,10 +155,12 @@ def fit_runtime_calibration(rows: list[dict[str, Any]]) -> RuntimeCalibration:
     ood_probabilities = _sigmoid(ood_logits / ood_temperature)
     return RuntimeCalibration(
         event_temperature=event_temperature,
-        event_thresholds={
-            label.value: _f1_threshold(event_probabilities[..., index], event_targets[..., index])
-            for index, label in enumerate(SUPPORTED_EVENTS)
-        },
+        event_thresholds=_event_thresholds(
+            event_probabilities,
+            event_targets,
+            _speech_controls(rows),
+            event_temperature,
+        ),
         event_presence_temperature=presence_temperature,
         event_presence_thresholds={
             label.value: _f1_threshold(presence_probabilities[:, index], presence_targets[:, index])

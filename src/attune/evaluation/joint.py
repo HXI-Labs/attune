@@ -439,9 +439,21 @@ def evaluate_joint_scores(
             predictions, hard_targets, len(AffectCategory)
         )
         report["affect_macro_f1"] = _present_class_macro_f1(predictions, hard_targets)
+        category_order = tuple(AffectCategory)
+        category_count = len(category_order)
         report["affect_supported_classes"] = [
-            tuple(AffectCategory)[index].value for index in np.unique(hard_targets)
+            category_order[index].value for index in np.unique(hard_targets)
         ]
+        prediction_counts = np.bincount(predictions, minlength=category_count)
+        target_counts = np.bincount(hard_targets, minlength=category_count)
+        report["affect_prediction_share"] = {
+            category.value: float(prediction_counts[index] / len(predictions))
+            for index, category in enumerate(category_order)
+        }
+        report["affect_target_share"] = {
+            category.value: float(target_counts[index] / len(hard_targets))
+            for index, category in enumerate(category_order)
+        }
         report["affect_brier"] = float(np.mean(np.sum((probabilities - targets) ** 2, axis=-1)))
         report["affect_ece"] = _ece(probabilities, hard_targets)
         report["affect_mce"] = _mce(probabilities, hard_targets)

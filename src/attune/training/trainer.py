@@ -94,7 +94,7 @@ def _estimated_cost(started: float, hourly_cost: float) -> float:
 
 
 def _targets_for_loss(targets: JointTargets, *, include_ctc_loss: bool) -> JointTargets:
-    """Exclude the read-only CTC monitor when every ASR parameter is frozen."""
+    """Exclude CTC targets when the ASR route cannot be changed by training."""
 
     if include_ctc_loss:
         return targets
@@ -200,8 +200,14 @@ def train_joint_model(
     device = torch.device(config.device)
     model.to(device)
     parameter_summary = model.trainable_parameter_summary()
-    if not config.include_ctc_loss and parameter_summary["encoder_trainable"] != 0:
-        raise ValueError("CTC loss may be excluded only when the SenseVoice encoder is frozen")
+    if (
+        not config.include_ctc_loss
+        and parameter_summary["encoder_trainable"] != 0
+        and not model.preserve_base_asr
+    ):
+        raise ValueError(
+            "CTC loss may be excluded only when the encoder is frozen or the ASR tail is isolated"
+        )
     train_data = JointFeatureDataset(manifest, split="train")
     validation_data = JointFeatureDataset(manifest, split="development")
     generator = torch.Generator().manual_seed(config.seed)
@@ -285,9 +291,7 @@ def train_joint_model(
                     batch.speech_lengths,
                     compute_ctc_logits=config.include_ctc_loss,
                 )
-                targets = _targets_for_loss(
-                    batch.targets, include_ctc_loss=config.include_ctc_loss
-                )
+                targets = _targets_for_loss(batch.targets, include_ctc_loss=config.include_ctc_loss)
                 loss, _ = compute_joint_loss(output, targets, weights)
                 scaled_loss = loss / config.gradient_accumulation
             scaler.scale(scaled_loss).backward()
@@ -321,9 +325,7 @@ def train_joint_model(
                     batch.speech_lengths,
                     compute_ctc_logits=config.include_ctc_loss,
                 )
-                targets = _targets_for_loss(
-                    batch.targets, include_ctc_loss=config.include_ctc_loss
-                )
+                targets = _targets_for_loss(batch.targets, include_ctc_loss=config.include_ctc_loss)
                 loss, _ = compute_joint_loss(output, targets, weights)
                 validation_total += float(loss)
         train_mean = training_total / len(train_loader)
@@ -379,6 +381,7 @@ def train_joint_model(
         "trainer": asdict(config),
         "loss_weights": asdict(weights or LossWeights()),
         "parameter_summary": model.trainable_parameter_summary(),
+        "preserve_base_asr": model.preserve_base_asr,
         "history": history,
         "best_validation_loss": best_validation,
         "elapsed_seconds": time.monotonic() - started,

@@ -75,6 +75,9 @@ def test_joint_report_includes_aps_and_all_task_metrics() -> None:
     assert report["affect_macro_f1"] == 1.0
     assert report["affect_macro_f1_ontology"] == 0.125
     assert report["affect_supported_classes"] == ["anger"]
+    assert report["affect_prediction_share"]["anger"] == 1.0
+    assert report["affect_target_share"]["anger"] == 1.0
+    assert sum(report["affect_prediction_share"].values()) == 1.0
     assert report["vad_ccc"]["arousal"] > 0.99
     assert report["asr_wer"] == 1 / 6
     assert report["affect_selective_risk_improves"] is True
