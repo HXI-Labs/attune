@@ -12,8 +12,8 @@ import yaml
 from attune.models.joint import (
     AdaptationPolicy,
     AttuneJointModel,
+    initialize_attune_candidate,
     load_local_sensevoice,
-    warm_start_attune_heads,
 )
 from attune.training.trainer import TrainerConfig, train_joint_model
 
@@ -60,7 +60,7 @@ def main() -> None:
             map_location="cpu",
             weights_only=True,
         )
-        warm_start_attune_heads(model, checkpoint)
+        initialize_attune_candidate(model, checkpoint)
     report = train_joint_model(
         model,
         manifest=arguments.manifest,

@@ -388,6 +388,16 @@ def warm_start_attune_heads(model: AttuneJointModel, checkpoint: dict[str, Any])
     model.load_state_dict(state, strict=False)
 
 
+def initialize_attune_candidate(model: AttuneJointModel, checkpoint: dict[str, Any]) -> None:
+    """Continue a same-policy candidate or warm frozen heads into adaptation."""
+    if checkpoint.get("format") != "attune_delta_v1":
+        raise ValueError("initial checkpoint must use attune_delta_v1")
+    if checkpoint.get("adaptation_policy") == model.adaptation_policy.value:
+        load_attune_checkpoint(model, checkpoint)
+        return
+    warm_start_attune_heads(model, checkpoint)
+
+
 def load_local_sensevoice(checkpoint: str, *, device: str = "cpu") -> Any:
     """Load only a local, explicitly reviewed SenseVoice checkpoint."""
     import os

@@ -9,6 +9,7 @@ from attune.models.joint import (
     AdaptationPolicy,
     AttuneJointModel,
     attune_delta_checkpoint,
+    initialize_attune_candidate,
     load_attune_checkpoint,
     warm_start_attune_heads,
 )
@@ -150,6 +151,18 @@ def test_frozen_heads_warm_start_upper_two_without_overwriting_encoder() -> None
 
     assert torch.equal(target.affect_head.weight, source.affect_head.weight)
     assert torch.equal(target.sensevoice.encoder.encoders[-1].weight, encoder_before)
+
+
+def test_same_policy_initial_checkpoint_continues_all_trainable_parameters() -> None:
+    source = AttuneJointModel(FakeSenseVoice(), adaptation_policy=AdaptationPolicy.FROZEN)
+    target = AttuneJointModel(FakeSenseVoice(), adaptation_policy=AdaptationPolicy.FROZEN)
+
+    initialize_attune_candidate(target, attune_delta_checkpoint(source))
+
+    source_state = attune_delta_checkpoint(source)["state_dict"]
+    target_state = attune_delta_checkpoint(target)["state_dict"]
+    assert source_state.keys() == target_state.keys()
+    assert all(torch.equal(source_state[name], target_state[name]) for name in source_state)
 
 
 def test_warm_start_rejects_upper_two_source() -> None:

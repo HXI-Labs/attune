@@ -88,7 +88,7 @@ def _validate_partition_leakage(rows: list[SourceRow]) -> None:
         previous_unit = split_units.setdefault(row.dataset_id, row.split_unit)
         if previous_unit != row.split_unit:
             raise ValueError(f"dataset {row.dataset_id!r} mixes split-unit policies")
-        if row.pair_id >= 0:
+        if row.pair_id >= 0 and row.split_unit == "sentence":
             pair_key = (row.dataset_id, row.pair_id)
             previous_pair_split = pairs.setdefault(pair_key, row.split)
             if previous_pair_split != row.split:
