@@ -3,11 +3,20 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.hypothesis/
 .coverage
+.coverage.*
 htmlcov/
+build/
+dist/
+*.egg-info/
 .idea/
 .vscode/
 .DS_Store
+.env
+.env.*
+!.env.example
 
 # Local data and model artifacts; keep manifests/provenance tracked.
 data/raw/

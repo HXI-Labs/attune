@@ -23,4 +23,6 @@ def test_release_manifest_is_sorted_and_hashed(tmp_path) -> None:
     manifest = script.build_manifest(tmp_path, [second, first])
 
     assert [row["path"] for row in manifest["artifacts"]] == ["a.txt", "b.txt"]
-    assert manifest["artifacts"][0]["sha256"] == script.sha256_file(first)
+    assert manifest["artifacts"][0]["sha256"] == (
+        "a7937b64b8caa58f03721bb6bacf5c78cb235febe0e70b1b84cd99541461a08e"
+    )

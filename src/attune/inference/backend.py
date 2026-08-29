@@ -15,8 +15,8 @@ class InferenceBackend(Protocol):
 
 
 def set_output_status(output: AttuneOutputV2, status: str) -> AttuneOutputV2:
-    payload = output.model_dump(mode="json")
+    serialized = output.model_dump(mode="json")
     for channel in ("styles", "events"):
-        for annotation in payload[channel]:
+        for annotation in serialized[channel]:
             annotation["status"] = status
-    return AttuneOutputV2.model_validate(payload)
+    return AttuneOutputV2.model_validate(serialized)

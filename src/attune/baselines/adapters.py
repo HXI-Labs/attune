@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from attune.audio.contracts import placeholder_quality_probabilities
+from attune.audio.contracts import unavailable_quality_placeholders
 from attune.baselines.sensevoice import (
     build_utterance_spans,
     parse_sensevoice_output,
@@ -56,7 +56,7 @@ class BaselinePrediction:
 
 
 class BaselineAdapter(ABC):
-    """Common interface for all Phase 1 full-output runners."""
+    """Common interface for full-output baseline runners."""
 
     name: str
 
@@ -70,7 +70,7 @@ class BaselineAdapter(ABC):
 
 
 class TranscriptSentimentAdapter(BaselineAdapter):
-    """Deterministic CPU lexicon baseline; audio channels are explicit placeholders."""
+    """Deterministic CPU lexicon baseline with unavailable audio channels."""
 
     name = "transcript-only-lexicon"
     _lexicons = {
@@ -581,7 +581,7 @@ def build_partial_output(
                 "duration_ms": duration_ms,
                 "sample_rate_hz": sample_rate,
                 "channels": channels,
-                "quality": placeholder_quality_probabilities(),
+                "quality": unavailable_quality_placeholders(),
             },
             "language": {"label": item.language_hint, "confidence": 0.5},
             # Empty remains authoritative unless a runner returned genuine alignment.

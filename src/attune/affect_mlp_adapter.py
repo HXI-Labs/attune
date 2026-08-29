@@ -59,8 +59,7 @@ class _Network(nn.Module):
 
 def _group_weights(rows: list[dict[str, Any]], targets: np.ndarray) -> np.ndarray:
     groups = [
-        (str(row["dataset_id"]), int(target))
-        for row, target in zip(rows, targets, strict=True)
+        (str(row["dataset_id"]), int(target)) for row, target in zip(rows, targets, strict=True)
     ]
     counts = Counter(groups)
     weights = np.asarray([1.0 / counts[group] for group in groups], dtype=np.float64)
@@ -111,9 +110,7 @@ def fit_affect_mlp_adapter(
     torch.manual_seed(seed)
     torch.use_deterministic_algorithms(True)
     network = _Network(train_features.shape[1], hidden_sizes, len(classes), dropout)
-    optimizer = torch.optim.AdamW(
-        network.parameters(), lr=learning_rate, weight_decay=weight_decay
-    )
+    optimizer = torch.optim.AdamW(network.parameters(), lr=learning_rate, weight_decay=weight_decay)
     features_tensor = torch.tensor(train_features, dtype=torch.float32)
     targets_tensor = torch.tensor(train_columns, dtype=torch.long)
     weights_tensor = torch.tensor(weights, dtype=torch.float32)
@@ -199,9 +196,7 @@ def predict_affect_mlp(adapter: AffectMLPAdapter, rows: list[dict[str, Any]]) ->
     return probabilities
 
 
-def evaluate_affect_mlp(
-    adapter: AffectMLPAdapter, rows: list[dict[str, Any]]
-) -> dict[str, Any]:
+def evaluate_affect_mlp(adapter: AffectMLPAdapter, rows: list[dict[str, Any]]) -> dict[str, Any]:
     selected = affect_rows(rows)
     probabilities = predict_affect_mlp(adapter, selected)
     targets = _hard_targets(selected)
@@ -231,9 +226,7 @@ def evaluate_affect_mlp(
         "full_coverage_error": full_error,
         "selective_error": selective_error,
         "selective_risk_improves": selective_error < full_error,
-        "maximum_predicted_class_share": max(
-            value["predicted"] for value in per_class.values()
-        )
+        "maximum_predicted_class_share": max(value["predicted"] for value in per_class.values())
         / len(selected),
         "per_class": per_class,
     }

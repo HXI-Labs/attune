@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -18,6 +17,7 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from attune.integrity import file_digest as digest
 from attune.schema.output import AffectCategory
 from attune.training.prepare import SourceRow
 
@@ -26,10 +26,7 @@ ARCHIVE_NAME = "Audio_Speech_Actors_01-24.zip"
 ARCHIVE_URL = f"https://zenodo.org/records/{RECORD_ID}/files/{ARCHIVE_NAME}?download=1"
 ARCHIVE_MD5 = "bc696df654c87fed845eb13823edef8a"
 LICENCE = "CC-BY-NC-SA-4.0"
-ATTRIBUTION = (
-    "Livingstone SR, Russo FA (2018), RAVDESS v1.0.0, "
-    "doi:10.5281/zenodo.1188976."
-)
+ATTRIBUTION = "Livingstone SR, Russo FA (2018), RAVDESS v1.0.0, doi:10.5281/zenodo.1188976."
 DEFAULT_ACTORS = tuple(range(17, 25))
 STATEMENTS = {
     1: "Kids are talking by the door",
@@ -52,18 +49,12 @@ class RavdessPreparationError(RuntimeError):
     """Raised when RAVDESS provenance or the selected archive is invalid."""
 
 
-def digest(path: Path, algorithm: str = "sha256") -> str:
-    value = hashlib.new(algorithm)
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
-
-
 def protocol_rows(actors: tuple[int, ...] = DEFAULT_ACTORS) -> list[dict[str, Any]]:
     """Return the fixed 60-trial speech protocol for each selected actor."""
-    invalid = not actors or len(actors) != len(set(actors)) or any(
-        actor not in range(1, 25) for actor in actors
+    invalid = (
+        not actors
+        or len(actors) != len(set(actors))
+        or any(actor not in range(1, 25) for actor in actors)
     )
     if invalid:
         raise RavdessPreparationError("actors must be unique integers in the inclusive range 1..24")
@@ -102,9 +93,10 @@ def _download(url: str, target: Path, *, retries: int = 4) -> None:
     for attempt in range(retries + 1):
         request = urllib.request.Request(url, headers={"User-Agent": "attune-ravdess-eval/1"})
         try:
-            with urllib.request.urlopen(request, timeout=120) as response, temporary.open(
-                "wb"
-            ) as handle:
+            with (
+                urllib.request.urlopen(request, timeout=120) as response,
+                temporary.open("wb") as handle,
+            ):
                 shutil.copyfileobj(response, handle, length=1024 * 1024)
             temporary.replace(target)
             return
@@ -119,9 +111,7 @@ def _validate_member(member: str) -> PurePosixPath:
     path = PurePosixPath(member)
     if path.is_absolute() or ".." in path.parts or len(path.parts) != 2:
         raise RavdessPreparationError(f"unsafe or unexpected archive member: {member!r}")
-    if not re.fullmatch(r"Actor_\d{2}", path.parts[0]) or not FILENAME_PATTERN.fullmatch(
-        path.name
-    ):
+    if not re.fullmatch(r"Actor_\d{2}", path.parts[0]) or not FILENAME_PATTERN.fullmatch(path.name):
         raise RavdessPreparationError(f"unexpected RAVDESS speech member: {member!r}")
     return path
 
@@ -287,8 +277,7 @@ def build_manifests(
     provenance_manifest.parent.mkdir(parents=True, exist_ok=True)
     provenance_manifest.write_text(
         "".join(
-            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n"
-            for row in provenance_rows
+            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in provenance_rows
         ),
         encoding="utf-8",
     )

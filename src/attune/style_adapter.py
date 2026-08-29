@@ -120,9 +120,7 @@ def fit_whisper_style_adapter(
     temperature = float(
         min(
             temperatures,
-            key=lambda value: _binary_cross_entropy(
-                _sigmoid(logits / value), development_targets
-            ),
+            key=lambda value: _binary_cross_entropy(_sigmoid(logits / value), development_targets),
         )
     )
     probability = _sigmoid(logits / temperature)

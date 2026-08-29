@@ -4,24 +4,16 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
 
 from attune.affect_adapter import load_score_rows
+from attune.integrity import file_digest
 from attune.style_adapter import (
     evaluate_whisper_style_adapter,
     fit_whisper_style_adapter,
 )
-
-
-def file_sha256(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
 
 
 def named_paths(value: str | list[str] | dict[str, str], prefix: str) -> dict[str, Path]:
@@ -54,9 +46,7 @@ def main() -> None:
         candidate_c=tuple(float(value) for value in config["model"]["candidate_c"]),
     )
     reports = {
-        "selection_combined": evaluate_whisper_style_adapter(
-            adapter, combined(selection_paths)
-        ),
+        "selection_combined": evaluate_whisper_style_adapter(adapter, combined(selection_paths)),
         **{
             name: evaluate_whisper_style_adapter(adapter, load_score_rows(path))
             for name, path in selection_paths.items()
@@ -80,8 +70,8 @@ def main() -> None:
     all_paths = {**train_paths, **selection_paths, **diagnostic_paths}
     report = {
         "schema_version": "1.0",
-        "config_sha256": file_sha256(arguments.config),
-        "score_sha256": {name: file_sha256(path) for name, path in all_paths.items()},
+        "config_sha256": file_digest(arguments.config),
+        "score_sha256": {name: file_digest(path) for name, path in all_paths.items()},
         "selected_c": adapter.selected_c,
         "temperature": adapter.temperature,
         "threshold": adapter.threshold,

@@ -20,17 +20,17 @@ tags:
 
 # Attune Cadence 241M
 
-**Hear how it was said.**
-
-Attune Cadence is a compact English paralinguistic transcription model from
+Attune Cadence is an English paralinguistic transcription model from
 HXI Labs. It combines CTC speech transcription with supported vocal-event
 localization, perceived-affect probabilities,
 out-of-distribution detection, calibrated abstention, and word timing.
 
-> **Publication paused:** a live test exposed false-positive event/style tags.
-> The hardened runtime disables weak event-presence and style output, requires
-> >=0.98 confidence for localized events, and remains blocked on a manual
-> hostile-speech regression. Do not publish this package yet.
+Publication is blocked. A live test exposed false-positive event and style
+tags. The hardened runtime disables weak event-presence and style output,
+requires at least 0.98 confidence for localized events, and still requires a
+manual hostile-speech regression. A later external RAVDESS evaluation also
+found only 0.1213 affect macro-F1 and a 70.8% anger prediction share. Do not
+publish this package yet.
 
 This v0.1 checkpoint is a 241,609,098-parameter derivative of
 [SenseVoiceSmall](https://huggingface.co/FunAudioLLM/SenseVoiceSmall) by
@@ -83,9 +83,14 @@ unsegmented delivery change may produce a mixed distribution or abstention.
 The local Mac CPU benchmark measured mixed-INT8 RTF 0.0534 and p95 latency
 415 ms over 40 contract-valid clips. These are small, partly acted/synthetic
 technical evaluations—not evidence of broad naturalistic emotion understanding.
-Event-presence and style metrics are omitted here because those outputs are
-disabled in the user-facing runtime; isolated-sound scores did not establish
-their reliability on speech.
+Event-presence and style metrics are shown only as research diagnostics. Those
+outputs are disabled in the user-facing runtime because isolated-sound scores
+did not establish their reliability on speech.
+
+The table contains internal candidate-selection results. On 480 external
+RAVDESS clips, ASR remained accurate at 0.0104 WER while affect macro-F1 fell
+to 0.1213 and predictions collapsed toward anger. This external failure
+supersedes the internal affect gate and blocks the v0.1 model from release.
 
 ## Files
 

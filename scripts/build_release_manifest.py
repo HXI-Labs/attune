@@ -4,17 +4,10 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+from attune.integrity import file_digest
 
 
 def build_manifest(root: Path, artifacts: list[Path]) -> dict[str, object]:
@@ -31,7 +24,7 @@ def build_manifest(root: Path, artifacts: list[Path]) -> dict[str, object]:
             {
                 "path": relative.as_posix(),
                 "bytes": artifact.stat().st_size,
-                "sha256": sha256_file(artifact),
+                "sha256": file_digest(artifact),
             }
         )
     return {

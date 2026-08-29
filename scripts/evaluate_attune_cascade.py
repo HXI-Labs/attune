@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
@@ -20,6 +19,7 @@ from attune.baselines.adapters import BaselineInput, TranscriptSentimentAdapter
 from attune.baselines.cascade import AttuneCascade
 from attune.evaluation.metrics import corpus_character_error_rate, corpus_word_error_rate
 from attune.inference.packaging import package_for_trusted_channel
+from attune.integrity import file_digest
 from attune.models.fsd50k_probe import SOURCE_TO_PROBE_LABEL
 from attune.schema.output import AttuneOutput
 from attune.schema.xml import render_xml
@@ -103,14 +103,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
-
-
 def load_slice(name: str, manifest: Path, cache: Path) -> list[dict[str, Any]]:
     rows = [
         json.loads(line)
@@ -123,7 +115,7 @@ def load_slice(name: str, manifest: Path, cache: Path) -> list[dict[str, Any]]:
         audio_path = cache / row["cache_path"]
         if not audio_path.is_file():
             raise RuntimeError(f"inspection audio is missing: {audio_path}")
-        if digest(audio_path) != row["sha256"]:
+        if file_digest(audio_path) != row["sha256"]:
             raise RuntimeError(f"inspection audio hash mismatch: {audio_path}")
         row["_inspection_slice"] = name
         row["_audio_path"] = audio_path
@@ -640,8 +632,8 @@ def main() -> None:
             "vocalsound": load_training_report(arguments.vocalsound_training_report),
             "fsd50k": load_training_report(arguments.fsd50k_training_report),
             "checkpoint_sha256": {
-                "vocalsound": digest(arguments.vocalsound_probe_checkpoint),
-                "fsd50k": digest(arguments.fsd50k_probe_checkpoint),
+                "vocalsound": file_digest(arguments.vocalsound_probe_checkpoint),
+                "fsd50k": file_digest(arguments.fsd50k_probe_checkpoint),
             },
             "checkpoints_committed": False,
         },

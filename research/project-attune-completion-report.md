@@ -1,4 +1,4 @@
-# Project Attune Technical Completion Report
+# Project Attune v0.1 Implementation Report
 
 - **Project:** Beyond the Transcript — Compact, Time-Aligned Paralinguistic
   Transcription for Emotion-Aware Voice Interaction
@@ -11,13 +11,19 @@
 
 ## 1. Executive summary
 
-Project Attune now has a working compact speech model with accurate ordinary
+This document records the implementation and internal evaluation of the first
+v0.1 candidate. It is not a current release claim. The later external RAVDESS
+evaluation found 0.1213 affect macro-F1 and a 70.8% anger prediction share,
+which invalidated the candidate's affect generalization claim. The current
+status and active corrective work are maintained in the repository README.
+
+Project Attune has a working compact speech pipeline with accurate ordinary
 speech transcription, conservative time-aligned vocal-event detection,
 perceived-affect estimation, uncertainty, out-of-distribution detection, and
 calibrated abstention. User-facing delivery-style and weak utterance-event
 outputs are disabled after a live test revealed unacceptable false positives.
 
-The final model is a 241,609,098-parameter derivative of SenseVoice-Small. It is
+The v0.1 candidate is a 241,609,098-parameter derivative of SenseVoice-Small. It is
 available as both a full-precision ONNX graph and a smaller mixed-precision INT8
 deployment graph. It is not release-ready: the hardened gate report now adds
 ordinary-speech false-positive requirements and deliberately fails until the
@@ -26,7 +32,7 @@ original hostile-speech audio is manually retested.
 The deployed system accepts 16 kHz mono PCM16 WAV audio and returns authoritative
 schema-v2 JSON. It can also generate deterministic, injection-safe XML. Both a
 batch HTTP API and pseudo-streaming WebSocket API have been implemented and
-tested against the real final model.
+tested against the exported v0.1 candidate.
 
 The work completed here should be considered a technical v0.1 prerelease. It
 does not yet establish that Attune improves conversational responses
@@ -34,7 +40,7 @@ in a controlled human study. It also does not provide reviewed valence,
 arousal, and dominance outputs because a suitable licensed dimensional-affect
 training source was not available.
 
-## 2. Final system delivered
+## 2. System implemented for v0.1
 
 The completed system produces:
 
@@ -151,7 +157,7 @@ This added 6,318,080 parameters and restored full-precision ASR to the frozen
 base result while leaving the selected perception outputs unchanged. The final
 model contains 241,609,098 parameters, remaining below the 300M project limit.
 
-## 6. Training programme completed
+## 6. v0.1 training programme
 
 ### 6.1 Frozen-head probe
 
@@ -234,7 +240,7 @@ does not. The resulting release report correctly states `release_ready: false`.
 
 ### 8.2 Semantic-acoustic reliance
 
-The Acoustic Preference Score is positive for both final models. On the
+The Acoustic Preference Score is positive for both v0.1 exports. On the
 semantic-conflict set, the model follows the acoustic target more often than
 the conflicting lexical target. This provides evidence that audio contributes
 information beyond transcript sentiment.
@@ -324,7 +330,7 @@ The real-model smoke generated three provisional revisions followed by one
 committed result. The server now rejects further audio after commitment,
 enforcing the immutable-commit guarantee.
 
-## 11. Software engineering completed
+## 11. Software engineering implemented for v0.1
 
 The repository now includes:
 
@@ -345,7 +351,7 @@ The repository now includes:
 - Dataset, model, ethics, schema, deployment, and annotation documentation.
 - A technical report and final error analysis.
 
-Final repository verification:
+Repository verification at the time of this candidate:
 
 - 241 tests passed.
 - 4 optional-model tests skipped.
@@ -407,10 +413,10 @@ The perception checkpoint and calibration remained fixed, but the corrected
 ASR result should be confirmed on a new untouched external dataset before a
 publication-level claim.
 
-## 14. Work remaining for the broader research programme
+## 14. Work remaining
 
-The technical v0.1 model and deployment system are complete. The following are
-future research stages:
+The v0.1 infrastructure and deployment path are implemented, but the model is
+not release-ready. Required research stages include:
 
 1. Collect naturalistic, consented, multi-rater English affect data.
 2. Add reviewed valence, arousal, and dominance supervision.
@@ -444,12 +450,13 @@ These items are not silently represented as completed work in v0.1.
 
 ## 16. Final position
 
-Project Attune v0.1 demonstrates that a compact speech system can retain base
-ASR, localize a limited set of vocal events, produce calibrated categorical
-affect evidence, prefer acoustic delivery over conflicting text on the current
-test set, abstain on uncertain cases, and run substantially faster than real
-time on a local CPU.
+On its internal acted benchmark, the v0.1 candidate retained base ASR,
+localized a limited set of vocal events, preferred acoustic delivery over
+conflicting text, and ran substantially faster than real time on a local CPU.
+The external affect failure means those results do not support publication or
+a broad affect-recognition claim.
 
-The result is a functioning and reproducible paralinguistic transcription
-layer. Its value lies in preserving audible evidence and uncertainty—not in
-claiming that a machine can read a speaker's mind.
+The repository contains a functioning and reproducible paralinguistic
+transcription pipeline. A replacement affect candidate must pass the external,
+calibration, false-positive, and manual hostile-speech gates before this can be
+described as a releasable model.

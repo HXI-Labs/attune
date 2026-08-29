@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import platform
@@ -14,6 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from attune.integrity import file_digest
 from attune.models.frozen_event_probe import (
     ProbeDataError,
     discover_vocalsound,
@@ -53,14 +53,6 @@ AED_ONE_VS_REST_F1 = {
     "sob": 0.48484848484848486,
     "scream": 0.0,
 }
-
-
-def file_sha256(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
 
 
 def extract_partition(
@@ -282,9 +274,9 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         "embedding": extractor.metadata(),
         "data_contract": {
             "probe_manifest": str(arguments.probe_manifest),
-            "probe_manifest_sha256": file_sha256(arguments.probe_manifest),
+            "probe_manifest_sha256": file_digest(arguments.probe_manifest),
             "inspection_manifest": str(arguments.inspection_manifest),
-            "inspection_manifest_sha256": file_sha256(arguments.inspection_manifest),
+            "inspection_manifest_sha256": file_digest(arguments.inspection_manifest),
             "split": (
                 "Clip-disjoint train/validation/100-row inspection test. FSD50K does "
                 "not provide speaker IDs; uploader metadata is not a speaker identity."

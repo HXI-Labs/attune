@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import platform
@@ -19,6 +18,7 @@ from prepare_ghana_english import LICENCE, load_manifest, safe_target, verify
 
 from attune.baselines.adapters import BaselineInput, SenseVoiceSmallAdapter, WhisperSmallAdapter
 from attune.evaluation.metrics import corpus_character_error_rate, corpus_word_error_rate
+from attune.integrity import file_digest
 
 NC_LABEL = "NC research-only"
 CREMA_D_WER = {"sensevoice-small": 0.0806, "whisper-small": 0.1226}
@@ -45,11 +45,7 @@ def checkpoint_hashes(root: Path) -> dict[str, str]:
     hashes: dict[str, str] = {}
     for path in sorted(root.rglob("*")):
         if path.is_file() and path.suffix in {".bin", ".pt", ".safetensors"}:
-            digest = hashlib.sha256()
-            with path.open("rb") as handle:
-                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                    digest.update(chunk)
-            hashes[str(path.relative_to(root))] = digest.hexdigest()
+            hashes[str(path.relative_to(root))] = file_digest(path)
     return hashes
 
 

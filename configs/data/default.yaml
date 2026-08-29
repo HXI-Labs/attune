@@ -1,4 +1,0 @@
-# Phase 1 data configuration
-sample_rate_hz: 16000
-min_duration_seconds: 0.5
-max_duration_seconds: 30.0

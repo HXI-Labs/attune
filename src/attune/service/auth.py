@@ -35,20 +35,20 @@ class BasicAuthMiddleware:
                 {"type": "websocket.close", "code": 1008, "reason": "authentication required"}
             )
             return
-        body = b'{"detail":"authentication required"}'
+        error_body = b'{"detail":"authentication required"}'
         await send(
             {
                 "type": "http.response.start",
                 "status": 401,
                 "headers": [
                     (b"content-type", b"application/json"),
-                    (b"content-length", str(len(body)).encode()),
+                    (b"content-length", str(len(error_body)).encode()),
                     (b"www-authenticate", b'Basic realm="Attune Cadence", charset="UTF-8"'),
                     (b"cache-control", b"no-store"),
                 ],
             }
         )
-        await send({"type": "http.response.body", "body": body})
+        await send({"type": "http.response.body", "body": error_body})
 
     def _authorized(self, scope: dict[str, Any]) -> bool:
         headers = dict(scope.get("headers", ()))
@@ -61,6 +61,6 @@ class BasicAuthMiddleware:
             username, password = decoded.split(":", 1)
         except (ValueError, UnicodeDecodeError, binascii.Error):
             return False
-        return secrets.compare_digest(
-            username, self.credentials.username
-        ) and secrets.compare_digest(password, self.credentials.password)
+        username_matches = secrets.compare_digest(username, self.credentials.username)
+        password_matches = secrets.compare_digest(password, self.credentials.password)
+        return username_matches and password_matches

@@ -1,41 +1,569 @@
-# ruff: noqa: E501
-"""Self-contained browser interface for testing Attune Cadence."""
+"""Browser interface for local Attune evaluation."""
 
 from __future__ import annotations
 
 INDEX_HTML = r"""<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Attune Cadence</title>
-<style>
-:root{color-scheme:dark;--bg:#080b10;--card:rgba(19,24,32,.86);--line:rgba(255,255,255,.1);--text:#f5f7fb;--muted:#9ba7b8;--mint:#72f1c6;--violet:#a88cff;--red:#ff8294}*{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--text);background:radial-gradient(circle at 15% -10%,rgba(114,241,198,.16),transparent 35%),radial-gradient(circle at 100% 0,rgba(168,140,255,.15),transparent 35%),var(--bg);font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}main{width:min(920px,calc(100% - 32px));margin:auto;padding:50px 0 78px}.eyebrow{color:var(--mint);font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}h1{font-size:clamp(42px,8vw,72px);letter-spacing:-.055em;line-height:1;margin:5px 0}.tag{color:var(--muted);font-size:18px;margin:0 0 28px}.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:23px;box-shadow:0 24px 80px rgba(0,0,0,.25);backdrop-filter:blur(18px)}.drop{min-height:140px;border:1px dashed rgba(255,255,255,.23);border-radius:16px;display:grid;place-items:center;text-align:center;cursor:pointer;transition:.2s}.drop:hover,.drop.drag{border-color:var(--mint);background:rgba(114,241,198,.05)}.drop strong{font-size:17px}.drop span,.muted{color:var(--muted);font-size:13px}input{display:none}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}button{border:0;border-radius:999px;padding:12px 18px;font:inherit;font-weight:750;cursor:pointer}.primary{background:var(--mint);color:#06110e}.secondary{color:var(--text);background:rgba(255,255,255,.08);border:1px solid var(--line)}.recording{background:var(--red);color:#1b070b}button:disabled{opacity:.4;cursor:not-allowed}.status{min-height:24px;margin-top:12px;color:var(--muted)}.status.error{color:var(--red)}.status.busy:after{content:"";display:inline-block;width:6px;height:6px;margin-left:8px;border-radius:50%;background:var(--mint);animation:pulse .8s infinite alternate}@keyframes pulse{to{opacity:.12}}audio{width:100%;margin-top:14px}#results{display:none;gap:18px;margin-top:18px}#results.visible{display:grid}.transcript{font-size:clamp(24px,4vw,38px);line-height:1.23;letter-spacing:-.025em;margin:8px 0 14px}.summary{color:var(--mint);font-weight:650}.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}.chip{border:1px solid var(--line);background:rgba(255,255,255,.055);border-radius:999px;padding:6px 10px;font-size:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}h3{margin:0 0 12px}.barrow{display:grid;grid-template-columns:78px 1fr 42px;gap:9px;align-items:center;margin:8px 0;font-size:13px}.bar{height:7px;background:rgba(255,255,255,.08);border-radius:8px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--violet),var(--mint))}.num{text-align:right;color:var(--muted)}details{border-top:1px solid var(--line);padding-top:14px}summary{cursor:pointer;color:var(--muted)}pre{overflow:auto;max-height:460px;padding:15px;border-radius:12px;background:#080b10;color:#cbd5e1;font-size:12px}footer{margin-top:22px;color:var(--muted);font-size:12px}@media(max-width:680px){.grid{grid-template-columns:1fr}main{padding-top:30px}.card{padding:18px}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Attune Cadence</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f2f0e9;
+      --surface: #ffffff;
+      --surface-muted: #e9e6dd;
+      --border: #d3d0c7;
+      --text: #202220;
+      --muted: #646862;
+      --accent: #28675b;
+      --accent-hover: #1f554c;
+      --danger: #a53b3b;
+      --focus: #1f6feb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--text);
+      font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+
+    main {
+      width: min(960px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 44px 0 64px;
+    }
+
+    header { max-width: 680px; margin-bottom: 28px; }
+
+    .project-label {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 6vw, 48px);
+      line-height: 1.08;
+      letter-spacing: -0.035em;
+    }
+
+    header p { margin: 12px 0 0; color: var(--muted); font-size: 17px; }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+
+    .input-panel { padding: 22px; }
+
+    .drop-area {
+      min-height: 132px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed #999d96;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .drop-area:hover,
+    .drop-area.dragging { border-color: var(--accent); background: #f4f8f6; }
+    .drop-area strong { display: block; margin-bottom: 4px; font-size: 16px; }
+    .muted, .drop-area span { color: var(--muted); font-size: 13px; }
+
+    input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+    button {
+      min-height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 16px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover:not(:disabled) { background: var(--surface-muted); }
+    button.primary { border-color: var(--accent); background: var(--accent); color: #ffffff; }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); }
+    button.recording { border-color: var(--danger); background: var(--danger); color: #ffffff; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    button:focus-visible,
+    .drop-area:focus-within,
+    summary:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--focus) 35%, transparent);
+      outline-offset: 2px;
+    }
+
+    .status { min-height: 24px; margin: 12px 0 0; color: var(--muted); }
+    .status.error { color: var(--danger); }
+
+    .status.busy::after {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-left: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 0.8s infinite alternate;
+    }
+
+    @keyframes pulse { to { opacity: 0.2; } }
+    audio { width: 100%; margin-top: 14px; }
+    #results { display: none; margin-top: 20px; }
+    #results.visible { display: block; }
+    .section { padding: 22px; border-bottom: 1px solid var(--border); }
+    .section:last-child { border-bottom: 0; }
+    h2, h3 { margin: 0 0 12px; line-height: 1.25; }
+    h2 { font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; }
+    h3 { font-size: 17px; }
+
+    .transcript {
+      margin: 0 0 14px;
+      font-size: clamp(24px, 4vw, 34px);
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+
+    .summary { margin: 0 0 12px; color: var(--accent); font-weight: 700; }
+    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+
+    .affect-row {
+      display: grid;
+      grid-template-columns: 82px 1fr 42px;
+      gap: 10px;
+      align-items: center;
+      margin: 8px 0;
+      font-size: 13px;
+    }
+
+    progress {
+      width: 100%;
+      height: 8px;
+      border: 0;
+      border-radius: 0;
+      background: var(--surface-muted);
+    }
+
+    progress::-webkit-progress-bar { background: var(--surface-muted); }
+    progress::-webkit-progress-value { background: var(--accent); }
+    progress::-moz-progress-bar { background: var(--accent); }
+
+    .number {
+      color: var(--muted);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .evidence-list { margin: 0; padding-left: 20px; }
+    .evidence-list li + li { margin-top: 7px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 7px 14px; margin: 0; }
+    dt { color: var(--muted); }
+    dd { margin: 0; }
+    details { padding-top: 2px; }
+    summary { cursor: pointer; font-weight: 700; }
+
+    pre {
+      max-height: 460px;
+      overflow: auto;
+      margin: 14px 0 0;
+      padding: 14px;
+      border: 1px solid var(--border);
+      background: #f6f5f1;
+      color: #30342f;
+      font-size: 12px;
+    }
+
+    footer {
+      max-width: 720px;
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 700px) {
+      main { padding-top: 28px; }
+      .columns { grid-template-columns: 1fr; }
+      .input-panel, .section { padding: 17px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .status.busy::after { animation: none; }
+    }
+  </style>
 </head>
-<body><main>
-<header><div class="eyebrow">HXI Labs · 241M</div><h1>Attune Cadence</h1><p class="tag">Hear how it was said.</p></header>
-<section class="card">
-  <label class="drop" id="drop" for="file"><div><strong id="fileLabel">Drop an audio clip here</strong><br><span>or choose a file · 0.5–30 seconds</span></div></label>
-  <input id="file" type="file" accept="audio/*,.wav">
-  <div class="actions"><button class="secondary" id="record">● Record</button><button class="primary" id="analyse" disabled>Analyse voice</button></div>
-  <audio id="preview" controls hidden></audio><div class="status" id="status">Choose a clip or record from your microphone.</div>
-</section>
-<section id="results">
-  <div class="card"><div class="eyebrow">Transcription</div><div class="transcript" id="transcript"></div><div class="summary" id="summary"></div><div class="chips" id="chips"></div><div class="muted" id="timing"></div></div>
-  <div class="grid"><div class="card"><h3>Perceived affect</h3><div id="affect"></div></div><div class="card"><h3>Evidence & uncertainty</h3><div id="evidence"></div></div></div>
-  <div class="card"><details><summary>Raw schema-v2 JSON</summary><pre id="json"></pre></details></div>
-</section>
-<footer>Perceived vocal expression is uncertain evidence—not a verified internal state, diagnosis, or safety decision. Audio is processed in memory and is not stored.</footer>
-</main>
-<script>
-const $=id=>document.getElementById(id),file=$('file'),drop=$('drop'),analyse=$('analyse'),record=$('record');let wav=null,node=null,stream=null,chunks=[],ctx=null,started=0;
-const setStatus=(text,kind='')=>{$('status').textContent=text;$('status').className=`status ${kind}`};const pct=v=>`${Math.round(v*100)}%`;
-function downsample(input,inRate,outRate=16000){if(inRate===outRate)return input;const ratio=inRate/outRate,out=new Float32Array(Math.round(input.length/ratio));for(let i=0;i<out.length;i++){const a=Math.round(i*ratio),b=Math.min(input.length,Math.round((i+1)*ratio));let sum=0;for(let j=a;j<b;j++)sum+=input[j];out[i]=sum/Math.max(1,b-a)}return out}
-function encode(samples,rate=16000){const buffer=new ArrayBuffer(44+samples.length*2),v=new DataView(buffer),text=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));text(0,'RIFF');v.setUint32(4,36+samples.length*2,true);text(8,'WAVE');text(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);text(36,'data');v.setUint32(40,samples.length*2,true);let o=44;for(const x of samples){const s=Math.max(-1,Math.min(1,x));v.setInt16(o,s<0?s*32768:s*32767,true);o+=2}return new Blob([buffer],{type:'audio/wav'})}
-async function normalize(source){setStatus('Preparing 16 kHz mono audio…','busy');const ac=new AudioContext(),decoded=await ac.decodeAudioData((await source.arrayBuffer()).slice(0)),mono=new Float32Array(decoded.length);for(let c=0;c<decoded.numberOfChannels;c++){const values=decoded.getChannelData(c);for(let i=0;i<values.length;i++)mono[i]+=values[i]/decoded.numberOfChannels}const converted=downsample(mono,decoded.sampleRate);await ac.close();if(converted.length<8000||converted.length>480000)throw new Error('Audio must be between 0.5 and 30 seconds.');return encode(converted)}
-async function select(source){try{wav=await normalize(source);$('fileLabel').textContent=source.name;analyse.disabled=false;$('preview').src=URL.createObjectURL(wav);$('preview').hidden=false;setStatus('Ready to analyse.')}catch(e){wav=null;analyse.disabled=true;setStatus(e.message,'error')}}
-file.onchange=()=>file.files[0]&&select(file.files[0]);['dragenter','dragover'].forEach(n=>drop.addEventListener(n,e=>{e.preventDefault();drop.classList.add('drag')}));['dragleave','drop'].forEach(n=>drop.addEventListener(n,e=>{e.preventDefault();drop.classList.remove('drag')}));drop.addEventListener('drop',e=>e.dataTransfer.files[0]&&select(e.dataTransfer.files[0]));
-record.onclick=async()=>{if(node){node.disconnect();stream.getTracks().forEach(t=>t.stop());const length=chunks.reduce((n,c)=>n+c.length,0),joined=new Float32Array(length);let offset=0;chunks.forEach(c=>{joined.set(c,offset);offset+=c.length});wav=encode(downsample(joined,ctx.sampleRate));await ctx.close();node=null;record.textContent='● Record';record.className='secondary';analyse.disabled=false;$('fileLabel').textContent=`Microphone recording · ${((Date.now()-started)/1000).toFixed(1)}s`;$('preview').src=URL.createObjectURL(wav);$('preview').hidden=false;setStatus('Recording ready to analyse.');return}try{stream=await navigator.mediaDevices.getUserMedia({audio:true});ctx=new AudioContext();const source=ctx.createMediaStreamSource(stream);node=ctx.createScriptProcessor(4096,1,1);chunks=[];node.onaudioprocess=e=>{chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));if(Date.now()-started>30000)record.click()};source.connect(node);node.connect(ctx.destination);started=Date.now();record.textContent='■ Stop recording';record.className='recording';analyse.disabled=true;setStatus('Recording… speak naturally.','busy')}catch(e){setStatus(`Microphone unavailable: ${e.message}`,'error')}};
-function render(payload){const r=payload.result,a=r.affect,labels=r.styles.map(s=>s.label.replaceAll('_',' '));labels.push(!a.abstain&&a.top_label?`perceived ${a.top_label} ${pct(a.top_label_confidence)}`:'affect uncertain');$('transcript').textContent=r.transcript.text||'No speech transcribed';$('summary').textContent=`[${labels.join('; ')}] ${r.transcript.text}${r.events.map(e=>` [${e.label.replaceAll('_',' ')}]`).join('')}`;$('chips').innerHTML=[...r.styles.map(s=>`${s.label} · ${pct(s.confidence)}`),...r.events.map(e=>`${e.label} · ${pct(e.confidence)}${e.start_ms!==null?` · ${e.start_ms}–${e.end_ms} ms`:''}`)].map(x=>`<span class="chip">${x}</span>`).join('')||'<span class="chip">No supported event/style detected</span>';$('timing').textContent=`${payload.timing.audio_duration_ms} ms audio · ${payload.timing.processing_ms} ms processing · RTF ${payload.timing.real_time_factor.toFixed(3)}`;$('affect').innerHTML=Object.entries(a.categories).sort((x,y)=>y[1]-x[1]).map(([l,v])=>`<div class="barrow"><span>${l}</span><div class="bar"><i style="width:${v*100}%"></i></div><span class="num">${pct(v)}</span></div>`).join('');$('evidence').innerHTML=`<p><strong>${a.abstain?'Abstained':'Interpretation returned'}</strong><br><span class="muted">${a.abstention_reason||'Top category passed calibrated thresholds.'}</span></p><p>OOD probability <strong>${pct(r.uncertainty.out_of_distribution_probability)}</strong></p><p class="muted">${r.uncertainty.interpretation_warning}</p>`;$('json').textContent=JSON.stringify(payload,null,2);$('results').classList.add('visible')}
-analyse.onclick=async()=>{if(!wav)return;analyse.disabled=true;setStatus('Cadence is listening…','busy');try{const form=new FormData();form.append('audio',wav,'cadence-input.wav');const response=await fetch('/v1/analyse',{method:'POST',body:form}),payload=await response.json();if(!response.ok)throw new Error(payload.detail||'Analysis failed');render(payload);setStatus('Analysis complete.')}catch(e){setStatus(e.message,'error')}finally{analyse.disabled=false}};
-</script></body></html>"""
+<body>
+  <main>
+    <header>
+      <p class="project-label">Project Attune</p>
+      <h1>Attune Cadence</h1>
+      <p>Test transcription, localized vocal events, and perceived affect from one voice clip.</p>
+    </header>
+
+    <section class="panel input-panel" aria-labelledby="audio-heading">
+      <h2 id="audio-heading">Audio input</h2>
+      <label class="drop-area" id="drop-area" for="file-input">
+        <span>
+          <strong id="file-label">Drop an audio file here</strong>
+          Choose a file instead · 0.5–30 seconds
+        </span>
+      </label>
+      <input id="file-input" type="file" accept="audio/*,.wav">
+      <div class="actions">
+        <button id="record-button" type="button">Record</button>
+        <button class="primary" id="analyse-button" type="button" disabled>Analyse audio</button>
+      </div>
+      <audio id="audio-preview" controls hidden></audio>
+      <p class="status" id="status" role="status" aria-live="polite">
+        Choose a file or record from the microphone.
+      </p>
+    </section>
+
+    <section class="panel" id="results" aria-labelledby="transcript-heading">
+      <div class="section">
+        <h2 id="transcript-heading">Transcript</h2>
+        <p class="transcript" id="transcript"></p>
+        <p class="summary" id="summary"></p>
+        <ul class="evidence-list" id="events"></ul>
+        <p class="muted" id="timing"></p>
+      </div>
+
+      <div class="section columns">
+        <div><h3>Perceived affect</h3><div id="affect"></div></div>
+        <div><h3>Uncertainty</h3><dl id="uncertainty"></dl></div>
+      </div>
+
+      <div class="section">
+        <details><summary>Structured JSON</summary><pre id="json"></pre></details>
+      </div>
+    </section>
+
+    <footer>
+      Perceived vocal expression is uncertain evidence, not a verified internal state,
+      diagnosis, or safety decision. Audio is processed in memory and is not stored.
+    </footer>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById("file-input");
+    const dropArea = document.getElementById("drop-area");
+    const analyseButton = document.getElementById("analyse-button");
+    const recordButton = document.getElementById("record-button");
+    const audioPreview = document.getElementById("audio-preview");
+
+    let selectedWav = null;
+    let previewUrl = null;
+    let recorderNode = null;
+    let microphoneSource = null;
+    let mediaStream = null;
+    let audioChunks = [];
+    let audioContext = null;
+    let recordingStartedAt = 0;
+
+    function element(id) { return document.getElementById(id); }
+
+    function setStatus(message, kind = "") {
+      const status = element("status");
+      status.textContent = message;
+      status.className = `status ${kind}`;
+    }
+
+    function formatPercent(value) { return `${Math.round(value * 100)}%`; }
+    function clearElement(target) { target.replaceChildren(); }
+
+    function downsample(samples, inputRate, outputRate = 16000) {
+      if (inputRate === outputRate) return samples;
+      const ratio = inputRate / outputRate;
+      const output = new Float32Array(Math.round(samples.length / ratio));
+      for (let outputIndex = 0; outputIndex < output.length; outputIndex += 1) {
+        const start = Math.round(outputIndex * ratio);
+        const end = Math.min(samples.length, Math.round((outputIndex + 1) * ratio));
+        let sum = 0;
+        for (let inputIndex = start; inputIndex < end; inputIndex += 1) {
+          sum += samples[inputIndex];
+        }
+        output[outputIndex] = sum / Math.max(1, end - start);
+      }
+      return output;
+    }
+
+    function encodePcm16Wav(samples, sampleRate = 16000) {
+      const buffer = new ArrayBuffer(44 + samples.length * 2);
+      const view = new DataView(buffer);
+      const writeText = (offset, text) => {
+        [...text].forEach((character, index) => {
+          view.setUint8(offset + index, character.charCodeAt(0));
+        });
+      };
+      writeText(0, "RIFF");
+      view.setUint32(4, 36 + samples.length * 2, true);
+      writeText(8, "WAVE");
+      writeText(12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeText(36, "data");
+      view.setUint32(40, samples.length * 2, true);
+      let offset = 44;
+      for (const sample of samples) {
+        const bounded = Math.max(-1, Math.min(1, sample));
+        view.setInt16(offset, bounded < 0 ? bounded * 32768 : bounded * 32767, true);
+        offset += 2;
+      }
+      return new Blob([buffer], { type: "audio/wav" });
+    }
+
+    async function normalizeAudio(source) {
+      setStatus("Preparing 16 kHz mono audio.", "busy");
+      const decodingContext = new AudioContext();
+      try {
+        const bytes = (await source.arrayBuffer()).slice(0);
+        const decoded = await decodingContext.decodeAudioData(bytes);
+        const mono = new Float32Array(decoded.length);
+        for (let channel = 0; channel < decoded.numberOfChannels; channel += 1) {
+          const channelSamples = decoded.getChannelData(channel);
+          for (let index = 0; index < channelSamples.length; index += 1) {
+            mono[index] += channelSamples[index] / decoded.numberOfChannels;
+          }
+        }
+        const converted = downsample(mono, decoded.sampleRate);
+        if (converted.length < 8000 || converted.length > 480000) {
+          throw new Error("Audio must be between 0.5 and 30 seconds.");
+        }
+        return encodePcm16Wav(converted);
+      } finally {
+        await decodingContext.close();
+      }
+    }
+
+    function setPreview(wav) {
+      if (previewUrl !== null) URL.revokeObjectURL(previewUrl);
+      previewUrl = URL.createObjectURL(wav);
+      audioPreview.src = previewUrl;
+      audioPreview.hidden = false;
+    }
+
+    async function selectAudio(source, label = source.name) {
+      try {
+        selectedWav = await normalizeAudio(source);
+        element("file-label").textContent = label;
+        analyseButton.disabled = false;
+        setPreview(selectedWav);
+        setStatus("Audio is ready to analyse.");
+      } catch (error) {
+        selectedWav = null;
+        analyseButton.disabled = true;
+        setStatus(error.message, "error");
+      }
+    }
+
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files[0]) selectAudio(fileInput.files[0]);
+    });
+
+    for (const eventName of ["dragenter", "dragover"]) {
+      dropArea.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropArea.classList.add("dragging");
+      });
+    }
+
+    for (const eventName of ["dragleave", "drop"]) {
+      dropArea.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropArea.classList.remove("dragging");
+      });
+    }
+
+    dropArea.addEventListener("drop", (event) => {
+      if (event.dataTransfer.files[0]) selectAudio(event.dataTransfer.files[0]);
+    });
+
+    async function stopRecording() {
+      recorderNode.disconnect();
+      microphoneSource.disconnect();
+      mediaStream.getTracks().forEach((track) => track.stop());
+      const sampleCount = audioChunks.reduce((total, chunk) => total + chunk.length, 0);
+      const joined = new Float32Array(sampleCount);
+      let offset = 0;
+      for (const chunk of audioChunks) {
+        joined.set(chunk, offset);
+        offset += chunk.length;
+      }
+      const sampleRate = audioContext.sampleRate;
+      await audioContext.close();
+      recorderNode = null;
+      microphoneSource = null;
+      mediaStream = null;
+      audioContext = null;
+      recordButton.textContent = "Record";
+      recordButton.className = "";
+      const durationSeconds = (Date.now() - recordingStartedAt) / 1000;
+      const label = `Microphone recording · ${durationSeconds.toFixed(1)} seconds`;
+      await selectAudio(encodePcm16Wav(downsample(joined, sampleRate)), label);
+    }
+
+    async function startRecording() {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioContext = new AudioContext();
+      microphoneSource = audioContext.createMediaStreamSource(mediaStream);
+      recorderNode = audioContext.createScriptProcessor(4096, 1, 1);
+      audioChunks = [];
+      recorderNode.onaudioprocess = (event) => {
+        audioChunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+        if (Date.now() - recordingStartedAt > 30000) recordButton.click();
+      };
+      microphoneSource.connect(recorderNode);
+      recorderNode.connect(audioContext.destination);
+      recordingStartedAt = Date.now();
+      recordButton.textContent = "Stop recording";
+      recordButton.className = "recording";
+      analyseButton.disabled = true;
+      setStatus("Recording. Speak naturally.", "busy");
+    }
+
+    recordButton.addEventListener("click", async () => {
+      try {
+        if (recorderNode !== null) await stopRecording();
+        else await startRecording();
+      } catch (error) {
+        setStatus(`Microphone unavailable: ${error.message}`, "error");
+      }
+    });
+
+    function appendListEntry(list, text) {
+      const entry = document.createElement("li");
+      entry.textContent = text;
+      list.append(entry);
+    }
+
+    function appendDefinition(list, term, description) {
+      const termNode = document.createElement("dt");
+      const descriptionNode = document.createElement("dd");
+      termNode.textContent = term;
+      descriptionNode.textContent = description;
+      list.append(termNode, descriptionNode);
+    }
+
+    function renderAnalysis(analysis) {
+      const attune = analysis.result;
+      const affect = attune.affect;
+      const styleSummary = attune.styles.map((style) => style.label.replaceAll("_", " "));
+      const affectSummary = !affect.abstain && affect.top_label
+        ? `perceived ${affect.top_label} ${formatPercent(affect.top_label_confidence)}`
+        : "affect uncertain";
+      styleSummary.push(affectSummary);
+
+      element("transcript").textContent = attune.transcript.text || "No speech was transcribed.";
+      element("summary").textContent = `[${styleSummary.join("; ")}] ${attune.transcript.text}`;
+
+      const eventList = element("events");
+      clearElement(eventList);
+      for (const style of attune.styles) {
+        const label = style.label.replaceAll("_", " ");
+        appendListEntry(eventList, `${label} · ${formatPercent(style.confidence)}`);
+      }
+      for (const event of attune.events) {
+        const timing = event.start_ms === null ? "" : ` · ${event.start_ms}–${event.end_ms} ms`;
+        const label = event.label.replaceAll("_", " ");
+        appendListEntry(eventList, `${label} · ${formatPercent(event.confidence)}${timing}`);
+      }
+      if (eventList.childElementCount === 0) {
+        appendListEntry(eventList, "No supported event or style was detected.");
+      }
+
+      element("timing").textContent = [
+        `${analysis.timing.audio_duration_ms} ms audio`,
+        `${analysis.timing.processing_ms} ms processing`,
+        `real-time factor ${analysis.timing.real_time_factor.toFixed(3)}`,
+      ].join(" · ");
+
+      const affectPanel = element("affect");
+      clearElement(affectPanel);
+      const categories = Object.entries(affect.categories).sort(
+        (left, right) => right[1] - left[1],
+      );
+      for (const [label, probability] of categories) {
+        const row = document.createElement("div");
+        const name = document.createElement("span");
+        const bar = document.createElement("progress");
+        const number = document.createElement("span");
+        row.className = "affect-row";
+        name.textContent = label;
+        bar.max = 1;
+        bar.value = probability;
+        bar.setAttribute("aria-label", `${label} ${formatPercent(probability)}`);
+        number.className = "number";
+        number.textContent = formatPercent(probability);
+        row.append(name, bar, number);
+        affectPanel.append(row);
+      }
+
+      const uncertainty = element("uncertainty");
+      clearElement(uncertainty);
+      const decision = affect.abstain ? "Abstained" : "Interpretation returned";
+      const reason = affect.abstention_reason
+        || "The top category passed the calibrated threshold.";
+      appendDefinition(uncertainty, "Decision", decision);
+      appendDefinition(uncertainty, "Reason", reason);
+      appendDefinition(
+        uncertainty,
+        "OOD probability",
+        formatPercent(attune.uncertainty.out_of_distribution_probability),
+      );
+      appendDefinition(uncertainty, "Warning", attune.uncertainty.interpretation_warning);
+
+      element("json").textContent = JSON.stringify(analysis, null, 2);
+      element("results").classList.add("visible");
+    }
+
+    analyseButton.addEventListener("click", async () => {
+      if (selectedWav === null) return;
+      analyseButton.disabled = true;
+      setStatus("Analysing audio.", "busy");
+      try {
+        const form = new FormData();
+        form.append("audio", selectedWav, "attune-input.wav");
+        const response = await fetch("/v1/analyse", { method: "POST", body: form });
+        const analysis = await response.json();
+        if (!response.ok) throw new Error(analysis.detail || "Analysis failed.");
+        renderAnalysis(analysis);
+        setStatus("Analysis complete.");
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        analyseButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+"""

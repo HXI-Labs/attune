@@ -12,9 +12,10 @@ from prepare_licence_clean_inspection import (
     CREMA_D_REVISION,
     PreparationError,
     convert_to_pcm16,
-    digest,
     download_with_retry,
 )
+
+from attune.integrity import file_digest
 
 PARTITIONS = {
     "train": range(1031, 1051),
@@ -99,7 +100,7 @@ def main() -> None:
                 source.unlink(missing_ok=True)
             if not target.is_file():
                 raise PreparationError(f"missing CREMA joint audio: {target}")
-            row["sha256"] = digest(target)
+            row["sha256"] = file_digest(target)
             row["duration_ms"] = _duration_ms(target)
     except PreparationError as error:
         raise SystemExit(f"error: {error}") from error

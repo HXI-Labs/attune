@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
@@ -20,6 +19,7 @@ from attune.evaluation.localization import (
     segment_f1,
     whole_clip_predictions,
 )
+from attune.integrity import file_digest
 from attune.models.sensevoice_probe import (
     SENSEVOICE_FRAME_EMBEDDING,
     FrozenSenseVoiceFrameEncoder,
@@ -31,14 +31,6 @@ CLEAR_SEGMENT_F1_MARGIN = 0.05
 _SCENE_PATTERN = re.compile(r"^(?P<scene>.+)_poly_\d+\.wav$")
 
 
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
-
-
 def load_rows(manifest: Path, cache: Path) -> list[dict[str, Any]]:
     rows = [
         json.loads(line)
@@ -47,7 +39,7 @@ def load_rows(manifest: Path, cache: Path) -> list[dict[str, Any]]:
     ]
     for row in rows:
         audio = cache / row["cache_path"]
-        if not audio.is_file() or digest(audio) != row["sha256"]:
+        if not audio.is_file() or file_digest(audio) != row["sha256"]:
             raise RuntimeError(f"missing or changed DCASE clip: {audio}")
         row["_audio"] = audio
     return rows
@@ -457,11 +449,11 @@ def main() -> None:
         "manifests": {
             "training": {
                 "path": str(arguments.training_manifest),
-                "sha256": digest(arguments.training_manifest),
+                "sha256": file_digest(arguments.training_manifest),
             },
             "inspection_test": {
                 "path": str(arguments.inspection_manifest),
-                "sha256": digest(arguments.inspection_manifest),
+                "sha256": file_digest(arguments.inspection_manifest),
             },
         },
         "encoder": encoder.metadata(),

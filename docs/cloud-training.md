@@ -5,6 +5,13 @@ persistent mounted storage. Nothing downloads model weights or datasets
 implicitly. The recorded v0.1 frozen and upper-two runs completed locally on
 CPU at zero cloud cost; a rented GPU is optional for reproducing them faster.
 
+The commands below reproduce the historical v0.1 lineage. That model failed
+the later external RAVDESS affect evaluation and is not the release candidate.
+The active frozen full-head corrective run uses the 11,885-row v0.6 manifest
+and is specified separately in
+[`research/frozen-full-head-v0.6-protocol.md`](../research/frozen-full-head-v0.6-protocol.md).
+Keep the CTC path frozen when reproducing that corrective work.
+
 ## Recommended GPU instance order
 
 1. Run `frozen` on a reliable 24 GB RTX 3090/4090 listing.

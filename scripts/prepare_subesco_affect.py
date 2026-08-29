@@ -15,6 +15,7 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from attune.integrity import file_digest as digest
 from attune.schema.output import AffectCategory
 from attune.training.prepare import SourceRow
 
@@ -48,14 +49,6 @@ AFFECT_MAP = {
 
 class SubescoPreparationError(RuntimeError):
     """Raised when a pinned source or manifest invariant is violated."""
-
-
-def digest(path: Path, algorithm: str = "sha256") -> str:
-    value = hashlib.new(algorithm)
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
 
 
 def parse_member(name: str) -> dict[str, Any]:
@@ -146,9 +139,7 @@ def _wav_metadata(content: bytes | Path) -> tuple[int, int, int, int]:
         raise SubescoPreparationError(f"invalid WAV: {error}") from error
 
 
-def normalize_rows(
-    bundle: zipfile.ZipFile, cache_root: Path, rows: list[dict[str, Any]]
-) -> None:
+def normalize_rows(bundle: zipfile.ZipFile, cache_root: Path, rows: list[dict[str, Any]]) -> None:
     for index, row in enumerate(rows, 1):
         content = bundle.read(str(row["archive_member"]))
         source_duration, source_rate, source_channels, source_bits = _wav_metadata(content)
@@ -206,9 +197,7 @@ def normalize_rows(
 
 def _distribution(source_emotion: str) -> dict[str, float]:
     target = AFFECT_MAP[source_emotion]
-    return {
-        category.value: float(category.value == target) for category in AffectCategory
-    }
+    return {category.value: float(category.value == target) for category in AffectCategory}
 
 
 def build_manifests(
@@ -268,8 +257,7 @@ def build_manifests(
     provenance_manifest.parent.mkdir(parents=True, exist_ok=True)
     provenance_manifest.write_text(
         "".join(
-            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n"
-            for row in provenance_rows
+            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in provenance_rows
         ),
         encoding="utf-8",
     )

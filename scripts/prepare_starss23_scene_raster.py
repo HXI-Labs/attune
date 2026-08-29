@@ -17,6 +17,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from attune.integrity import file_digest
+
 SCENE_MS = 60_000
 LABEL_FRAME_MS = 100
 LAUGHTER_CLASS = 4
@@ -26,14 +28,6 @@ SOURCE_RATE_HZ = 24_000
 TARGET_RATE_HZ = 16_000
 PROTOCOL = "tiled_60s_mean4_mic"
 _ROOM_PATTERN = re.compile(r"_room(?P<room>\d+)_")
-
-
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
 
 
 def metadata_rows(path: Path) -> list[tuple[int, int, int]]:
@@ -316,7 +310,7 @@ def materialize(
             {
                 "clip_id": clip_id,
                 "cache_path": cache_path,
-                "sha256": digest(target),
+                "sha256": file_digest(target),
                 "duration_ms": SCENE_MS,
                 "sample_rate_hz": TARGET_RATE_HZ,
                 "channels": 1,
@@ -526,7 +520,7 @@ def main() -> None:
         "development_rows": len(development_manifest),
         "development_events": development_events,
         "development_clipped_spanning_events": development_clipped,
-        "development_manifest_sha256": digest(arguments.development_manifest),
+        "development_manifest_sha256": file_digest(arguments.development_manifest),
         "inspection_manifest": str(arguments.inspection_manifest),
         "inspection_rows": len(inspection_manifest),
         "inspection_events": inspection_events,

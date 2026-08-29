@@ -4,21 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
 
 from attune.affect_adapter import load_score_rows
 from attune.affect_mlp_adapter import evaluate_affect_mlp, fit_affect_mlp_adapter
-
-
-def file_sha256(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
+from attune.integrity import file_digest
 
 
 def paths(value: dict[str, str]) -> dict[str, Path]:
@@ -74,8 +66,7 @@ def main() -> None:
         {
             "external_class_balance": external["maximum_predicted_class_share"]
             <= acceptance["external_maximum_predicted_class_share"],
-            "external_coverage": external["coverage"]
-            >= acceptance["external_minimum_coverage"],
+            "external_coverage": external["coverage"] >= acceptance["external_minimum_coverage"],
             "external_selective_risk": bool(external["selective_risk_improves"]),
             "deployment_disabled": adapter.deployment_enabled is False,
         }
@@ -83,8 +74,8 @@ def main() -> None:
     all_paths = {**training, **selection, **diagnostics}
     report = {
         "schema_version": "1.0",
-        "config_sha256": file_sha256(arguments.config),
-        "score_sha256": {name: file_sha256(path) for name, path in all_paths.items()},
+        "config_sha256": file_digest(arguments.config),
+        "score_sha256": {name: file_digest(path) for name, path in all_paths.items()},
         "best_epoch": adapter.best_epoch,
         "temperature": adapter.temperature,
         "abstention_threshold": adapter.abstention_threshold,

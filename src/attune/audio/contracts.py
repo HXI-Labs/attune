@@ -1,4 +1,4 @@
-"""Lightweight Phase 0 audio input contracts."""
+"""Audio input limits shared by data preparation and inference."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ class AudioContractResult:
 def validate_audio_contract(
     *, sample_rate_hz: int, channels: int, duration_seconds: float
 ) -> AudioContractResult:
-    """Validate input after conversion; conversion itself belongs to Phase 1."""
+    """Validate converted audio against the model's input limits."""
     issues: list[str] = []
     if sample_rate_hz != TARGET_SAMPLE_RATE_HZ:
         issues.append("audio must be converted to 16 kHz")
@@ -30,6 +30,6 @@ def validate_audio_contract(
     return AudioContractResult(valid=not issues, issues=tuple(issues))
 
 
-def placeholder_quality_probabilities() -> dict[str, float]:
-    """Return explicit unknown-like placeholders until quality models exist."""
+def unavailable_quality_placeholders() -> dict[str, float]:
+    """Supply v1 placeholders that migration marks as unavailable in v2."""
     return {"clipping": 0.0, "low_snr": 0.0, "far_field": 0.0}

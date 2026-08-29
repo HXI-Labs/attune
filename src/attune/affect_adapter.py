@@ -51,9 +51,7 @@ def _softmax(logits: np.ndarray) -> np.ndarray:
 
 
 def _hard_targets(rows: list[dict[str, Any]]) -> np.ndarray:
-    return np.asarray(
-        [int(np.argmax(row["affect_distribution"])) for row in rows], dtype=np.int64
-    )
+    return np.asarray([int(np.argmax(row["affect_distribution"])) for row in rows], dtype=np.int64)
 
 
 def _f1(prediction: np.ndarray, target: np.ndarray, class_index: int) -> float:
@@ -162,9 +160,7 @@ def fit_affect_adapter(
         feature_mean=mean.tolist(),
         feature_scale=scale.tolist(),
         supported_labels=supported,
-        weights={
-            label: classifier.coef_[index].tolist() for index, label in enumerate(supported)
-        },
+        weights={label: classifier.coef_[index].tolist() for index, label in enumerate(supported)},
         biases={
             label: float(classifier.intercept_[index]) for index, label in enumerate(supported)
         },
@@ -175,9 +171,7 @@ def fit_affect_adapter(
     )
 
 
-def predict_affect_adapter(
-    adapter: AffectAdapter, rows: list[dict[str, Any]]
-) -> np.ndarray:
+def predict_affect_adapter(adapter: AffectAdapter, rows: list[dict[str, Any]]) -> np.ndarray:
     features = (score_features(rows) - np.asarray(adapter.feature_mean)) / np.asarray(
         adapter.feature_scale
     )
@@ -195,9 +189,7 @@ def predict_affect_adapter(
     return probabilities
 
 
-def evaluate_affect_adapter(
-    adapter: AffectAdapter, rows: list[dict[str, Any]]
-) -> dict[str, Any]:
+def evaluate_affect_adapter(adapter: AffectAdapter, rows: list[dict[str, Any]]) -> dict[str, Any]:
     selected = affect_rows(rows)
     probabilities = predict_affect_adapter(adapter, selected)
     targets = _hard_targets(selected)
@@ -237,9 +229,7 @@ def evaluate_affect_adapter(
         "full_coverage_error": full_error,
         "selective_error": selective_error,
         "selective_risk_improves": selective_error < full_error,
-        "maximum_predicted_class_share": max(
-            value["predicted"] for value in per_class.values()
-        )
+        "maximum_predicted_class_share": max(value["predicted"] for value in per_class.values())
         / len(selected),
         "per_class": per_class,
     }

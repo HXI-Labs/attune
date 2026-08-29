@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import platform
@@ -26,6 +25,7 @@ from attune.baselines.adapters import (
 )
 from attune.baselines.cascade import ModularCascade
 from attune.evaluation.metrics import corpus_character_error_rate, corpus_word_error_rate
+from attune.integrity import file_digest
 
 MODEL_METADATA = {
     "whisper-small": {
@@ -59,11 +59,7 @@ def checkpoint_hashes(root: Path) -> dict[str, str]:
     hashes: dict[str, str] = {}
     for path in sorted(root.rglob("*")):
         if path.is_file() and path.suffix in {".bin", ".pt", ".safetensors"}:
-            value = hashlib.sha256()
-            with path.open("rb") as handle:
-                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                    value.update(chunk)
-            hashes[str(path.relative_to(root))] = value.hexdigest()
+            hashes[str(path.relative_to(root))] = file_digest(path)
     return hashes
 
 

@@ -17,6 +17,7 @@ import wave
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from attune.integrity import file_digest as digest
 from attune.schema.output import AffectCategory
 from attune.training.prepare import SourceRow
 
@@ -53,23 +54,16 @@ class ThorstenPreparationError(RuntimeError):
     """Raised when the CC0 source archive or extraction contract is invalid."""
 
 
-def digest(path: Path, algorithm: str = "sha256") -> str:
-    value = hashlib.new(algorithm)
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
-
-
 def download_with_retry(url: str, target: Path, *, retries: int = 4) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix(target.suffix + ".part")
     for attempt in range(retries + 1):
         request = urllib.request.Request(url, headers={"User-Agent": "attune-thorsten/1"})
         try:
-            with urllib.request.urlopen(request, timeout=180) as response, temporary.open(
-                "wb"
-            ) as output:
+            with (
+                urllib.request.urlopen(request, timeout=180) as response,
+                temporary.open("wb") as output,
+            ):
                 shutil.copyfileobj(response, output, length=1024 * 1024)
             temporary.replace(target)
             return
@@ -252,9 +246,7 @@ def _affect_distribution(style: str) -> dict[str, float] | None:
     target = AFFECT_MAP.get(style)
     if target is None:
         return None
-    return {
-        category.value: float(category.value == target) for category in AffectCategory
-    }
+    return {category.value: float(category.value == target) for category in AffectCategory}
 
 
 def build_manifests(
@@ -340,8 +332,7 @@ def build_manifests(
     provenance_manifest.parent.mkdir(parents=True, exist_ok=True)
     provenance_manifest.write_text(
         "".join(
-            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n"
-            for row in provenance_rows
+            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in provenance_rows
         ),
         encoding="utf-8",
     )

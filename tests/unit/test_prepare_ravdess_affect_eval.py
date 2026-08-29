@@ -29,9 +29,7 @@ def test_protocol_is_fixed_actor_disjoint_same_text_affect_evaluation() -> None:
         "other",
     }
     strong_anger = [
-        row
-        for row in rows
-        if row["source_emotion"] == "angry" and row["intensity"] == "strong"
+        row for row in rows if row["source_emotion"] == "angry" and row["intensity"] == "strong"
     ]
     assert len(strong_anger) == 32
 

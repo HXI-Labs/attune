@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 import shutil
 import subprocess
@@ -17,6 +16,8 @@ import zipfile
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
+from attune.integrity import file_digest
 
 FSD50K_REVISION = "812caa9897ee9e0e9a3b0ce075f7d70f14fa6460"
 FSD50K_RECORD = "4060432"
@@ -81,14 +82,6 @@ class PreparationError(RuntimeError):
     """Raised when the bounded preparation contract cannot be satisfied."""
 
 
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
-
-
 def download_with_retry(
     url: str,
     target: Path,
@@ -131,7 +124,7 @@ def ensure_fsd_metadata(cache_root: Path, timeout_s: float, retries: int) -> Pat
         archive = metadata_root / filename
         if not archive.exists():
             download_with_retry(source["url"], archive, timeout_s=timeout_s, retries=retries)
-        if digest(archive) != source["sha256"]:
+        if file_digest(archive) != source["sha256"]:
             raise PreparationError(f"metadata archive checksum mismatch: {archive}")
         expected_directory = metadata_root / filename.removesuffix(".zip")
         if not expected_directory.is_dir():
@@ -331,7 +324,7 @@ def fetch_fsd_row(
         "sample_rate_hz": sample_rate,
         "channels": channels,
         "sample_width_bytes": sample_width,
-        "sha256": digest(target),
+        "sha256": file_digest(target),
         "source_dataset": "FSD50K",
         "source_filename": f"{clip_id}.wav",
         "source_split": split,
@@ -397,7 +390,7 @@ def fetch_crema_row(
         "sample_rate_hz": sample_rate,
         "channels": channels,
         "sample_width_bytes": sample_width,
-        "sha256": digest(target),
+        "sha256": file_digest(target),
         "source_dataset": "CREMA-D",
         "source_filename": filename,
         "speaker_id": f"crema-d:{selected['speaker']}",
@@ -440,7 +433,7 @@ def verify(rows: list[dict[str, Any]], cache_root: Path) -> None:
             raise PreparationError(f"cache path escapes root: {row['cache_path']}")
         if not target.is_file():
             raise PreparationError(f"missing audio: {target}")
-        if digest(target) != row["sha256"]:
+        if file_digest(target) != row["sha256"]:
             raise PreparationError(f"checksum mismatch: {target}")
         duration, sample_rate, channels, width = wav_metadata(target)
         if (sample_rate, channels, width) != (16_000, 1, 2):

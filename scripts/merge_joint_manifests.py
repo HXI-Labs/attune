@@ -4,20 +4,12 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
 
+from attune.integrity import file_digest
 from attune.training.data import JointManifestRow
-
-
-def file_sha256(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
 
 
 def merge_manifests(
@@ -106,7 +98,7 @@ def merge_manifests(
         "inputs": [
             {
                 "path": str(path),
-                "sha256": file_sha256(path),
+                "sha256": file_digest(path),
                 "rows": len(path.read_text().splitlines()),
             }
             for path in inputs
@@ -121,7 +113,7 @@ def merge_manifests(
         },
         "output": str(output),
         "rows": len(rows),
-        "output_sha256": file_sha256(output),
+        "output_sha256": file_digest(output),
     }
     output.with_suffix(".provenance.json").write_text(
         json.dumps(provenance, indent=2, sort_keys=True) + "\n"

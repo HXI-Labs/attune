@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
@@ -14,14 +13,7 @@ from attune.auxiliary_adapter import (
     load_score_rows,
     predict_auxiliary_adapter,
 )
-
-
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+from attune.integrity import file_digest
 
 
 def main() -> None:
@@ -45,8 +37,8 @@ def main() -> None:
     ]
     report = {
         "schema_version": "1.0",
-        "adapter_sha256": file_sha256(arguments.adapter),
-        "scores_sha256": file_sha256(arguments.scores),
+        "adapter_sha256": file_digest(arguments.adapter),
+        "scores_sha256": file_digest(arguments.scores),
         "metrics": evaluate_auxiliary_adapter(adapter, rows),
         "flagged_clips": flagged,
         "deployment_unchanged": True,

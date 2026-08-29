@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import base64
-import hashlib
 import json
 import wave
 from pathlib import Path
@@ -14,16 +13,9 @@ from fastapi.testclient import TestClient
 
 from attune.inference.onnx_backend import OnnxAttuneBackend
 from attune.inference.streaming import StreamingConfig
+from attune.integrity import file_digest
 from attune.schema.v2 import AttuneOutputV2
 from attune.service.app import create_app
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def main() -> None:
@@ -103,9 +95,9 @@ def main() -> None:
     metrics.raise_for_status()
     report = {
         "schema_version": "1.0",
-        "model_sha256": _sha256(arguments.model),
-        "calibration_sha256": _sha256(arguments.calibration),
-        "audio_sha256": _sha256(arguments.audio),
+        "model_sha256": file_digest(arguments.model),
+        "calibration_sha256": file_digest(arguments.calibration),
+        "audio_sha256": file_digest(arguments.audio),
         "health": health.json(),
         "batch": {
             "status_code": batch.status_code,

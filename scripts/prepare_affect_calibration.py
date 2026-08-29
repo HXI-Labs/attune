@@ -11,9 +11,10 @@ from prepare_licence_clean_inspection import (
     CREMA_D_REVISION,
     PreparationError,
     convert_to_pcm16,
-    digest,
     download_with_retry,
 )
+
+from attune.integrity import file_digest
 
 ACTORS = range(1051, 1061)
 SENTENCES = ("IEO", "IWL")
@@ -94,7 +95,7 @@ def main() -> None:
                 source.unlink(missing_ok=True)
             if not target.is_file():
                 raise PreparationError(f"missing affect validation audio: {target}")
-            row["sha256"] = digest(target)
+            row["sha256"] = file_digest(target)
     except PreparationError as error:
         raise SystemExit(f"error: {error}") from error
     arguments.manifest.parent.mkdir(parents=True, exist_ok=True)

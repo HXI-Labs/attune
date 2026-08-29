@@ -1,4 +1,4 @@
-"""Phase 1 baseline runners and modular cascade."""
+"""Baseline runners and the modular cascade."""
 
 from attune.baselines.adapters import (
     BaselineInput,

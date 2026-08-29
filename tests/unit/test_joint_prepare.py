@@ -143,15 +143,13 @@ def test_sentence_disjoint_manifest_allows_one_speaker_but_rejects_pair_leakage(
 
     valid = tmp_path / "valid.jsonl"
     valid.write_text(
-        "\n".join(json.dumps(item) for item in [row("train", 1), row("sealed", 2)])
-        + "\n"
+        "\n".join(json.dumps(item) for item in [row("train", 1), row("sealed", 2)]) + "\n"
     )
     assert len(load_source_rows(valid)) == 2
 
     invalid = tmp_path / "invalid.jsonl"
     invalid.write_text(
-        "\n".join(json.dumps(item) for item in [row("train", 1), row("sealed", 1)])
-        + "\n"
+        "\n".join(json.dumps(item) for item in [row("train", 1), row("sealed", 1)]) + "\n"
     )
     with pytest.raises(ValueError, match="pair 1.*crosses"):
         load_source_rows(invalid)

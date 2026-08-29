@@ -2,8 +2,6 @@
 
 **Release ID:** `attune-cadence-241m`
 
-**Tagline:** Hear how it was said.
-
 ## Status
 
 This is an accuracy-hardening prerelease, not a public-weight release. A live
@@ -13,6 +11,11 @@ accurate. The demo and publication were withdrawn. The executable report in
 `release_ready: false` until the original hostile-speech case is retested.
 Public redistribution also depends on a final review of every training
 source's derivative-artifact terms.
+
+An external 480-clip RAVDESS evaluation subsequently measured 0.1213 affect
+macro-F1 and a 70.8% anger prediction share. This failure supersedes the
+internal affect gate result below and is the main reason a replacement affect
+candidate is being trained with the encoder and CTC path frozen.
 
 The candidate has 241,609,098 parameters. Its trained delta is
 `artifacts/training/local-upper-two-v0.1/model.pt`; its deployment graphs are:
@@ -92,6 +95,12 @@ development-selected abstention rule. FP Brier score is 0.5999 and ECE is
 0.1134. The categorical metric covers the six supported classes (`neutral`,
 `joy`, `distress`, `anger`, `fear`, `other`); ontology-wide F1 including
 unsupported classes is lower.
+
+These are internal candidate-selection results, not evidence of affect
+generalization. On the external RAVDESS inspection set, ASR remained accurate
+at 0.0104 WER while affect macro-F1 fell to 0.1213 and the prediction
+distribution collapsed toward anger. The current model must therefore not be
+published or described as a validated affect model.
 
 The event-presence and style metrics are offline research diagnostics only.
 Those heads are disabled in runtime output because their source data did not

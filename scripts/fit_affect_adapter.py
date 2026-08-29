@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
@@ -13,14 +12,7 @@ from attune.affect_adapter import (
     fit_affect_adapter,
     load_score_rows,
 )
-
-
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+from attune.integrity import file_digest
 
 
 def _named_paths(value: str | list[str] | dict[str, str], prefix: str) -> dict[str, Path]:
@@ -46,12 +38,8 @@ def main() -> None:
     config = json.loads(arguments.config.read_text())
     train_paths = _named_paths(config["training_scores"], "train")
     development_paths = _named_paths(config["selection_scores"], "development")
-    diagnostic_paths = _named_paths(
-        config["diagnostic_scores"], "opened_sealed_diagnostic"
-    )
-    external_paths = _named_paths(
-        config["external_evaluation_scores"], "external_ravdess"
-    )
+    diagnostic_paths = _named_paths(config["diagnostic_scores"], "opened_sealed_diagnostic")
+    external_paths = _named_paths(config["external_evaluation_scores"], "external_ravdess")
     train = _load_combined(train_paths)
     development = _load_combined(development_paths)
     adapter = fit_affect_adapter(
@@ -78,8 +66,7 @@ def main() -> None:
     external_name = str(acceptance.get("primary_external_report", "external_ravdess"))
     external_report = reports[external_name]
     gates = {
-        "macro_f1": external_report["macro_f1"]
-        >= acceptance["external_ravdess_macro_f1_minimum"],
+        "macro_f1": external_report["macro_f1"] >= acceptance["external_ravdess_macro_f1_minimum"],
         "anger_recall": external_report["per_class"]["anger"]["recall"]
         >= acceptance["external_ravdess_anger_recall_minimum"],
         "class_balance": external_report["maximum_predicted_class_share"]
@@ -92,12 +79,12 @@ def main() -> None:
         gates[f"{report_name}_macro_f1"] = reports[report_name]["macro_f1"] >= minimum
     report = {
         "schema_version": "1.0",
-        "config_sha256": file_sha256(arguments.config),
+        "config_sha256": file_digest(arguments.config),
         "score_sha256": {
-            **{name: file_sha256(path) for name, path in train_paths.items()},
-            **{name: file_sha256(path) for name, path in development_paths.items()},
-            **{name: file_sha256(path) for name, path in diagnostic_paths.items()},
-            **{name: file_sha256(path) for name, path in external_paths.items()},
+            **{name: file_digest(path) for name, path in train_paths.items()},
+            **{name: file_digest(path) for name, path in development_paths.items()},
+            **{name: file_digest(path) for name, path in diagnostic_paths.items()},
+            **{name: file_digest(path) for name, path in external_paths.items()},
         },
         "selected_c": adapter.selected_c,
         "temperature": adapter.temperature,

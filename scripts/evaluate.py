@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Phase 1 baselines against fixtures or the local inspection manifest."""
+"""Run baselines against fixtures or the local inspection manifest."""
 
 import argparse
 import importlib.metadata

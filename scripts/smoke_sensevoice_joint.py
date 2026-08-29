@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import io
 import json
 import time
@@ -15,6 +14,7 @@ import torch
 
 from attune.inference.export import sensevoice_feature_size
 from attune.inference.onnx_backend import LocalSenseVoiceFrontend
+from attune.integrity import file_digest
 from attune.models.joint import AdaptationPolicy, AttuneJointModel, load_local_sensevoice
 
 
@@ -26,10 +26,6 @@ def _silence() -> bytes:
         audio.setframerate(16_000)
         audio.writeframes(b"\x00\x00" * 16_000)
     return buffer.getvalue()
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def main() -> None:
@@ -58,7 +54,7 @@ def main() -> None:
     model.set_adaptation_policy(AdaptationPolicy.FROZEN)
     payload = {
         "schema_version": "1.0",
-        "checkpoint_sha256": _sha256(arguments.sensevoice_path / "model.pt"),
+        "checkpoint_sha256": file_digest(arguments.sensevoice_path / "model.pt"),
         "feature_shape": list(features.shape),
         "encoder_feature_size": expected_width,
         "acoustic_frames": int(output.acoustic_lengths[0]),

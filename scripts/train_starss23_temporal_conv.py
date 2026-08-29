@@ -16,7 +16,6 @@ from train_starss23_localization import (
     DURATION_MS,
     LABELS,
     VALIDATION_ROOMS,
-    digest,
     frame_targets,
     hysteresis_spans,
     load_rows,
@@ -28,6 +27,7 @@ from attune.evaluation.localization import (
     segment_f1,
     whole_clip_predictions,
 )
+from attune.integrity import file_digest
 from attune.models.sensevoice_probe import (
     SENSEVOICE_FRAME_EMBEDDING,
     FrozenSenseVoiceFrameEncoder,
@@ -275,11 +275,11 @@ def main() -> None:
         "manifests": {
             "development": {
                 "path": str(arguments.development_manifest),
-                "sha256": digest(arguments.development_manifest),
+                "sha256": file_digest(arguments.development_manifest),
             },
             "inspection_test": {
                 "path": str(arguments.inspection_manifest),
-                "sha256": digest(arguments.inspection_manifest),
+                "sha256": file_digest(arguments.inspection_manifest),
             },
         },
         "encoder": encoder.metadata(),

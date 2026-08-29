@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import subprocess
@@ -14,6 +13,8 @@ import urllib.request
 import wave
 from pathlib import Path
 from typing import Any
+
+from attune.integrity import file_digest
 
 DATASET_NAME = "Mozilla Common Voice Corpus 17.0 English"
 MIRROR_ID = "fixie-ai/common_voice_17_0"
@@ -59,14 +60,6 @@ REQUIRED_FIELDS = {
 
 class CommonVoicePreparationError(RuntimeError):
     """Raised when the British Common Voice slice cannot be prepared safely."""
-
-
-def file_digest(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def load_manifest(path: Path) -> list[dict[str, Any]]:
@@ -390,8 +383,10 @@ def download_manifest_rows(
         source_mismatch = source_hash != row["source_audio_sha256"]
         duration_mismatch = abs(duration_s - float(row["duration_s"])) > 0.05
         transcode_mismatch = digest != row["sha256"]
-        if source_mismatch or duration_mismatch or (
-            transcode_mismatch and not accept_transcode_drift
+        if (
+            source_mismatch
+            or duration_mismatch
+            or (transcode_mismatch and not accept_transcode_drift)
         ):
             target.unlink(missing_ok=True)
             raise CommonVoicePreparationError(

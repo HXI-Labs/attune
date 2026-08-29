@@ -8,8 +8,9 @@ import os
 from pathlib import Path
 from typing import Any
 
-from prepare_common_voice_british import file_digest, load_manifest, safe_target, verify_audio
+from prepare_common_voice_british import load_manifest, safe_target, verify_audio
 
+from attune.integrity import file_digest
 from attune.training.prepare import SourceRow
 
 

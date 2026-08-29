@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
@@ -18,6 +17,7 @@ from attune.evaluation.localization import (
     segment_f1,
     whole_clip_predictions,
 )
+from attune.integrity import file_digest
 from attune.models.sensevoice_probe import (
     SENSEVOICE_FRAME_EMBEDDING,
     FrozenSenseVoiceFrameEncoder,
@@ -161,14 +161,6 @@ def should_wire_starss23_timestamps(
     return margin >= SEGMENT_MARGIN_REQUIRED and collar_f1 >= COLLAR_F1_REQUIRED
 
 
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
-
-
 def load_rows(manifest: Path, cache: Path) -> list[dict[str, Any]]:
     rows = [
         json.loads(line)
@@ -177,7 +169,7 @@ def load_rows(manifest: Path, cache: Path) -> list[dict[str, Any]]:
     ]
     for row in rows:
         audio = cache / row["cache_path"]
-        if not audio.is_file() or digest(audio) != row["sha256"]:
+        if not audio.is_file() or file_digest(audio) != row["sha256"]:
             raise RuntimeError(f"missing or changed STARSS23 clip: {audio}")
         if set(event["label"] for event in row["events"]) - set(LABELS):
             raise RuntimeError("STARSS23 manifest contains an unsupported Attune mapping")
@@ -1294,11 +1286,11 @@ def main() -> None:
         "manifests": {
             "development": {
                 "path": str(arguments.development_manifest),
-                "sha256": digest(arguments.development_manifest),
+                "sha256": file_digest(arguments.development_manifest),
             },
             "inspection_test": {
                 "path": str(arguments.inspection_manifest),
-                "sha256": digest(arguments.inspection_manifest),
+                "sha256": file_digest(arguments.inspection_manifest),
             },
         },
         "encoder": encoder.metadata(),

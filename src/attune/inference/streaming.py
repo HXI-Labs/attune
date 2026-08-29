@@ -15,6 +15,16 @@ class StreamingConfig:
     overlap_ms: int = 750
     maximum_duration_ms: int = 30_000
 
+    def __post_init__(self) -> None:
+        if self.sample_rate_hz <= 0 or self.channels <= 0 or self.sample_width_bytes <= 0:
+            raise ValueError("stream audio format values must be positive")
+        if self.window_ms <= 0 or self.maximum_duration_ms <= 0:
+            raise ValueError("stream durations must be positive")
+        if not 0 <= self.overlap_ms < self.window_ms:
+            raise ValueError("stream overlap must be shorter than the window")
+        if self.window_ms > self.maximum_duration_ms:
+            raise ValueError("stream window cannot exceed the maximum duration")
+
     @property
     def bytes_per_ms(self) -> float:
         return self.sample_rate_hz * self.channels * self.sample_width_bytes / 1000
@@ -28,11 +38,15 @@ class StreamingBuffer:
     revision: int = 0
 
     def append_base64(self, encoded: str) -> bool:
+        maximum = int(self.config.maximum_duration_ms * self.config.bytes_per_ms)
+        remaining = maximum - len(self.pcm)
+        maximum_encoded_length = 4 * ((remaining + 2) // 3)
+        if len(encoded) > maximum_encoded_length:
+            raise ValueError("stream exceeds the configured maximum duration")
         try:
             chunk = base64.b64decode(encoded, validate=True)
         except ValueError as error:
             raise ValueError("audio.chunk data must be valid base64") from error
-        maximum = int(self.config.maximum_duration_ms * self.config.bytes_per_ms)
         if len(self.pcm) + len(chunk) > maximum:
             raise ValueError("stream exceeds the configured maximum duration")
         self.pcm.extend(chunk)
