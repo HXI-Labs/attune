@@ -230,11 +230,20 @@ transit and must be reviewed separately.
 - Dataset card: `docs/dataset-card-v0.1.md`
 - Implementation report: `research/v0.1-implementation-status.md`
 - Training/reproduction guide: `docs/cloud-training.md`
+- Auxiliary negative-control report: `research/auxiliary-negative-controls-v0.2.md`
 
 The checksum-verified training manifest contains 2,490 rows / 3.79 hours:
 1,691 train, 398 development, and 401 sealed test. Missing task labels are
 masked rather than treated as negatives. Audio and third-party model weights
 are not redistributed by this repository.
+
+The experimental v0.2 auxiliary adapter remains disabled. It produced one
+false sneeze on 189 previously opened sealed speech controls, although a later
+untouched 100-speaker British Common Voice control audit produced **0 event or
+style false-positive clips**. This additional negative evidence is encouraging
+but does not validate speech-embedded shouting/whispering or override the
+failed sealed regression. The public release and Hugging Face upload therefore
+remain blocked.
 
 ## Repository map
 

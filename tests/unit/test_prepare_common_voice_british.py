@@ -62,3 +62,59 @@ def test_manifest_rejects_non_british_accent_claim(tmp_path: Path) -> None:
 
     with pytest.raises(CommonVoicePreparationError, match="British CC0 provenance"):
         load_manifest(manifest)
+
+
+def test_transcode_drift_is_opt_in_and_never_relaxes_source_hash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = {
+        "clip_id": "control-1",
+        "source_row_index": 7,
+        "client_id": "speaker-1",
+        "transcript": "ordinary speech",
+        "accent_value": "England English",
+        "cache_path": "clips/control.wav",
+        "sha256": "expected-converted",
+        "source_audio_sha256": "expected-source",
+        "duration_s": 1.0,
+    }
+    source_row = {
+        "client_id": row["client_id"],
+        "sentence": row["transcript"],
+        "accent": row["accent_value"],
+    }
+    monkeypatch.setattr(PREPARE_CV, "load_manifest", lambda _path: [row])
+    monkeypatch.setattr(PREPARE_CV, "_source_row", lambda *_args: source_row)
+    monkeypatch.setattr(PREPARE_CV, "_asset_url", lambda _row: "pinned-source")
+    monkeypatch.setattr(PREPARE_CV, "verify_audio", lambda *_args: None)
+
+    def convert(_url: str, target: Path) -> tuple[float, str, str]:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"derived audio")
+        return 1.0, "different-converted", "expected-source"
+
+    monkeypatch.setattr(PREPARE_CV, "_convert", convert)
+    with pytest.raises(CommonVoicePreparationError, match="reproduced WAV does not match"):
+        PREPARE_CV.download_manifest_rows(tmp_path / "manifest", tmp_path / "cache")
+
+    assert (
+        PREPARE_CV.download_manifest_rows(
+            tmp_path / "manifest",
+            tmp_path / "cache",
+            accept_transcode_drift=True,
+        )
+        == 1
+    )
+
+    def changed_source(_url: str, target: Path) -> tuple[float, str, str]:
+        target.write_bytes(b"changed source")
+        return 1.0, "different-converted", "changed-source"
+
+    (tmp_path / "cache" / row["cache_path"]).unlink()
+    monkeypatch.setattr(PREPARE_CV, "_convert", changed_source)
+    with pytest.raises(CommonVoicePreparationError, match="reproduced WAV does not match"):
+        PREPARE_CV.download_manifest_rows(
+            tmp_path / "manifest",
+            tmp_path / "cache",
+            accept_transcode_drift=True,
+        )

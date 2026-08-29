@@ -68,13 +68,38 @@ The false sneeze is
 That failure is directly relevant to the user-reported false sneeze and blocks
 deployment even though aggregate F1 is strong.
 
+## Untouched British speech-control audit
+
+After the adapter decision was frozen, it was evaluated without refitting on a
+separate 100-clip, 100-speaker British Common Voice 17.0 CC0 slice. The slice
+contains England and Scottish English and was not part of adapter training,
+development threshold selection, or the opened v0.1 sealed partition.
+
+| External negative-control result | Clips crossing any threshold |
+|---|---:|
+| Event presence | 0 / 100 |
+| Shouting or whispering | 0 / 100 |
+
+The score-file SHA-256 is
+`08eb89c9259a557d2979cf87a0e7ef1eeb97846a21518ec11952447dfe52bcc9`;
+the adapter SHA-256 is
+`e6a351f020f9d00a8a7d4e4cd544dec60851b6894ac95ffe21dabe8549c1bfdc`.
+All source-audio hashes matched the pinned dataset revision. FFmpeg 7.1
+produced different derived-WAV hashes from the historical manifest while
+preserving exact source hashes, duration, and the 16 kHz mono PCM16 contract;
+those local transcodes are evaluation-only and are not release artefacts.
+
+This is strong additional negative evidence, but it does not reverse the
+deployment decision. It contains no positive speech-embedded style examples,
+and the earlier sealed false sneeze remains a relevant observed failure.
+
 ## Required next evidence
 
 1. Retest the original user recording through the protected hardened demo.
 2. Collect or obtain consented speech-embedded shouting and whispering positive
    examples with speaker-disjoint evaluation.
-3. Add a new untouched ordinary/expressive speech-control set. The opened v0.1
-   sealed partition cannot be reused for adapter selection.
+3. Add an untouched expressive-speech set with positive speech-embedded styles
+   and event transitions; the negative-only British audit cannot measure recall.
 4. Retrain/evaluate a candidate on the new lineage, then keep only labels whose
    false-positive risk passes before quantization and after INT8 export.
 

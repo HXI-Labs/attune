@@ -264,3 +264,40 @@ def evaluate_auxiliary_adapter(
             "per_label": per_label,
         }
     return report
+
+
+def predict_auxiliary_adapter(
+    adapter: AuxiliaryAdapter, rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Return per-clip audit probabilities without enabling runtime deployment."""
+    features = (score_features(rows) - np.asarray(adapter.feature_mean)) / np.asarray(
+        adapter.feature_scale
+    )
+    predictions: list[dict[str, Any]] = []
+    for row_index, row in enumerate(rows):
+        result: dict[str, Any] = {"clip_id": row["clip_id"]}
+        for task_name, task in (
+            ("event_presence", adapter.event_presence),
+            ("styles", adapter.styles),
+        ):
+            labels: dict[str, Any] = {}
+            for label in task.labels:
+                probability = float(
+                    _sigmoid(
+                        np.asarray(
+                            [
+                                features[row_index] @ np.asarray(task.weights[label])
+                                + task.biases[label]
+                            ]
+                        )
+                    )[0]
+                )
+                labels[label] = {
+                    "probability": probability,
+                    "threshold": task.thresholds[label],
+                    "above_threshold": probability >= task.thresholds[label],
+                    "deployment_enabled": label in task.deployment_enabled_labels,
+                }
+            result[task_name] = labels
+        predictions.append(result)
+    return predictions

@@ -41,3 +41,17 @@ are collected and evaluated speaker-disjointly.
 The original v0.1 manifests and their hashes are unchanged. Applying this
 policy creates a new experiment lineage and must never be presented as the
 original sealed evaluation.
+
+## External-control audit
+
+The pinned, speaker-disjoint British Common Voice slice can be converted to an
+evaluation-only negative-control source manifest with
+`scripts/build_common_voice_british_controls.py`. Raw unified-model scores can
+then be inspected with `scripts/evaluate_auxiliary_adapter.py`, which records
+every label crossing its candidate threshold and never changes the deployment
+allowlist.
+
+The first 100-clip external audit produced zero event-presence and zero style
+threshold crossings. It was not used to fit the adapter or select thresholds.
+Because the set contains only ordinary speech negatives, it is evidence about
+false positives—not recall or style recognition quality.

@@ -357,13 +357,25 @@ def create_manifest(manifest: Path, cache_root: Path, clip_count: int) -> list[d
     return rows
 
 
-def download_manifest_rows(manifest: Path, cache_root: Path) -> int:
-    """Re-fetch missing committed rows without downloading a corpus or shard."""
+def download_manifest_rows(
+    manifest: Path,
+    cache_root: Path,
+    *,
+    accept_transcode_drift: bool = False,
+) -> int:
+    """Re-fetch missing committed rows without downloading a corpus or shard.
+
+    ``accept_transcode_drift`` is an evaluation-only escape hatch for a pinned
+    source file whose decoded PCM differs across FFmpeg versions. It never
+    permits source-audio or duration drift. Strict verification remains the
+    default for release artefacts.
+    """
     rows = load_manifest(manifest)
     page_cache: dict[int, dict[int, dict[str, Any]]] = {}
+    transcode_drift = 0
     for row in rows:
         target = safe_target(cache_root, row["cache_path"])
-        if target.exists():
+        if target.exists() and not accept_transcode_drift:
             continue
         source_row = _source_row(int(row["source_row_index"]), page_cache)
         if (
@@ -375,14 +387,41 @@ def download_manifest_rows(manifest: Path, cache_root: Path) -> int:
                 f"{row['clip_id']}: pinned source metadata no longer matches"
             )
         duration_s, digest, source_hash = _convert(_asset_url(source_row), target)
-        if (
-            digest != row["sha256"]
-            or source_hash != row["source_audio_sha256"]
-            or abs(duration_s - float(row["duration_s"])) > 0.05
+        source_mismatch = source_hash != row["source_audio_sha256"]
+        duration_mismatch = abs(duration_s - float(row["duration_s"])) > 0.05
+        transcode_mismatch = digest != row["sha256"]
+        if source_mismatch or duration_mismatch or (
+            transcode_mismatch and not accept_transcode_drift
         ):
             target.unlink(missing_ok=True)
-            raise CommonVoicePreparationError(f"{row['clip_id']}: reproduced WAV does not match")
+            raise CommonVoicePreparationError(
+                f"{row['clip_id']}: reproduced WAV does not match "
+                f"(converted_sha256={digest}, expected_converted_sha256={row['sha256']}, "
+                f"source_sha256={source_hash}, "
+                f"expected_source_sha256={row['source_audio_sha256']}, "
+                f"duration_s={duration_s:.6f}, expected_duration_s={float(row['duration_s']):.6f})"
+            )
+        if transcode_mismatch:
+            transcode_drift += 1
+            print(
+                f"warning: {row['clip_id']} has FFmpeg transcode drift; "
+                "the pinned source hash and audio contract match",
+                flush=True,
+            )
         print(f"prepared {row['clip_id']}", flush=True)
+    if accept_transcode_drift:
+        for row in rows:
+            target = safe_target(cache_root, row["cache_path"])
+            if not target.exists():
+                raise CommonVoicePreparationError(f"{row['clip_id']}: converted WAV is missing")
+            verify_audio(target, float(row["duration_s"]))
+        if transcode_drift:
+            print(
+                f"warning: accepted transcode drift for {transcode_drift} evaluation clip(s); "
+                "do not publish these derived WAVs as release artefacts",
+                flush=True,
+            )
+        return len(rows)
     return verify(manifest, cache_root)
 
 
@@ -391,6 +430,14 @@ def main() -> None:
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE)
     parser.add_argument("--download", action="store_true")
+    parser.add_argument(
+        "--accept-transcode-drift",
+        action="store_true",
+        help=(
+            "evaluation only: accept a converted-WAV hash mismatch when the pinned source "
+            "hash, duration, and 16 kHz mono PCM16 contract still match"
+        ),
+    )
     parser.add_argument("--create-manifest", action="store_true")
     parser.add_argument("--clip-count", type=int, default=DEFAULT_CLIP_COUNT)
     arguments = parser.parse_args()
@@ -398,7 +445,11 @@ def main() -> None:
         rows = create_manifest(arguments.manifest, arguments.cache_dir, arguments.clip_count)
         print(f"Wrote {len(rows)} CC0 British-English rows to {arguments.manifest}")
     elif arguments.download:
-        count = download_manifest_rows(arguments.manifest, arguments.cache_dir)
+        count = download_manifest_rows(
+            arguments.manifest,
+            arguments.cache_dir,
+            accept_transcode_drift=arguments.accept_transcode_drift,
+        )
         print(f"Prepared and verified {count} CC0 British-English clips")
     else:
         count = verify(arguments.manifest, arguments.cache_dir)

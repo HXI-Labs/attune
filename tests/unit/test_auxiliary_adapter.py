@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from attune.auxiliary_adapter import evaluate_auxiliary_adapter, fit_auxiliary_adapter
+from attune.auxiliary_adapter import (
+    evaluate_auxiliary_adapter,
+    fit_auxiliary_adapter,
+    predict_auxiliary_adapter,
+)
 
 
 def _row(index: int, split: str, positive: bool) -> dict:
@@ -34,3 +38,8 @@ def test_auxiliary_adapter_learns_separable_controls_and_stays_disabled() -> Non
     assert report["styles"]["control_false_positive_clips"] == 0
     assert adapter.event_presence.deployment_enabled_labels == []
     assert adapter.styles.deployment_enabled_labels == []
+
+    predictions = predict_auxiliary_adapter(adapter, sealed)
+    assert predictions[0]["event_presence"]["laugh"]["above_threshold"] is True
+    assert predictions[1]["event_presence"]["laugh"]["above_threshold"] is False
+    assert predictions[0]["event_presence"]["laugh"]["deployment_enabled"] is False
