@@ -135,6 +135,26 @@ Voice under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
 Mozilla Common Voice attribution is retained voluntarily. Do not attempt to
 determine speaker identities. No audio is committed.
 
+## RAVDESS external affect audit
+
+`ravdess-affect-external-v0.1.jsonl` records a fixed evaluation-only slice of
+480 audio-speech clips from RAVDESS actors 17–24. Every actor speaks the same
+two lexically neutral statements across neutral/calm, joy, distress, anger,
+fear, surprise, and `other` (RAVDESS disgust) targets. This is deliberately a
+same-text, different-delivery cross-corpus test.
+
+```bash
+uv run python scripts/prepare_ravdess_affect_eval.py --download
+uv run python scripts/prepare_ravdess_affect_eval.py
+```
+
+The official Zenodo archive must match its published MD5. Selected source
+files are normalized to mono 16 kHz PCM16; both source and normalized hashes
+are recorded. The source contains two stereo anomalies, which are explicitly
+downmixed rather than silently dropped. RAVDESS is CC BY-NC-SA 4.0 here, so
+this slice is for internal non-commercial evaluation only and must not train
+public release weights. Audio remains gitignored.
+
 ## Licence-clean event and affect expansion
 
 `licence-clean-inspection.jsonl` adds 160 individually fetched, converted, and
@@ -243,4 +263,3 @@ STARSS23's human 100 ms activity labels and are **not** reviewed Attune gold.
 Ledger status for this pack is `human_100ms_activity_not_attune_gold`. Audio is
 never committed. See `docs/gold-review-starss23.md` and
 `research/gold-sources.md`.
-

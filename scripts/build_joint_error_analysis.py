@@ -162,6 +162,12 @@ def analyse(
 
 def render_markdown(report: dict[str, Any]) -> str:
     event = report["localized_events"].get("per_class", {})
+    ood_f1 = report["ood"]["f1"]
+    ood_summary = (
+        f"- OOD F1: `{ood_f1:.4f}` with {len(report['ood']['errors'])} errors."
+        if ood_f1 is not None
+        else "- OOD F1: unavailable because this slice contains only one OOD class."
+    )
     lines = [
         "# Attune v0.1 sealed error analysis",
         "",
@@ -180,7 +186,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"`{report['affect']['macro_f1']:.4f}` at "
             f"`{report['affect']['coverage']:.4f}` coverage."
         ),
-        f"- OOD F1: `{report['ood']['f1']:.4f}` with {len(report['ood']['errors'])} errors.",
+        ood_summary,
         "",
         "## Localized events",
         "",
