@@ -134,6 +134,14 @@ INDEX_HTML = r"""<!doctype html>
 
     @keyframes pulse { to { opacity: 0.2; } }
     audio { width: 100%; margin-top: 14px; }
+    .examples { margin: 28px 0; }
+    .examples > p { max-width: 680px; margin: -4px 0 16px; color: var(--muted); }
+    .example-list { margin: 0; padding: 0; border-top: 1px solid var(--border); list-style: none; }
+    .example-list li { padding: 15px 0; border-bottom: 1px solid var(--border); }
+    .example-list p { margin: 0; }
+    .example-list .delivery { color: var(--accent); font-weight: 700; }
+    .example-list .prompt { margin-top: 3px; font-size: 17px; }
+    .example-note { margin-top: 12px; color: var(--muted); font-size: 12px; }
     #results { display: none; margin-top: 20px; }
     #results.visible { display: block; }
     .section { padding: 22px; border-bottom: 1px solid var(--border); }
@@ -240,6 +248,38 @@ INDEX_HTML = r"""<!doctype html>
       <audio id="audio-preview" controls hidden></audio>
       <p class="status" id="status" role="status" aria-live="polite">
         Choose a file or record from the microphone.
+      </p>
+    </section>
+
+    <section class="examples" aria-labelledby="examples-heading">
+      <h2 id="examples-heading">Things to try</h2>
+      <p>
+        Perform the line rather than reading the annotation aloud. The brackets show the
+        compact, human-readable output Attune is designed to produce.
+      </p>
+      <ul class="example-list">
+        <li>
+          <p class="delivery">[laughing speech; perceived joy]</p>
+          <p class="prompt">I cannot believe you actually did that! [laugh]</p>
+        </li>
+        <li>
+          <p class="delivery">[whispering; perceived fear]</p>
+          <p class="prompt">Do not turn around. I think the cat followed us in here. [breath]</p>
+        </li>
+        <li>
+          <p class="delivery">[crying speech; perceived distress]</p>
+          <p class="prompt">It was the last slice of cake. [sob]</p>
+        </li>
+        <li>
+          <p class="delivery">[neutral] I thought I had lost the tickets.</p>
+          <p class="prompt">
+            [laughing speech; perceived joy] They were in my hand the whole time. [laugh]
+          </p>
+        </li>
+      </ul>
+      <p class="example-note">
+        These are illustrative target outputs. The current model may abstain when the vocal
+        evidence is weak or a label has not passed its release gate.
       </p>
     </section>
 
