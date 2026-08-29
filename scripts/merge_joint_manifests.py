@@ -26,13 +26,26 @@ def merge_manifests(
     *,
     speaker_overlap_allowed: set[str] | None = None,
     pair_overlap_allowed: set[str] | None = None,
+    minimum_duration_ms: int | None = None,
+    maximum_duration_ms: int | None = None,
 ) -> list[JointManifestRow]:
     if len(inputs) < 2:
         raise ValueError("merge requires at least two input manifests")
     output = output.resolve()
     speaker_overlap_allowed = speaker_overlap_allowed or set()
     pair_overlap_allowed = pair_overlap_allowed or set()
+    if minimum_duration_ms is not None and minimum_duration_ms <= 0:
+        raise ValueError("minimum duration must be positive")
+    if maximum_duration_ms is not None and maximum_duration_ms <= 0:
+        raise ValueError("maximum duration must be positive")
+    if (
+        minimum_duration_ms is not None
+        and maximum_duration_ms is not None
+        and maximum_duration_ms < minimum_duration_ms
+    ):
+        raise ValueError("maximum duration must not be below minimum duration")
     rows: list[JointManifestRow] = []
+    excluded_rows: list[dict[str, object]] = []
     seen: set[tuple[str, str]] = set()
     speaker_splits: dict[tuple[str, str], str] = {}
     pair_splits: dict[tuple[str, int], str] = {}
@@ -45,6 +58,26 @@ def merge_manifests(
                 row = JointManifestRow.model_validate_json(line)
             except ValueError as error:
                 raise ValueError(f"{source}:{line_number}: {error}") from error
+            if minimum_duration_ms is not None and row.duration_ms < minimum_duration_ms:
+                excluded_rows.append(
+                    {
+                        "dataset_id": row.dataset_id,
+                        "clip_id": row.clip_id,
+                        "duration_ms": row.duration_ms,
+                        "reason": "below_minimum_duration",
+                    }
+                )
+                continue
+            if maximum_duration_ms is not None and row.duration_ms > maximum_duration_ms:
+                excluded_rows.append(
+                    {
+                        "dataset_id": row.dataset_id,
+                        "clip_id": row.clip_id,
+                        "duration_ms": row.duration_ms,
+                        "reason": "above_maximum_duration",
+                    }
+                )
+                continue
             key = (row.dataset_id, row.clip_id)
             if key in seen:
                 raise ValueError(f"duplicate merged clip: {key}")
@@ -80,6 +113,12 @@ def merge_manifests(
         ],
         "speaker_overlap_allowed": sorted(speaker_overlap_allowed),
         "pair_overlap_allowed": sorted(pair_overlap_allowed),
+        "duration_filter": {
+            "minimum_duration_ms": minimum_duration_ms,
+            "maximum_duration_ms": maximum_duration_ms,
+            "excluded_count": len(excluded_rows),
+            "excluded_rows": excluded_rows,
+        },
         "output": str(output),
         "rows": len(rows),
         "output_sha256": file_sha256(output),
@@ -96,12 +135,16 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--allow-speaker-overlap-dataset", action="append", default=[])
     parser.add_argument("--allow-pair-overlap-dataset", action="append", default=[])
+    parser.add_argument("--minimum-duration-ms", type=int)
+    parser.add_argument("--maximum-duration-ms", type=int)
     arguments = parser.parse_args()
     rows = merge_manifests(
         arguments.input,
         arguments.output,
         speaker_overlap_allowed=set(arguments.allow_speaker_overlap_dataset),
         pair_overlap_allowed=set(arguments.allow_pair_overlap_dataset),
+        minimum_duration_ms=arguments.minimum_duration_ms,
+        maximum_duration_ms=arguments.maximum_duration_ms,
     )
     print(f"Merged {len(rows)} rows into {arguments.output}", flush=True)
 

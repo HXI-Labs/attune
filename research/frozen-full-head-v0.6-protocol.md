@@ -1,6 +1,7 @@
 # Frozen full-head candidate v0.6 protocol
 
-Status: predeclared before training.
+Status: predeclared before any completed training epoch. Two incomplete local
+attempts exposed documented execution/data issues before the final run.
 
 ## Purpose
 
@@ -20,12 +21,18 @@ an encoder fine-tune.
 | Original joint v0.2 controls | `fc3356f5253280b4f1ba65706b3eef6f79584836815f45b22d5eb3c848f162b4` |
 | Thorsten joint features | `40cdb0b69e2e5613aed21e3b500a98fa9a9f21d81e62937e175a7c79ca2f73f5` |
 | SUBESCO joint features | `949f0758b4bf34bf98dbec08c6c49d72abea0946989b4ee44958dd80291cf90c` |
-| Merged manifest | `4708f06e6a3a1c03552284bc9a70a09a13ce933db6867f6a1aeb6065810b36d5` |
+| Merged manifest | `8046857558d1b5a8aeec3cc6f7d17c5aed84e8f7ab9ed5efb21110fa0fbbe01d` |
 | Initial frozen-head delta | `8bdeb7f25c1bbbb60cf59df92d462dedd423f3f011b6a768f81b1e7ef78d3886` |
 
-The merged manifest contains 11,889 rows: 8,270 train, 1,458 development,
+The merged manifest contains 11,885 rows: 8,266 train, 1,458 development,
 and 2,161 sealed. Only the original lineage has ASR token targets. Thorsten and
 SUBESCO provide no CTC supervision.
+
+The final merge enforces the declared 0.5-to-30-second clip scope. It excludes
+three sub-500 ms FSD50K rows (`fsd50k-45604`, `fsd50k-45605`, and
+`fsd50k-50924`) and one 101.808-second row (`fsd50k-124800`). The generated
+provenance records every exclusion and reason. The retained range is 508 ms to
+29.374 seconds.
 
 ## Training
 
