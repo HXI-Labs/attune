@@ -228,3 +228,29 @@ def test_split_tail_preserves_base_asr_while_perception_tail_changes() -> None:
     assert torch.equal(before.ctc_logits, after.ctc_logits)
     assert not torch.equal(before.event_logits, after.event_logits)
     assert all(not parameter.requires_grad for parameter in model.base_asr_tail.parameters())
+
+
+def test_split_tail_skips_unused_base_asr_branch_without_ctc_projection() -> None:
+    model = AttuneJointModel(
+        SplitFakeSenseVoice(),
+        adaptation_policy=AdaptationPolicy.UPPER_TWO,
+        preserve_base_asr=True,
+    ).eval()
+    calls = 0
+
+    def count_call(_module, _arguments, _output) -> None:
+        nonlocal calls
+        calls += 1
+
+    hook = model.base_asr_tail[0].register_forward_hook(count_call)
+    speech = torch.randn(1, 8, 512)
+    lengths = torch.tensor([8])
+    with torch.inference_mode():
+        without_ctc = model(speech, lengths, compute_ctc_logits=False)
+        assert calls == 0
+        with_ctc = model(speech, lengths, compute_ctc_logits=True)
+    hook.remove()
+
+    assert without_ctc.ctc_logits.shape[-1] == 0
+    assert with_ctc.ctc_logits.shape[-1] == 20
+    assert calls == 1

@@ -37,10 +37,14 @@ the existing heads or changing the label ontology.
   trainable parameter.
 - Train for at most 10 epochs with patience 3.
 - Use corpus-balanced, duration-bucketed batches and seed 42.
-- Use physical batches of 6 with four-step accumulation for an effective batch
-  size of 24 on Apple MPS. A batch of 12 passed a short-clip preflight but
-  exceeded the 9.07 GiB MPS limit on a longer duration bucket before the first
-  progress interval; no epoch or checkpoint was written.
+- Use physical batches of 12 with two-step accumulation for an effective batch
+  size of 24 on Apple MPS. The first attempt needlessly evaluated the frozen
+  ASR copy even though CTC output was disabled and exceeded the 9.07 GiB MPS
+  limit before the first progress interval. The training-only forward now skips
+  that unused branch. A full forward/backward pass over the 12 longest training
+  clips (23.683 to 29.374 seconds) completed with all 60 expected gradient
+  tensors before the restart. Export and normal inference still execute the
+  frozen ASR route.
 - Use learning rates of 2e-5 for existing heads and 5e-6 for adapted encoder
   parameters.
 

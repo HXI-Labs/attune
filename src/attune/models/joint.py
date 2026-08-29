@@ -219,7 +219,10 @@ class AttuneJointModel(nn.Module):
         if rich_tokens.shape != (batch_size, 4):
             raise ValueError("rich_tokens must have shape (batch, 4)")
         encoded, asr_encoded, encoded_lengths = self._encode_views(
-            speech, speech_lengths.clone(), rich_tokens
+            speech,
+            speech_lengths.clone(),
+            rich_tokens,
+            compute_asr_view=compute_ctc_logits,
         )
         if encoded.shape[1] <= 4:
             raise ValueError("SenseVoice returned no acoustic encoder frames")
@@ -274,7 +277,12 @@ class AttuneJointModel(nn.Module):
         return self.sensevoice.encoder(speech, speech_lengths + 4)
 
     def _encode_views(
-        self, speech: Tensor, speech_lengths: Tensor, rich_tokens: Tensor
+        self,
+        speech: Tensor,
+        speech_lengths: Tensor,
+        rich_tokens: Tensor,
+        *,
+        compute_asr_view: bool,
     ) -> tuple[Tensor, Tensor, Tensor]:
         """Return adapted perception frames and a frozen-tail ASR view."""
         if not self.preserve_base_asr:
@@ -309,17 +317,24 @@ class AttuneJointModel(nn.Module):
             adapted, adapted_mask = layer(adapted, adapted_mask)[:2]
         adapted = encoder.after_norm(adapted)
 
-        base_asr, base_mask = shared, mask
-        for layer in self.base_asr_tail:
-            base_asr, base_mask = layer(base_asr, base_mask)[:2]
-        base_asr = self.base_asr_after_norm(base_asr)
-        encoded_lengths = base_mask.squeeze(1).sum(1).int()
+        base_asr = None
+        base_mask = None
+        if compute_asr_view:
+            base_asr, base_mask = shared, mask
+            for layer in self.base_asr_tail:
+                base_asr, base_mask = layer(base_asr, base_mask)[:2]
+            base_asr = self.base_asr_after_norm(base_asr)
+        encoded_lengths = adapted_mask.squeeze(1).sum(1).int()
 
         for layer in encoder.tp_encoders:
             adapted, adapted_mask = layer(adapted, adapted_mask)[:2]
-            base_asr, base_mask = layer(base_asr, base_mask)[:2]
+            if base_asr is not None and base_mask is not None:
+                base_asr, base_mask = layer(base_asr, base_mask)[:2]
+        adapted = encoder.tp_norm(adapted)
+        if base_asr is None:
+            return adapted, adapted, encoded_lengths
         return (
-            encoder.tp_norm(adapted),
+            adapted,
             self.base_asr_tp_norm(base_asr),
             encoded_lengths,
         )
