@@ -35,10 +35,12 @@ the existing heads or changing the label ontology.
 - Route ASR through the frozen tail and perception through the adapted tail.
 - Exclude CTC loss because the exported ASR route is isolated from every
   trainable parameter.
-- Train for at most 10 epochs with patience 3.
+- Train an initial six epochs with patience 3. Resume to the original maximum
+  of 10 only if the sixth validation loss is still improving and held-out
+  evaluation justifies the additional run.
 - Use corpus-balanced, duration-bucketed batches and seed 42.
-- Use physical batches of 10 with two-step accumulation for an effective batch
-  size of 20 on Apple MPS. The first attempt needlessly evaluated the frozen
+- Use physical batches of 6 with four-step accumulation for an effective batch
+  size of 24 on Apple MPS. The first attempt needlessly evaluated the frozen
   ASR copy even though CTC output was disabled and exceeded the 9.07 GiB MPS
   limit before the first progress interval. The training-only forward now skips
   that unused branch. A full forward/backward pass over the 12 longest training
@@ -46,8 +48,10 @@ the existing heads or changing the label ontology.
   tensors before the restart. Export and normal inference still execute the
   frozen ASR route. A subsequent batch of 12 passed that one-step stress test
   but exceeded the memory limit after AdamW allocated its moment buffers. It
-  also stopped before an epoch or checkpoint was written. Reducing the batch to
-  10 leaves headroom for optimizer state rather than disabling MPS safeguards.
+  also stopped before an epoch or checkpoint was written. A batch of 10 still
+  reached the limit during repeated training steps. Batch 6 is the largest size
+  observed to pass a 20-step training interval with optimizer state allocated;
+  it leaves headroom rather than disabling MPS safeguards.
 - Use learning rates of 2e-5 for existing heads and 5e-6 for adapted encoder
   parameters.
 
