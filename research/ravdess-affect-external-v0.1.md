@@ -73,7 +73,7 @@ the ranking of class logits.
 ## Predeclared next candidate
 
 The next and only candidate in this lineage is a balanced multinomial logistic
-adapter over the frozen 32-dimensional acoustic/OOD embedding, seven affect
+adapter over the frozen 32-dimensional acoustic/OOD embedding, eight affect
 logits, and three VAD predictions. Regularization, temperature, and abstention
 are selected only on the original development partition. CTC logits, encoder
 weights, transcript decoding, event heads, and style heads remain byte-for-byte
@@ -83,3 +83,11 @@ The adapter remains disabled unless it reaches at least 0.40 macro-F1 on this
 external set, retains at least 0.70 anger recall, avoids any predicted class
 exceeding 60% of clips, covers at least 50%, and lowers selective error. Passing
 these gates would justify further evaluation, not release by itself.
+
+## v0.3 candidate result
+
+The predeclared adapter reached 0.1588 external macro-F1 and failed its primary
+0.40 gate. It reduced the maximum predicted-class share from 70.8% to 49.0%
+and retained 0.7344 anger recall, but joy, distress, fear, and surprise remained
+poor cross-corpus. It stays disabled. Full details are in
+`research/affect-adapter-v0.3.md`.

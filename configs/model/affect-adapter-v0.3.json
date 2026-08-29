@@ -8,7 +8,7 @@
   "external_evaluation_scores": "artifacts/evaluation/ravdess-affect-external-v0.1/int8-scores.jsonl",
   "features": [
     "ood_embedding_32d",
-    "affect_logits_7d",
+    "affect_logits_8d",
     "vad_prediction_3d"
   ],
   "model": {
