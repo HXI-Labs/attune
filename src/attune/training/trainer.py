@@ -42,6 +42,8 @@ _TRAINING_SOURCE_FILES = (
 class TrainerConfig:
     epochs: int = 10
     batch_size: int = 4
+    samples_per_epoch: int | None = None
+    validation_batch_size: int | None = None
     gradient_accumulation: int = 1
     head_learning_rate: float = 1e-4
     encoder_learning_rate: float = 1e-5
@@ -61,6 +63,10 @@ class TrainerConfig:
     def validate(self) -> None:
         if self.epochs < 1 or self.batch_size < 1 or self.gradient_accumulation < 1:
             raise ValueError("epochs, batch_size, and gradient_accumulation must be positive")
+        if self.samples_per_epoch is not None and self.samples_per_epoch < 1:
+            raise ValueError("samples_per_epoch must be positive when set")
+        if self.validation_batch_size is not None and self.validation_batch_size < 1:
+            raise ValueError("validation_batch_size must be positive when set")
         if self.log_interval_steps < 1:
             raise ValueError("log_interval_steps must be positive")
         if self.duration_bucket_multiplier < 1:
@@ -131,7 +137,10 @@ def _training_source_sha256() -> str:
 
 
 def _corpus_balanced_sampler(
-    dataset: JointFeatureDataset, *, generator: torch.Generator
+    dataset: JointFeatureDataset,
+    *,
+    generator: torch.Generator,
+    num_samples: int | None = None,
 ) -> WeightedRandomSampler:
     """Sample corpora uniformly while retaining natural variation within each corpus."""
 
@@ -143,7 +152,7 @@ def _corpus_balanced_sampler(
     )
     return WeightedRandomSampler(
         weights,
-        num_samples=len(dataset),
+        num_samples=num_samples or len(dataset),
         replacement=True,
         generator=generator,
     )
@@ -211,11 +220,19 @@ def train_joint_model(
     train_data = JointFeatureDataset(manifest, split="train")
     validation_data = JointFeatureDataset(manifest, split="development")
     generator = torch.Generator().manual_seed(config.seed)
-    sampler = (
-        _corpus_balanced_sampler(train_data, generator=generator)
-        if config.corpus_balancing
-        else RandomSampler(train_data, generator=generator)
-    )
+    if config.corpus_balancing:
+        sampler = _corpus_balanced_sampler(
+            train_data,
+            generator=generator,
+            num_samples=config.samples_per_epoch,
+        )
+    else:
+        sampler = RandomSampler(
+            train_data,
+            replacement=config.samples_per_epoch is not None,
+            num_samples=config.samples_per_epoch,
+            generator=generator,
+        )
     train_batches = DurationBucketBatchSampler(
         sampler,
         [row.duration_ms for row in train_data.rows],
@@ -230,7 +247,7 @@ def train_joint_model(
     validation_batches = DurationBucketBatchSampler(
         SequentialSampler(validation_data),
         [row.duration_ms for row in validation_data.rows],
-        batch_size=config.batch_size,
+        batch_size=config.validation_batch_size or config.batch_size,
         bucket_multiplier=max(len(validation_data), 1),
     )
     validation_loader = DataLoader(

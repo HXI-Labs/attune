@@ -44,7 +44,14 @@ the existing heads or changing the label ontology.
 - Train an initial six epochs with patience 3. Resume to the original maximum
   of 10 only if the sixth validation loss is still improving and held-out
   evaluation justifies the additional run.
-- Use corpus-balanced, duration-bucketed batches and seed 42.
+- Use corpus-balanced, duration-bucketed batches and seed 42. Each epoch draws
+  4,096 training examples with replacement from the balanced corpus sampler.
+  Six epochs therefore provide 24,576 balanced draws, roughly three passes over
+  the 8,165-row training partition, while producing enough validation points
+  for useful model selection during the local run.
+- Evaluate every one of the 1,458 development rows after each epoch. Use a
+  validation batch size of 24 because validation does not retain gradients; the
+  larger batch changes throughput, not the evaluation population.
 - Use physical batches of 6 with four-step accumulation for an effective batch
   size of 24 on Apple MPS. The first attempt needlessly evaluated the frozen
   ASR copy even though CTC output was disabled and exceeded the 9.07 GiB MPS

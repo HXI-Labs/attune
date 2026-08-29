@@ -1,6 +1,8 @@
 {
   "epochs": 6,
   "batch_size": 6,
+  "samples_per_epoch": 4096,
+  "validation_batch_size": 24,
   "gradient_accumulation": 4,
   "head_learning_rate": 0.00002,
   "encoder_learning_rate": 0.000005,

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 import torch
 from torch import nn
 from torch.utils.data import SequentialSampler
@@ -61,6 +62,37 @@ def test_corpus_sampler_assigns_equal_total_mass_to_each_corpus() -> None:
 
     assert sampler.weights[:3].sum().item() == 1.0
     assert sampler.weights[3:].sum().item() == 1.0
+
+
+def test_corpus_sampler_honours_fixed_epoch_size() -> None:
+    dataset = SimpleNamespace(
+        rows=[
+            SimpleNamespace(dataset_id="first"),
+            SimpleNamespace(dataset_id="second"),
+        ]
+    )
+
+    sampler = _corpus_balanced_sampler(
+        dataset,
+        generator=torch.Generator().manual_seed(42),
+        num_samples=7,
+    )
+
+    assert len(sampler) == 7
+
+
+@pytest.mark.parametrize(
+    "config, message",
+    [
+        (TrainerConfig(samples_per_epoch=0), "samples_per_epoch"),
+        (TrainerConfig(validation_batch_size=0), "validation_batch_size"),
+    ],
+)
+def test_trainer_config_rejects_non_positive_optional_batch_limits(
+    config: TrainerConfig, message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        config.validate()
 
 
 def test_duration_bucket_sampler_limits_padding_within_batches() -> None:
