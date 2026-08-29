@@ -246,9 +246,7 @@ def _run_inspection_runner(
         "runtime": {
             "audio_seconds": runtime_audio,
             "elapsed_seconds": runtime_elapsed,
-            "real_time_factor": (
-                runtime_elapsed / runtime_audio if runtime_audio else None
-            ),
+            "real_time_factor": (runtime_elapsed / runtime_audio if runtime_audio else None),
             "mean_latency_ms": (
                 sum(record[2].latency_ms or 0.0 for record in records) / len(records)
                 if records
@@ -266,25 +264,15 @@ def _inspection_metrics(
     records: list[tuple[dict[str, Any], AttuneOutput, Any]],
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
     crema = [record for record in records if record[0]["source_dataset"] == "CREMA-D"]
-    vocalsound = [
-        record for record in records if record[0]["source_dataset"] == "VocalSound"
-    ]
+    vocalsound = [record for record in records if record[0]["source_dataset"] == "VocalSound"]
     asr_capable = runner.name != Emotion2VecPlusAdapter.name
-    references = [
-        _normalize_asr(row["source_metadata"]["transcript"]) for row, _, _ in crema
-    ]
+    references = [_normalize_asr(row["source_metadata"]["transcript"]) for row, _, _ in crema]
     hypotheses = [_normalize_asr(output.transcript.text) for _, output, _ in crema]
     asr = {
         "evaluated_clips": len(crema) if asr_capable else 0,
-        "wer": (
-            corpus_word_error_rate(references, hypotheses)
-            if crema and asr_capable
-            else None
-        ),
+        "wer": (corpus_word_error_rate(references, hypotheses) if crema and asr_capable else None),
         "cer": (
-            corpus_character_error_rate(references, hypotheses)
-            if crema and asr_capable
-            else None
+            corpus_character_error_rate(references, hypotheses) if crema and asr_capable else None
         ),
         "note": (
             "Transcript-only receives the supplied source transcript."
@@ -335,25 +323,18 @@ def _inspection_metrics(
         labels=[label.value for label in EventLabel],
     )
     event_scores["position_aware_score"] = (
-        sum(event_position_scores) / len(event_position_scores)
-        if event_position_scores
-        else None
+        sum(event_position_scores) / len(event_position_scores) if event_position_scores else None
     )
     event_scores["evaluated_clips"] = len(vocalsound)
 
-    affect_references = [
-        row["intended_attune_labels"]["affect"][0] for row, _, _ in crema
-    ]
+    affect_references = [row["intended_attune_labels"]["affect"][0] for row, _, _ in crema]
     affect_predictions = [
-        output.affect.top_label.value
-        if output.affect.top_label
-        else AffectCategory.AMBIGUOUS.value
+        output.affect.top_label.value if output.affect.top_label else AffectCategory.AMBIGUOUS.value
         for _, output, _ in crema
     ]
     lexical = TranscriptSentimentAdapter()
     lexical_targets = [
-        lexical.classify(row["source_metadata"]["transcript"])[0].value
-        for row, _, _ in crema
+        lexical.classify(row["source_metadata"]["transcript"])[0].value for row, _, _ in crema
     ]
     affect = {
         "evaluated_clips": len(crema),
@@ -361,9 +342,7 @@ def _inspection_metrics(
         "accuracy": (
             sum(
                 reference == prediction
-                for reference, prediction in zip(
-                    affect_references, affect_predictions, strict=True
-                )
+                for reference, prediction in zip(affect_references, affect_predictions, strict=True)
             )
             / len(crema)
             if crema
@@ -379,9 +358,7 @@ def _inspection_metrics(
             else None
         ),
         "acoustic_preference": (
-            acoustic_preference_score(
-                affect_predictions, affect_references, lexical_targets
-            )
+            acoustic_preference_score(affect_predictions, affect_references, lexical_targets)
             if crema
             else None
         ),

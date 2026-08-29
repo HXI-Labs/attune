@@ -28,9 +28,7 @@ def main() -> None:
         default=Path("research/error-analysis/gold-review-fixture-dry-run.jsonl"),
     )
     arguments = parser.parse_args()
-    manifest = json.loads(
-        (arguments.fixtures / "manifest.json").read_text(encoding="utf-8")
-    )
+    manifest = json.loads((arguments.fixtures / "manifest.json").read_text(encoding="utf-8"))
     records = []
     for item in manifest["items"]:
         audio = arguments.fixtures / item["audio"]

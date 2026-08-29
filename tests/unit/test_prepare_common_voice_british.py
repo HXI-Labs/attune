@@ -31,9 +31,7 @@ def test_committed_common_voice_manifest_is_cc0_and_speaker_disjoint() -> None:
     assert all(0.5 <= row["duration_s"] <= 30 for row in rows)
     assert all(row["sample_rate_hz"] == 16_000 and row["channels"] == 1 for row in rows)
     assert all(len(row["sha256"]) == 64 for row in rows)
-    assert all(
-        row["fetch_script"] == "scripts/prepare_common_voice_british.py" for row in rows
-    )
+    assert all(row["fetch_script"] == "scripts/prepare_common_voice_british.py" for row in rows)
 
 
 def test_manifest_rejects_duplicate_client_id(tmp_path: Path) -> None:

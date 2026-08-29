@@ -494,15 +494,12 @@ def test_40epoch_checkpoint_path_is_not_the_output() -> None:
 
 def test_keep_reported_best_requires_first60s_beat_and_tiled_gate() -> None:
     script = load_script()
-    assert (
-        script.keep_reported_best_0_1395(first60s_collar_f1=0.10, tiled_gate_passed=True) is True
-    )
+    assert script.keep_reported_best_0_1395(first60s_collar_f1=0.10, tiled_gate_passed=True) is True
     assert (
         script.keep_reported_best_0_1395(first60s_collar_f1=0.20, tiled_gate_passed=False) is True
     )
     assert (
-        script.keep_reported_best_0_1395(first60s_collar_f1=0.1395, tiled_gate_passed=True)
-        is True
+        script.keep_reported_best_0_1395(first60s_collar_f1=0.1395, tiled_gate_passed=True) is True
     )
     assert (
         script.keep_reported_best_0_1395(first60s_collar_f1=0.15, tiled_gate_passed=False) is True

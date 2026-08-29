@@ -132,12 +132,10 @@ def evaluate_none_logit(
     ood_probabilities = torch.softmax(ood_logits, dim=1)
     predictions = probabilities[:, :label_count].argmax(dim=1).tolist()
     id_scores = (
-        probabilities[:, :label_count].max(dim=1).values
-        - probabilities[:, label_count]
+        probabilities[:, :label_count].max(dim=1).values - probabilities[:, label_count]
     ).tolist()
     ood_scores = (
-        ood_probabilities[:, :label_count].max(dim=1).values
-        - ood_probabilities[:, label_count]
+        ood_probabilities[:, :label_count].max(dim=1).values - ood_probabilities[:, label_count]
     ).tolist()
     return _decision_metrics(
         target_values=targets.tolist(),
@@ -185,9 +183,7 @@ def fit_none_logit_head(
     closed_head.eval()
     with torch.inference_mode():
         fixed_class_score = torch.logsumexp(closed_head(features), dim=1)
-        fixed_validation_class_score = torch.logsumexp(
-            closed_head(validation_x), dim=1
-        )
+        fixed_validation_class_score = torch.logsumexp(closed_head(validation_x), dim=1)
     positive_weight = torch.tensor([len(train_features) / len(ood_train_features)])
 
     torch.manual_seed(seed + 1)
@@ -206,8 +202,7 @@ def fit_none_logit_head(
             indices = permutation[start : start + batch_size]
             optimizer.zero_grad()
             loss = torch.nn.functional.binary_cross_entropy_with_logits(
-                none_logit(features[indices]).squeeze(1)
-                - fixed_class_score[indices],
+                none_logit(features[indices]).squeeze(1) - fixed_class_score[indices],
                 targets[indices],
                 pos_weight=positive_weight,
             )
@@ -217,8 +212,7 @@ def fit_none_logit_head(
         none_logit.eval()
         with torch.inference_mode():
             validation_loss = torch.nn.functional.binary_cross_entropy_with_logits(
-                none_logit(validation_x).squeeze(1)
-                - fixed_validation_class_score,
+                none_logit(validation_x).squeeze(1) - fixed_validation_class_score,
                 validation_y,
                 pos_weight=positive_weight,
             ).item()
@@ -232,8 +226,7 @@ def fit_none_logit_head(
         if validation_loss < best_validation_loss - 1e-6:
             best_validation_loss = validation_loss
             best_state = {
-                name: value.detach().clone()
-                for name, value in none_logit.state_dict().items()
+                name: value.detach().clone() for name, value in none_logit.state_dict().items()
             }
             stale_epochs = 0
         else:
@@ -250,9 +243,7 @@ def fit_none_logit_head(
         combined.weight[label_count:].copy_(none_logit.weight)
         combined.bias[label_count:].copy_(none_logit.bias)
     combined.eval()
-    combined_state = {
-        name: value.detach().clone() for name, value in combined.state_dict().items()
-    }
+    combined_state = {name: value.detach().clone() for name, value in combined.state_dict().items()}
     return combined, combined_state, history
 
 
@@ -270,21 +261,15 @@ def _decision_metrics(
     for label_index in range(label_count):
         class_tp = sum(
             emit and target == prediction == label_index
-            for target, prediction, emit in zip(
-                target_values, predictions, emitted, strict=True
-            )
+            for target, prediction, emit in zip(target_values, predictions, emitted, strict=True)
         )
         class_fp = sum(
             emit and prediction == label_index and target != label_index
-            for target, prediction, emit in zip(
-                target_values, predictions, emitted, strict=True
-            )
+            for target, prediction, emit in zip(target_values, predictions, emitted, strict=True)
         )
         class_fn = sum(
             target == label_index and (not emit or prediction != label_index)
-            for target, prediction, emit in zip(
-                target_values, predictions, emitted, strict=True
-            )
+            for target, prediction, emit in zip(target_values, predictions, emitted, strict=True)
         )
         denominator = 2 * class_tp + class_fp + class_fn
         per_class_f1.append(2 * class_tp / denominator if denominator else 0.0)
@@ -307,9 +292,7 @@ def _decision_metrics(
         "id_abstentions": len(emitted) - sum(emitted),
         "ood_false_positive_rate": sum(ood_emitted) / len(ood_emitted),
         "ood_false_positives": sum(ood_emitted),
-        "all_prediction_micro_f1": (
-            2 * true_positive / denominator if denominator else 0.0
-        ),
+        "all_prediction_micro_f1": (2 * true_positive / denominator if denominator else 0.0),
         "counts": {
             "true_positive": true_positive,
             "false_positive": false_positive,
@@ -375,9 +358,7 @@ def _calibrate_method(
             min(len(rows) - 1, selected_index + 1),
         }
     )
-    sweep = [
-        {**rows[index], "selected": index == selected_index} for index in compact_indices
-    ]
+    sweep = [{**rows[index], "selected": index == selected_index} for index in compact_indices]
     return {"selected": selected, "threshold_sweep": sweep}
 
 
@@ -393,12 +374,10 @@ def _calibrate_none_method(
     ood_probabilities = torch.softmax(ood_logits, dim=1)
     all_scores = [
         *(
-            id_probabilities[:, :label_count].max(dim=1).values
-            - id_probabilities[:, label_count]
+            id_probabilities[:, :label_count].max(dim=1).values - id_probabilities[:, label_count]
         ).tolist(),
         *(
-            ood_probabilities[:, :label_count].max(dim=1).values
-            - ood_probabilities[:, label_count]
+            ood_probabilities[:, :label_count].max(dim=1).values - ood_probabilities[:, label_count]
         ).tolist(),
     ]
     unique = sorted({float(score) for score in all_scores})
@@ -431,8 +410,7 @@ def _calibrate_none_method(
     return {
         "selected": selected,
         "threshold_sweep": [
-            {**rows[index], "selected": index == selected_index}
-            for index in compact_indices
+            {**rows[index], "selected": index == selected_index} for index in compact_indices
         ],
     }
 

@@ -268,8 +268,7 @@ def h1_comparison(test_metrics: dict[str, Any]) -> dict[str, Any]:
     }
     supported = (
         measured_macro_f1 > COMMITTED_COMPARATORS["frozen_logmel"]["macro_f1"]
-        and measured_macro_f1
-        > COMMITTED_COMPARATORS["off_the_shelf_sensevoice_aed"]["macro_f1"]
+        and measured_macro_f1 > COMMITTED_COMPARATORS["off_the_shelf_sensevoice_aed"]["macro_f1"]
         and measured_per_class["sigh"] > 0
         and measured_per_class["throat_clear"] > 0
     )
@@ -292,8 +291,7 @@ def h1_comparison(test_metrics: dict[str, Any]) -> dict[str, Any]:
             measured_macro_f1 - COMMITTED_COMPARATORS["frozen_logmel"]["macro_f1"]
         ),
         "macro_f1_delta_vs_aed": (
-            measured_macro_f1
-            - COMMITTED_COMPARATORS["off_the_shelf_sensevoice_aed"]["macro_f1"]
+            measured_macro_f1 - COMMITTED_COMPARATORS["off_the_shelf_sensevoice_aed"]["macro_f1"]
         ),
         "scope": (
             "80 standalone acted VocalSound inspection clips with weak source labels; "
@@ -326,9 +324,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     fsd50k_candidates = fsd50k_training_examples(
         args.fsd50k_probe_manifest, args.fsd50k_probe_cache
     )
-    ood_training = tuple(
-        example for example in fsd50k_candidates if example.partition == "train"
-    )
+    ood_training = tuple(example for example in fsd50k_candidates if example.partition == "train")
     ood_validation = tuple(
         example for example in fsd50k_candidates if example.partition == "validation"
     )
@@ -516,18 +512,14 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "embedding": embedding_metadata,
         "head": {
             "type": (
-                "linear_with_none_logit"
-                if abstention["method"] == "none_logit"
-                else "linear"
+                "linear_with_none_logit" if abstention["method"] == "none_logit" else "linear"
             ),
             "trainable_parameters": sum(
                 parameter.numel() for parameter in selected_head.parameters()
             ),
             "abstention": abstention,
             "candidate_trainable_parameters": {
-                "closed_set": sum(
-                    parameter.numel() for parameter in closed_head.parameters()
-                ),
+                "closed_set": sum(parameter.numel() for parameter in closed_head.parameters()),
                 "closed_set_plus_none_checkpoint": sum(
                     parameter.numel() for parameter in none_head.parameters()
                 ),

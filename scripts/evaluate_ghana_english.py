@@ -151,10 +151,7 @@ def main() -> None:
         WhisperSmallAdapter(checkpoint=arguments.whisper_path),
         SenseVoiceSmallAdapter(checkpoint=arguments.sensevoice_path),
     ]
-    results = [
-        evaluate_runner(runner, rows, arguments.cache_dir)
-        for runner in runners
-    ]
+    results = [evaluate_runner(runner, rows, arguments.cache_dir) for runner in runners]
     payload = {
         "report_version": "1",
         "title": "Ghanaian-English ASR slice — NC research-only",
@@ -182,9 +179,7 @@ def main() -> None:
         "execution": {
             "offline_after_fetch": True,
             "network_disabled_by_model_runtime_flags": True,
-            "run_commit": subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], text=True
-            ).strip(),
+            "run_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
             "wall_seconds": time.time() - started,
             "python": platform.python_version(),
             "platform": platform.platform(),

@@ -789,9 +789,7 @@ def kyoto_train_val_split(
     train_rows = [row for row in development if row["room"] not in VALIDATION_ROOMS]
     val_room_rows = [row for row in development if row["room"] in VALIDATION_ROOMS]
     early_stop_rows = first_60s_subset(val_room_rows)
-    unused_later_rows = [
-        row for row in val_room_rows if int(row["source_window_start_ms"]) != 0
-    ]
+    unused_later_rows = [row for row in val_room_rows if int(row["source_window_start_ms"]) != 0]
     return train_rows, early_stop_rows, unused_later_rows
 
 
@@ -1441,8 +1439,7 @@ def main() -> None:
             "prior_first_60s_collar_f1": PRIOR_BEST_COLLAR_F1,
             "note": (
                 "same locked 0a27733 decoder as tiled inspection; compare vs the old "
-                "48-event 0.1395 control. "
-                + DECODER_LOCK_NOTE
+                "48-event 0.1395 control. " + DECODER_LOCK_NOTE
             ),
         },
         "prior_40_epoch_pass": PRIOR_40_EPOCH_PASS,

@@ -13,9 +13,7 @@ SPEC.loader.exec_module(PREPARE)
 
 def test_committed_manifest_is_bounded_and_licence_clean() -> None:
     repository = Path(__file__).parents[2]
-    rows = PREPARE.load_manifest(
-        repository / "data/manifests/licence-clean-inspection.jsonl"
-    )
+    rows = PREPARE.load_manifest(repository / "data/manifests/licence-clean-inspection.jsonl")
 
     assert Counter(row["source_dataset"] for row in rows) == {
         "FSD50K": 100,
@@ -40,9 +38,7 @@ def test_committed_manifest_is_bounded_and_licence_clean() -> None:
 
 def test_weak_label_mappings_do_not_overclaim_speech_or_intensity() -> None:
     repository = Path(__file__).parents[2]
-    rows = PREPARE.load_manifest(
-        repository / "data/manifests/licence-clean-inspection.jsonl"
-    )
+    rows = PREPARE.load_manifest(repository / "data/manifests/licence-clean-inspection.jsonl")
     fsd_by_class = {
         label: [
             row
@@ -59,8 +55,7 @@ def test_weak_label_mappings_do_not_overclaim_speech_or_intensity() -> None:
         for row in fsd_by_class["Crying_and_sobbing"]
     )
     assert all(
-        row["intended_attune_labels"]["styles"] == ["shouting"]
-        for row in fsd_by_class["Shout"]
+        row["intended_attune_labels"]["styles"] == ["shouting"] for row in fsd_by_class["Shout"]
     )
     assert all(
         row["intended_attune_labels"]["styles"] == ["whispering"]
@@ -78,16 +73,10 @@ def test_weak_label_mappings_do_not_overclaim_speech_or_intensity() -> None:
 
 def test_crema_expansion_is_disjoint_from_original_inspection_speakers() -> None:
     repository = Path(__file__).parents[2]
-    new_rows = PREPARE.load_manifest(
-        repository / "data/manifests/licence-clean-inspection.jsonl"
-    )
+    new_rows = PREPARE.load_manifest(repository / "data/manifests/licence-clean-inspection.jsonl")
     old_rows = PREPARE.load_manifest(repository / "data/manifests/inspection-set.jsonl")
-    new_speakers = {
-        row["speaker_id"] for row in new_rows if row["source_dataset"] == "CREMA-D"
-    }
-    old_speakers = {
-        row["speaker_id"] for row in old_rows if row["source_dataset"] == "CREMA-D"
-    }
+    new_speakers = {row["speaker_id"] for row in new_rows if row["source_dataset"] == "CREMA-D"}
+    old_speakers = {row["speaker_id"] for row in old_rows if row["source_dataset"] == "CREMA-D"}
 
     assert len(new_speakers) == 20
     assert new_speakers.isdisjoint(old_speakers)

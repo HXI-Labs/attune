@@ -131,10 +131,7 @@ def main() -> None:
         default=Path("data/manifests/dcase2016-localization.provenance.json"),
     )
     arguments = parser.parse_args()
-    development_root = (
-        arguments.root
-        / "train-dev/dcase2016_task2_train_dev/dcase2016_task2_dev"
-    )
+    development_root = arguments.root / "train-dev/dcase2016_task2_train_dev/dcase2016_task2_dev"
     test_root = arguments.root / "public-test/dcase2016_task2_test_public"
     if not development_root.is_dir() or not test_root.is_dir():
         raise SystemExit(
@@ -156,9 +153,7 @@ def main() -> None:
     ]
     inspection = test_candidates[:INSPECTION_CLIPS]
     if len(inspection) != INSPECTION_CLIPS:
-        raise SystemExit(
-            f"error: only {len(inspection)} event-bearing test windows were available"
-        )
+        raise SystemExit(f"error: only {len(inspection)} event-bearing test windows were available")
     for path, rows in (
         (arguments.training_manifest, training),
         (arguments.inspection_manifest, inspection),

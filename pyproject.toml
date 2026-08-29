@@ -28,6 +28,17 @@ model-runners = [
 dataset-tools = [
     "datasets>=5.0.1",
 ]
+deployment = [
+  "onnx>=1.17,<2",
+  "onnxruntime>=1.20,<2",
+  "onnxscript>=0.5,<1",
+]
+serving = [
+  "fastapi>=0.115,<1",
+  "python-multipart>=0.0.20,<1",
+  "uvicorn>=0.34,<1",
+  "websockets>=14,<18",
+]
 
 [build-system]
 requires = ["hatchling"]

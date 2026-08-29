@@ -750,7 +750,8 @@ def render_clip(payload: dict[str, Any]) -> str:
     </label>
   </div>
   <p>
-    <button class="secondary" type="button" data-apply-pair>Use this start–end on this laugh</button>
+    <button class="secondary" type="button" data-apply-pair
+      >Use this start–end on this laugh</button>
   </p>
 </div>
 """
@@ -824,7 +825,8 @@ def render_clip(payload: dict[str, Any]) -> str:
           max="{payload["duration_ms"]}"></label>
       </div>
       <p>
-        <button class="secondary" type="button" data-apply-pair>Use this start–end on this laugh</button>
+        <button class="secondary" type="button" data-apply-pair
+          >Use this start–end on this laugh</button>
       </p>
     </div>
     <label>Notes <textarea id="notes" rows="3"></textarea></label>

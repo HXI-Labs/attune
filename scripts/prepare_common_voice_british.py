@@ -275,8 +275,7 @@ def _stream_metadata() -> Any:
         from datasets import load_dataset
     except ImportError as error:
         raise CommonVoicePreparationError(
-            "streaming metadata requires the dataset-tools extra: "
-            "uv sync --extra dataset-tools"
+            "streaming metadata requires the dataset-tools extra: uv sync --extra dataset-tools"
         ) from error
     dataset = load_dataset(
         MIRROR_ID,

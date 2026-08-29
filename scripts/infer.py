@@ -222,9 +222,7 @@ def _fixture_prediction(audio_path: Path) -> BaselinePrediction:
     )
 
 
-def _omission_notes(
-    omitted: Sequence[str], *, dcase_head_configured: bool = False
-) -> list[str]:
+def _omission_notes(omitted: Sequence[str], *, dcase_head_configured: bool = False) -> list[str]:
     if not omitted:
         return []
     dcase = (

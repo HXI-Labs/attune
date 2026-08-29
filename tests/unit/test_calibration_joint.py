@@ -1,0 +1,50 @@
+from __future__ import annotations
+
+import numpy as np
+
+from attune.calibration_joint import fit_runtime_calibration
+
+
+def test_joint_calibration_fits_complete_runtime_bundle() -> None:
+    rng = np.random.default_rng(4)
+    rows = []
+    for index in range(40):
+        event_target = np.zeros((5, 7), dtype=float)
+        event_target[:, index % 7] = 1.0
+        style_target = np.zeros(2, dtype=float)
+        style_target[index % 2] = 1.0
+        affect_target = np.zeros(8, dtype=float)
+        affect_target[index % 8] = 1.0
+        rows.append(
+            {
+                "event_logits": (event_target * 5 - 2.5 + rng.normal(0, 0.2, (5, 7))).tolist(),
+                "event_targets": event_target.tolist(),
+                "event_presence_logits": (event_target[0] * 5 - 2.5).tolist(),
+                "event_presence_targets": event_target[0].tolist(),
+                "style_logits": (style_target * 5 - 2.5).tolist(),
+                "style_targets": style_target.tolist(),
+                "affect_logits": (affect_target * 5 - 2.5).tolist(),
+                "affect_distribution": affect_target.tolist(),
+                "ood_embedding": rng.normal(0, 0.1, 4).tolist(),
+                "ood_logit": float(-3 if index < 36 else 3),
+                "is_ood": index >= 36,
+            }
+        )
+
+    calibration = fit_runtime_calibration(rows)
+
+    assert set(calibration.event_thresholds) == {
+        "laugh",
+        "sob",
+        "scream",
+        "sigh",
+        "cough",
+        "throat_clear",
+        "sneeze",
+    }
+    assert set(calibration.style_thresholds) == {"shouting", "whispering"}
+    assert set(calibration.event_presence_thresholds) == set(calibration.event_thresholds)
+    assert set(calibration.localized_event_labels) == set(calibration.event_thresholds)
+    assert len(calibration.ood_centroid or []) == 4
+    assert calibration.ood_distance_scale > 0
+    assert calibration.ood_available is True

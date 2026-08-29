@@ -79,12 +79,8 @@ def collar_event_metrics(
             _, matched = min(eligible)
             unmatched.remove(matched)
             matches += 1
-            onset_errors.append(
-                abs(candidate["start_ms"] - reference[matched]["start_ms"])
-            )
-            offset_errors.append(
-                abs(candidate["end_ms"] - reference[matched]["end_ms"])
-            )
+            onset_errors.append(abs(candidate["start_ms"] - reference[matched]["start_ms"]))
+            offset_errors.append(abs(candidate["end_ms"] - reference[matched]["end_ms"]))
         false_negative += len(unmatched)
     denominator = 2 * matches + false_positive + false_negative
     return {
@@ -95,9 +91,7 @@ def collar_event_metrics(
         "onset_collar_ms": onset_collar_ms,
         "offset_collar_ms": offset_collar_ms,
         "offset_duration_ratio": offset_duration_ratio,
-        "matched_onset_mae_ms": (
-            sum(onset_errors) / len(onset_errors) if onset_errors else None
-        ),
+        "matched_onset_mae_ms": (sum(onset_errors) / len(onset_errors) if onset_errors else None),
         "matched_offset_mae_ms": (
             sum(offset_errors) / len(offset_errors) if offset_errors else None
         ),

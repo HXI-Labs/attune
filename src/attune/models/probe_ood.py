@@ -47,11 +47,7 @@ def crema_probe_negatives(
     if partitions != {"train", "validation"}:
         raise ProbeDataError("CREMA OOD manifest requires train and validation partitions")
     speakers = {
-        partition: {
-            example.speaker_id
-            for example in examples
-            if example.partition == partition
-        }
+        partition: {example.speaker_id for example in examples if example.partition == partition}
         for partition in partitions
     }
     if speakers["train"] & speakers["validation"]:
@@ -84,9 +80,7 @@ def source_speakers(manifests: tuple[Path, ...], source_dataset: str) -> set[str
         except (OSError, json.JSONDecodeError) as error:
             raise ProbeDataError(f"cannot read inspection manifest {manifest}: {error}") from error
         speakers.update(
-            str(row["speaker_id"])
-            for row in rows
-            if row.get("source_dataset") == source_dataset
+            str(row["speaker_id"]) for row in rows if row.get("source_dataset") == source_dataset
         )
     return speakers
 
@@ -101,9 +95,7 @@ def _example(row: dict[str, Any], cache_root: Path) -> ProbeNegative:
     }
     missing = required - row.keys()
     if missing:
-        raise ProbeDataError(
-            f"CREMA OOD manifest row lacks fields: {', '.join(sorted(missing))}"
-        )
+        raise ProbeDataError(f"CREMA OOD manifest row lacks fields: {', '.join(sorted(missing))}")
     partition = str(row["partition"])
     if partition not in {"train", "validation"}:
         raise ProbeDataError(f"unsupported CREMA OOD partition: {partition}")

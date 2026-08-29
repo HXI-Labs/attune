@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "event_temperature": 1.0,
+  "event_thresholds": {
+    "laugh": 0.5,
+    "sob": 0.5,
+    "scream": 0.5,
+    "sigh": 0.5,
+    "cough": 0.5,
+    "throat_clear": 0.5,
+    "sneeze": 0.5
+  },
+  "event_presence_temperature": 1.0,
+  "event_presence_thresholds": {
+    "laugh": 0.5,
+    "sob": 0.5,
+    "scream": 0.5,
+    "sigh": 0.5,
+    "cough": 0.5,
+    "throat_clear": 0.5,
+    "sneeze": 0.5
+  },
+  "localized_event_labels": ["laugh", "cough", "throat_clear"],
+  "style_temperature": 1.0,
+  "style_thresholds": {
+    "shouting": 0.5,
+    "whispering": 0.5
+  },
+  "affect_temperature": 1.0,
+  "affect_threshold": 0.55,
+  "vad_available": false,
+  "ood_centroid": null,
+  "ood_distance_scale": null,
+  "ood_available": false,
+  "ood_temperature": 1.0,
+  "ood_threshold": 0.5,
+  "minimum_event_frames": 2,
+  "bridge_event_frames": 1
+}

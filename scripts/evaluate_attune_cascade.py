@@ -301,11 +301,7 @@ def ood_false_positive_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
                     ),
                 }
                 for source in sorted({record["source_dataset"] for record in ood})
-                if (
-                    source_rows := [
-                        record for record in ood if record["source_dataset"] == source
-                    ]
-                )
+                if (source_rows := [record for record in ood if record["source_dataset"] == source])
             },
         }
     return {
@@ -333,9 +329,7 @@ def run_row(cascade: AttuneCascade, row: dict[str, Any]) -> dict[str, Any]:
     output = AttuneOutput.model_validate(prediction.output.model_dump(mode="json"))
     diagnostics = prediction.diagnostics or {}
     components = diagnostics["event_style_components"]
-    probe_diagnostics = {
-        item["name"]: item for item in diagnostics.get("probe_diagnostics", [])
-    }
+    probe_diagnostics = {item["name"]: item for item in diagnostics.get("probe_diagnostics", [])}
     aed = component_set(components, "-aed")
     vocalsound = component_set(components, "vocalsound-frozen")
     fsd50k = component_set(components, "fsd50k-frozen")
@@ -379,16 +373,12 @@ def run_row(cascade: AttuneCascade, row: dict[str, Any]) -> dict[str, Any]:
         if is_vocalsound and row["source_dataset"] == "VocalSound":
             target = row["intended_attune_labels"]["events"][0]
         elif not is_vocalsound and row["source_dataset"] == "FSD50K":
-            target = SOURCE_TO_PROBE_LABEL[
-                row["intended_attune_labels"]["source_class"]
-            ]
+            target = SOURCE_TO_PROBE_LABEL[row["intended_attune_labels"]["source_class"]]
         else:
             target = "none"
         calibration_scores.append(
             {
-                "component": (
-                    "vocalsound_probe" if is_vocalsound else "fsd50k_probe"
-                ),
+                "component": ("vocalsound_probe" if is_vocalsound else "fsd50k_probe"),
                 "split": "inspection_test",
                 "clip_id": row["clip_id"],
                 "labels": detail["calibration_labels"],
@@ -476,9 +466,7 @@ def summarize_slice(records: list[dict[str, Any]]) -> dict[str, Any]:
                 event_records, "vocalsound_probe_annotations"
             ),
             "fsd50k_probe_only": annotation_metrics(event_records, "fsd50k_probe_annotations"),
-            "all_clips_all_predictions": annotation_metrics(
-                records, "cascade_annotations"
-            ),
+            "all_clips_all_predictions": annotation_metrics(records, "cascade_annotations"),
             "ood_false_positives": ood_false_positive_metrics(records),
         },
     }
@@ -521,24 +509,15 @@ def comparison_with_pr17(
             "affect_macro_f1": summary["affect"]["emotion2vec_plus"]["macro_f1"],
             "cascade_target_macro_f1": events["cascade"]["target_macro_f1"],
             "aed_only_target_macro_f1": events["aed_only"]["target_macro_f1"],
-            "intended_probe_only_target_macro_f1": events["probe_only"][
-                "target_macro_f1"
-            ],
-            "micro_f1_all_predictions": events["cascade"][
-                "micro_f1_all_predictions"
-            ],
-            "ood_false_positive_rate": events["ood_false_positives"][
-                "false_positive_rate"
-            ],
+            "intended_probe_only_target_macro_f1": events["probe_only"]["target_macro_f1"],
+            "micro_f1_all_predictions": events["cascade"]["micro_f1_all_predictions"],
+            "ood_false_positive_rate": events["ood_false_positives"]["false_positive_rate"],
         }
         baseline_with_ood = {**baseline, "ood_false_positive_rate": 1.0}
         result[name] = {
             "pr17": baseline_with_ood,
             "abstaining_probes": current,
-            "delta": {
-                metric: current[metric] - baseline_with_ood[metric]
-                for metric in current
-            },
+            "delta": {metric: current[metric] - baseline_with_ood[metric] for metric in current},
         }
     return result
 
@@ -570,9 +549,7 @@ def main() -> None:
         vocalsound_probe_checkpoint=arguments.vocalsound_probe_checkpoint,
         fsd50k_probe_checkpoint=arguments.fsd50k_probe_checkpoint,
         embedding_cache=arguments.embedding_cache,
-        calibration_path=(
-            arguments.calibration if arguments.calibration.is_file() else None
-        ),
+        calibration_path=(arguments.calibration if arguments.calibration.is_file() else None),
     )
     available, reason = cascade.availability()
     if not available:
@@ -634,9 +611,7 @@ def main() -> None:
         "slices": slices,
         "combined_310": {
             "events_styles": {
-                "all_clips_all_predictions": annotation_metrics(
-                    records, "cascade_annotations"
-                ),
+                "all_clips_all_predictions": annotation_metrics(records, "cascade_annotations"),
                 "ood_false_positives": ood_false_positive_metrics(records),
             }
         },
@@ -708,18 +683,12 @@ def main() -> None:
         ],
         "predictions": [
             json_record(
-                {
-                    key: value
-                    for key, value in record.items()
-                    if key != "_calibration_scores"
-                }
+                {key: value for key, value in record.items() if key != "_calibration_scores"}
             )
             for record in records
         ],
     }
-    calibration_rows = [
-        score for record in records for score in record["_calibration_scores"]
-    ]
+    calibration_rows = [score for record in records for score in record["_calibration_scores"]]
     arguments.calibration_records_output.parent.mkdir(parents=True, exist_ok=True)
     arguments.calibration_records_output.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in calibration_rows),

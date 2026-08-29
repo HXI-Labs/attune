@@ -1,0 +1,57 @@
+# Models and exact conversion reports
+artifacts/models/attune-split-tail-v0.1-fp.onnx
+artifacts/models/attune-split-tail-v0.1-fp.export.json
+artifacts/models/attune-split-tail-v0.1-int8.onnx
+artifacts/models/attune-split-tail-v0.1-int8.quantization.json
+
+# Training provenance
+artifacts/training/local-upper-two-v0.1/model.pt
+artifacts/training/local-upper-two-v0.1/training-report.json
+artifacts/training/local-upper-two-v0.1/training-source.tar.gz
+data/manifests/joint-v0.1.jsonl
+data/manifests/joint-v0.1-source.jsonl
+research/joint-v0.1-manifest-audit.json
+
+# Calibration and evaluation
+artifacts/evaluation/split-tail-v0.1/fp-calibration.json
+artifacts/evaluation/split-tail-v0.1/int8-calibration.json
+artifacts/evaluation/split-tail-v0.1/fp-development-report.json
+artifacts/evaluation/split-tail-v0.1/int8-development-report.json
+artifacts/evaluation/split-tail-v0.1/fp-sealed-report.json
+artifacts/evaluation/split-tail-v0.1/int8-sealed-report.json
+artifacts/deployment/split-tail-v0.1/int8-macos-cpu.json
+artifacts/deployment/split-tail-v0.1/int8-service-smoke.json
+artifacts/release/v0.1/release-metrics.json
+artifacts/release/v0.1/release-gates.json
+research/error-analysis/v0.1-fp-sealed.json
+research/error-analysis/v0.1-fp-sealed.md
+
+# Contracts, source, and documentation needed to interpret the artifacts
+configs/release/v0.1-artifacts.txt
+data/schemas/attune-output-v2.0.schema.json
+pyproject.toml
+uv.lock
+README.md
+docs/model-card.md
+docs/dataset-card-v0.1.md
+docs/cloud-training.md
+huggingface/README.md
+huggingface/THIRD_PARTY_NOTICE.md
+research/v0.1-implementation-status.md
+research/experiment-registry.md
+research/project-attune-completion-report.md
+research/paper/attune-v0.1-technical-report.md
+src/attune/models/joint.py
+src/attune/calibration_joint.py
+src/attune/evaluation/joint.py
+src/attune/evaluation/release_gates.py
+src/attune/inference/onnx_backend.py
+src/attune/service/app.py
+src/attune/service/auth.py
+src/attune/service/ui.py
+scripts/export_onnx.py
+scripts/quantize.py
+scripts/build_joint_error_analysis.py
+scripts/build_release_manifest.py
+scripts/publish_huggingface.py
+scripts/smoke_deployment.py

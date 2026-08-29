@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "checkpoint_sha256": "833ca2dcfdf8ec91bd4f31cfac36d6124e0c459074d5e909aec9cabe6204a3ea",
+  "feature_shape": [
+    1,
+    17,
+    560
+  ],
+  "encoder_feature_size": 560,
+  "acoustic_frames": 17,
+  "ctc_vocabulary_size": 25055,
+  "event_classes": 7,
+  "style_classes": 2,
+  "affect_classes": 8,
+  "parameter_summary": {
+    "total": 235291018,
+    "trainable": 1291851,
+    "encoder_trainable": 0
+  },
+  "upper_two_parameter_summary": {
+    "total": 235291018,
+    "trainable": 7609931,
+    "encoder_trainable": 6318080
+  },
+  "elapsed_seconds": 11.119957624992821,
+  "passed": true
+}

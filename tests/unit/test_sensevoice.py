@@ -19,9 +19,7 @@ def test_rich_transcript_tags_map_to_events_and_speech_styles() -> None:
         ("laughing_speech", 0.0),
         ("crying_speech", 0.0),
     ]
-    assert [(row.label.value, row.confidence) for row in parsed.affect] == [
-        ("neutral", 0.0)
-    ]
+    assert [(row.label.value, row.confidence) for row in parsed.affect] == [("neutral", 0.0)]
 
 
 def test_structured_events_use_scores_and_drop_unmapped_labels() -> None:
@@ -55,9 +53,7 @@ def test_structured_ser_is_mapped_and_retained_in_raw_trace() -> None:
 
     parsed = parse_sensevoice_output(result)
 
-    assert [(row.label.value, row.confidence) for row in parsed.affect] == [
-        ("other", 0.72)
-    ]
+    assert [(row.label.value, row.confidence) for row in parsed.affect] == [("other", 0.72)]
     assert sensevoice_affect_trace(result) == [
         {
             "raw_label": "Disgusted",
@@ -87,9 +83,7 @@ def test_unmapped_ser_unknown_is_retained_without_silent_schema_mapping() -> Non
 
 
 def test_utterance_tags_become_provisional_whole_clip_spans() -> None:
-    parsed = parse_sensevoice_output(
-        [{"text": "<|Breath|><|Singing|> la la"}]
-    )
+    parsed = parse_sensevoice_output([{"text": "<|Breath|><|Singing|> la la"}])
 
     events, styles = build_utterance_spans(
         parsed,

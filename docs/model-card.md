@@ -1,61 +1,153 @@
-# Model card
+# Model card: Attune Cadence 241M
+
+**Release ID:** `attune-cadence-241m`
+
+**Tagline:** Hear how it was said.
 
 ## Status
 
-Phase 0 contains no trained Attune model and downloads no checkpoints. The
-planned Phase 1 comparison uses SenseVoice-Small (~234M parameters) as the
-intended base, Whisper-Small as fallback, and emotion2vec+ as an affect
-baseline. The 2026-08-26 review permits downloading their official weights for
-internal baseline runs. It does not authorise fine-tuning or public weight
-redistribution, does not approve third-party conversions, and is not legal
-advice or lawyer sign-off. MSP-Podcast remains pending and may not be used.
+This is a local technical release candidate, not a public-weight release. It
+passes all 20 executable v0.1 engineering gates in
+`artifacts/release/v0.1/release-gates.json`. Public redistribution still
+depends on a final review of the SenseVoice model agreement and every training
+source's derivative-artifact terms.
 
-The 14-day gate remains in force. Model licence clearance does not authorise
-large fine-tuning before the required baseline report and gate decision.
+The candidate has 241,609,098 parameters. Its trained delta is
+`artifacts/training/local-upper-two-v0.1/model.pt`; its deployment graphs are:
 
-## Third-party model licences
+- FP: `artifacts/models/attune-split-tail-v0.1-fp.onnx` (968,740,218 bytes)
+- mixed INT8: `artifacts/models/attune-split-tail-v0.1-int8.onnx`
+  (594,795,068 bytes)
 
-- SenseVoice-Small source code is MIT, but official weights use the
-  [FunASR Model Open Source License Agreement v1.1](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE).
-  Internal work and later public artefacts must attribute
-  “SenseVoiceSmall by FunASR/FunAudioLLM,” retain the model name, and link the
-  model licence. Derivative weights may remain private; attribution still
-  applies when using them. Check GGUF, ONNX, and other conversions separately.
-- Whisper's upstream repository applies MIT to its code and original weights.
-  The `openai/whisper-small` Hugging Face card currently lists Apache-2.0; this
-  project records both and prefers the upstream MIT licence.
-- emotion2vec+ seed, base, and large cards identify their weights as
-  `other` / `model-license` in the FunASR model-agreement family. The
-  emotion2vec repository's MIT/Apache code licensing does not cover these
-  weights. Use carries the same attribution duty.
-
-The dated records and source links are in `data/provenance/`.
+All release hashes are recorded in
+`artifacts/release/v0.1/artifact-manifest.json`.
 
 ## Intended task
 
-Produce word-timed transcription plus calibrated observable vocal styles,
-events, perceived affect, and uncertainty for 0.5–30 second, 16 kHz mono audio.
-Primary deployment is local or low-cost near-real-time inference. ONNX and INT8
-are later evaluation targets, not current claims.
+For English, single-speaker, 0.5–30 second, 16 kHz mono PCM16 WAV input, emit:
 
-## Out of scope
+- CTC transcript and genuine CTC-derived word times;
+- localized `laugh`, `cough`, and `throat_clear` spans;
+- utterance-scope presence for weakly supervised event labels;
+- utterance-scope `shouting` and `whispering` styles;
+- a calibrated distribution over perceived affect categories;
+- abstention and out-of-distribution information; and
+- schema-v2 JSON plus deterministic XML.
 
-Internal-emotion inference, diagnosis, deception detection, protected-trait
-inference, speaker identification, and automated high-stakes decisions are out
-of scope and prohibited.
+The system estimates audible expression, not verified internal emotion.
 
-## Required evaluation before release
+## Architecture
 
-Report ASR error, timing error, event/style metrics, soft-label metrics,
-calibration and abstention curves, OOD behaviour, latency/memory, and failures
-by language, speaker, acoustic quality, and available demographic slices.
-Compare full precision and quantized results. Publish thresholds and their
-selection procedure; do not hide selective abstention failures.
+The lower SenseVoice encoder is shared. The selected upper-two adapted path
+feeds all paralinguistic heads. CTC ASR uses frozen copies of only the two
+original upper encoder blocks and final norms, followed by the shared frozen
+temporal-predictor blocks. This 6,318,080-parameter copy corrected ASR drift
+without changing any selected perception logits; the full model stays below
+300M parameters.
+
+The deployment graph uses ONNX Runtime dynamic per-channel QInt8 for most
+eligible shared weights. The upper eight perception blocks, two-block frozen
+ASR tail, pooling, and small utterance heads remain FP to meet fixed parity
+gates. “INT8” is therefore a deployment shorthand for a mixed-precision graph,
+not a claim that every operator is integer-only.
+
+## Training data and procedure
+
+The source-labelled bundle contains 2,490 rows / 3.79 hours: 1,691 train, 398
+development, and 401 sealed test. It combines Common Voice CTC replay, DCASE
+strong event timing, weak FSD50K/VocalSound event/style labels, and acted
+CREMA-D categorical affect pairs. Known speakers and recording groups are
+disjoint where source metadata permits. Missing labels are masked.
+
+The frozen-head model was trained first. The selected upper-two run warm-started
+only its task heads, trained for 14 epochs, early-stopped after three stale
+epochs, and selected epoch 11 at development loss 1.2537. It updates 7,609,931
+parameters. Training ran locally on CPU at zero cloud cost; no rented GPU was
+used.
+
+No reviewed V/A/D source was available. The architecture retains a dormant
+head, but runtime calibration marks dimensional outputs unavailable.
+
+## Evaluation
+
+### Sealed technical results
+
+| Metric | FP | mixed INT8 | Fixed requirement |
+|---|---:|---:|---:|
+| WER | 0.0734 | 0.0782 | FP ≤ base + 0.01; INT8 ≤ FP + 0.005 |
+| Localized-event segment macro-F1 | 0.7700 | 0.7772 | FP ≥ 0.50; loss ≤ 0.02 |
+| Event-presence macro-F1 | 0.8258 | 0.8220 | FP ≥ 0.50; loss ≤ 0.02 |
+| Style macro-F1 | 1.0000 | 1.0000 | FP ≥ 0.60; loss ≤ 0.02 |
+| Supported-class affect macro-F1 | 0.4746 | 0.4591 | FP ≥ 0.40; loss ≤ 0.02 |
+| OOD F1 | 0.9907 | 0.9747 | FP ≥ 0.75; loss ≤ 0.02 |
+| Affect coverage | 0.8258 | 0.8712 | FP ≥ 0.50 |
+| Acoustic Preference Score | +0.2727 | +0.2727 | > 0 |
+
+FP affect error falls from 0.4773 at full coverage to 0.4128 under the
+development-selected abstention rule. FP Brier score is 0.5999 and ECE is
+0.1134. The categorical metric covers the six supported classes (`neutral`,
+`joy`, `distress`, `anger`, `fear`, `other`); ontology-wide F1 including
+unsupported classes is lower.
+
+### Runtime
+
+On the development Mac CPU, mixed INT8 reached 0.0534 RTF over 40 contract-valid
+clips, with p50/p95/p99 latency of 206/415/440 ms, 100% JSON/XML validity, and
+zero committed retractions. One hundred DCASE source rows at 44.1 kHz were
+explicitly excluded from this runtime benchmark because the API contract is
+16 kHz mono; their model scores remain present in offline evaluation.
+
+Archived unmodified SenseVoice evaluations report WER 0.2365 on a 100-clip
+Ghanaian-English broadcast slice and 0.1149 on a 100-speaker British Common
+Voice slice. The final FP ASR route copies those exact frozen base weights, but
+the final graph was not rerun because those audio caches were not retained; the
+mixed-INT8 route has not been measured on either slice. These archived results
+are context, not final-model accent validation.
+
+## Evaluation caveat
+
+The first sealed pass used the selected single-tail adapted encoder and revealed
+2.23 absolute WER points of drift over the frozen base. All other gates passed.
+The perception checkpoint, thresholds, and model choice remained fixed; only a
+frozen two-block ASR route was added. Development confirmed exact base WER and
+unchanged perception metrics, after which the corrected graph was evaluated on
+the already-opened sealed set.
+
+This makes the correction transparent and mechanically grounded, but the
+corrected ASR result is no longer a pristine one-shot sealed estimate. Confirm
+it on a new external untouched English/accent set before publication. The
+sealed perception evaluation was not used to retune perception heads.
 
 ## Known limitations
 
-Vocal perception is culturally and contextually variable. Short clips, acted
-speech, sarcasm, language mismatch, overlap, clipping, low SNR, far-field audio,
-and atypical voices may produce confident errors. Transcript semantics can bias
-affect judgments. These limitations require calibration and user-facing caveats
-rather than stronger psychological claims.
+- Affect supervision is acted, one-hot CREMA-D—not naturalistic multi-rater
+  soft labels.
+- Only three event classes are localized; other events are utterance-presence
+  evidence only.
+- Style F1 is based on a narrow weak-label set and should not be read as broad
+  natural-speech perfection.
+- V/A/D, `surprise`, and `ambiguous` lack positive reviewed supervision.
+- The semantic-conflict set is small; positive APS does not prove lexical
+  disentanglement across domains.
+- Ghanaian/British manifests and archived base-ASR results exist, but the final
+  mixed graph lacks a rerun and the slices are not sufficient fairness or
+  cross-accent validation.
+- No human interaction study, naturalistic cross-corpus affect test, GPU
+  benchmark, Apple Neural Engine benchmark, or production monitoring study has
+  been completed.
+- Sarcasm, overlap, far-field speech, clipping, noise, code-switching, atypical
+  voices, and unseen devices can yield confident errors.
+
+## Prohibited uses
+
+Do not use this model for diagnosis, deception detection, covert monitoring,
+protected-trait inference, speaker identification, or automated high-stakes
+decisions. Do not tell a user they “are” an emotion based on this output.
+
+## Third-party licences
+
+SenseVoice-Small source is MIT, while official weights use the
+[FunASR Model Open Source License Agreement v1.1](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE).
+Use and release must attribute SenseVoiceSmall by FunASR/FunAudioLLM and comply
+with the exact agreement. Dataset and baseline-model records are in
+`data/provenance/`; project code licensing does not override them.

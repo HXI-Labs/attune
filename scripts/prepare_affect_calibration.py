@@ -36,9 +36,7 @@ def protocol_rows() -> list[dict[str, str]]:
     for actor in ACTORS:
         for sentence in SENTENCES:
             for source_label, target in SOURCE_LABELS.items():
-                intensity = (
-                    "HI" if sentence == "IEO" and source_label != "NEU" else "XX"
-                )
+                intensity = "HI" if sentence == "IEO" and source_label != "NEU" else "XX"
                 filename = f"{actor}_{sentence}_{source_label}_{intensity}.wav"
                 rows.append(
                     {

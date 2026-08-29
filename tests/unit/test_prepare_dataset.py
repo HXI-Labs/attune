@@ -128,15 +128,9 @@ def test_committed_inspection_manifest_invariants() -> None:
     assert {row["split"] for row in rows} == {"inspect", "held_out_speakers"}
     assert all(len(row["sha256"]) == 64 for row in rows)
 
-    inspect_speakers = {
-        row["speaker_id"] for row in rows if row["split"] == "inspect"
-    }
-    held_out_speakers = {
-        row["speaker_id"] for row in rows if row["split"] == "held_out_speakers"
-    }
+    inspect_speakers = {row["speaker_id"] for row in rows if row["split"] == "inspect"}
+    held_out_speakers = {row["speaker_id"] for row in rows if row["split"] == "held_out_speakers"}
     assert inspect_speakers.isdisjoint(held_out_speakers)
 
-    events = {
-        event for row in rows for event in row["intended_attune_labels"]["events"]
-    }
+    events = {event for row in rows for event in row["intended_attune_labels"]["events"]}
     assert events == {"laugh", "sigh", "cough", "throat_clear", "sneeze"}

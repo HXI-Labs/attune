@@ -122,7 +122,7 @@ def fetch_row(
     return {
         "attribution": (
             f'Freesound clip {clip_id} "{selected["title"]}" uploaded by '
-            f'{selected["uploader"]}; {licence_id}. FSD50K curation by Fonseca et al.; '
+            f"{selected['uploader']}; {licence_id}. FSD50K curation by Fonseca et al.; "
             "dataset annotations CC BY 4.0."
         ),
         "cache_path": f"fsd50k/{clip_id}.wav",
@@ -154,14 +154,9 @@ def fetch_row(
 
 
 def verify(rows: list[dict[str, Any]], cache_root: Path, held_out_ids: set[str]) -> None:
-    expected = {
-        ("train", label): TRAIN_PER_CLASS for label in SOURCE_TO_PROBE_LABEL.values()
-    }
+    expected = {("train", label): TRAIN_PER_CLASS for label in SOURCE_TO_PROBE_LABEL.values()}
     expected.update(
-        {
-            ("validation", label): VALIDATION_PER_CLASS
-            for label in SOURCE_TO_PROBE_LABEL.values()
-        }
+        {("validation", label): VALIDATION_PER_CLASS for label in SOURCE_TO_PROBE_LABEL.values()}
     )
     counts = Counter((row["partition"], row["probe_label"]) for row in rows)
     if counts != expected:
@@ -184,9 +179,7 @@ def verify(rows: list[dict[str, Any]], cache_root: Path, held_out_ids: set[str])
             raise PreparationError(f"probe audio is not mono 16 kHz PCM16: {path}")
 
 
-def write_outputs(
-    rows: list[dict[str, Any]], manifest: Path, provenance: Path
-) -> None:
+def write_outputs(rows: list[dict[str, Any]], manifest: Path, provenance: Path) -> None:
     rows.sort(key=lambda row: (row["partition"], row["probe_label"], row["clip_id"]))
     manifest.parent.mkdir(parents=True, exist_ok=True)
     manifest.write_text(
