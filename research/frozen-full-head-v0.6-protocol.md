@@ -56,6 +56,33 @@ ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/train_joint.py \
   --config configs/training/cloud-frozen-affect-v0.6.json
 ```
 
+### Local Apple GPU execution
+
+The same frozen-head candidate can be trained locally without changing the
+scientific protocol. The MPS configuration changes only the execution device
+and records a zero compute-rental cost:
+
+```bash
+PYTORCH_ENABLE_MPS_FALLBACK=1 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 \
+uv run python scripts/train_joint.py \
+  --manifest artifacts/manifests/joint-affect-v0.6.jsonl \
+  --sensevoice-path data/raw/model-cache/sensevoice-small \
+  --output-dir artifacts/training/local-frozen-full-head-v0.6 \
+  --adaptation-policy frozen \
+  --initial-checkpoint artifacts/training/local-frozen-v0.1/model.pt \
+  --config configs/training/local-mps-frozen-affect-v0.6.json
+```
+
+A batch-24 MPS forward/backward check completed before the full run. All 30
+head gradient tensors were present, while the SenseVoice encoder had zero
+gradient tensors. The model reported 235,291,018 total parameters, 1,291,851
+trainable head parameters, and zero trainable encoder parameters.
+
+PyTorch does not currently implement CTC loss natively on MPS. The local
+command therefore enables its documented CPU fallback. CTC is a read-only ASR
+monitor under the frozen policy; the fallback cannot update the locked
+SenseVoice encoder or CTC parameters.
+
 ## Acceptance gates
 
 The candidate remains disabled unless all gates pass:
