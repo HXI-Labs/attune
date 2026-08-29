@@ -209,6 +209,7 @@ class AttuneJointModel(nn.Module):
         speech: Tensor,
         speech_lengths: Tensor,
         rich_tokens: Tensor | None = None,
+        compute_ctc_logits: bool = True,
     ) -> JointOutput:
         batch_size = speech.shape[0]
         if rich_tokens is None:
@@ -227,7 +228,11 @@ class AttuneJointModel(nn.Module):
         positions = torch.arange(acoustic.shape[1], device=acoustic.device)
         frame_mask = positions.unsqueeze(0) < acoustic_lengths.unsqueeze(1)
         asr_acoustic = asr_encoded[:, 4:, :]
-        ctc_logits = self.sensevoice.ctc.ctc_lo(asr_acoustic)
+        ctc_logits = (
+            self.sensevoice.ctc.ctc_lo(asr_acoustic)
+            if compute_ctc_logits
+            else asr_acoustic.new_empty((*asr_acoustic.shape[:2], 0))
+        )
         event_logits, start_logits, end_logits = self.event_head(acoustic)
         pooled = self.pooling(acoustic, frame_mask)
         affect_embedding = self.affect_projection(pooled)

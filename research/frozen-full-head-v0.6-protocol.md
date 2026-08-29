@@ -39,6 +39,8 @@ SUBESCO provide no CTC supervision.
 - Corpus-balanced sampling: enabled.
 - CTC optimization loss: excluded because every encoder/CTC parameter is
   frozen; ASR is checked independently before candidate acceptance.
+- CTC vocabulary projection: skipped during training and validation only when
+  CTC loss is excluded; normal export and inference always compute it.
 - Mixed BF16 precision on CUDA.
 - Cost ceiling: £10 at a declared planning rate of £0.25/hour.
 - Resume state: enabled and hash-bound to source, manifest, and initialization.
@@ -85,6 +87,12 @@ fell back to CPU and made the run impractically slow. Excluding a loss whose
 entire parameter path is frozen does not alter any trainable gradient. It also
 keeps early stopping focused on the paralinguistic objectives; transcript
 invariance remains a separate acceptance gate.
+
+The second local attempt was stopped before completing an epoch after its
+first progress interval demonstrated that the unused 25k-token CTC vocabulary
+projection was still a material cost. The final run skips that projection only
+inside frozen-head training. Encoder frames are still computed identically,
+and the default model forward path used by export and inference is unchanged.
 
 ## Acceptance gates
 

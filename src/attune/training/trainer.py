@@ -280,7 +280,11 @@ def train_joint_model(
                 )
             batch = batch.to(device)
             with torch.autocast(device_type=device.type, dtype=torch.bfloat16, enabled=use_amp):
-                output = model(batch.speech, batch.speech_lengths)
+                output = model(
+                    batch.speech,
+                    batch.speech_lengths,
+                    compute_ctc_logits=config.include_ctc_loss,
+                )
                 targets = _targets_for_loss(
                     batch.targets, include_ctc_loss=config.include_ctc_loss
                 )
@@ -312,7 +316,11 @@ def train_joint_model(
         with torch.inference_mode():
             for batch in validation_loader:
                 batch = batch.to(device)
-                output = model(batch.speech, batch.speech_lengths)
+                output = model(
+                    batch.speech,
+                    batch.speech_lengths,
+                    compute_ctc_logits=config.include_ctc_loss,
+                )
                 targets = _targets_for_loss(
                     batch.targets, include_ctc_loss=config.include_ctc_loss
                 )

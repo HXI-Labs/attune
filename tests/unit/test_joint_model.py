@@ -118,6 +118,20 @@ def test_joint_model_shapes_and_frozen_policy() -> None:
     assert model.trainable_parameter_summary()["encoder_trainable"] == 0
 
 
+def test_joint_model_can_skip_unused_ctc_projection_during_frozen_training() -> None:
+    model = AttuneJointModel(FakeSenseVoice())
+
+    output = model(
+        torch.randn(2, 12, 80),
+        torch.tensor([12, 9]),
+        compute_ctc_logits=False,
+    )
+
+    assert output.ctc_logits.shape == (2, 12, 0)
+    assert output.affect_logits.shape == (2, 8)
+    assert output.event_logits.shape == (2, 12, len(SUPPORTED_EVENTS))
+
+
 def test_upper_two_policy_unfreezes_only_two_encoder_blocks() -> None:
     model = AttuneJointModel(FakeSenseVoice(), adaptation_policy=AdaptationPolicy.UPPER_TWO)
     assert all(
