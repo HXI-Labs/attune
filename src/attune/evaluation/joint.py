@@ -207,7 +207,7 @@ def _event_segment_metrics(
             probabilities = _sigmoid(
                 np.asarray(row["event_logits"])[:, label_index] / calibration.event_temperature
             )
-            active = probabilities >= calibration.event_thresholds[label.value]
+            active = probabilities >= calibration.localized_event_threshold(label.value)
             active = _bridge_short_gaps(active, calibration.bridge_event_frames)
             predictions = _runs(active, calibration.minimum_event_frames)
             targets = _runs(
@@ -255,6 +255,38 @@ def _event_segment_metrics(
     }
 
 
+def _localized_event_count(row: dict[str, Any], calibration: RuntimeCalibration) -> int:
+    probabilities = _sigmoid(np.asarray(row["event_logits"]) / calibration.event_temperature)
+    count = 0
+    for index, label in enumerate(SUPPORTED_EVENTS):
+        if label.value not in calibration.localized_event_labels:
+            continue
+        active = probabilities[:, index] >= calibration.localized_event_threshold(label.value)
+        active = _bridge_short_gaps(active, calibration.bridge_event_frames)
+        count += len(_runs(active, calibration.minimum_event_frames))
+    return count
+
+
+def _event_presence_count(row: dict[str, Any], calibration: RuntimeCalibration) -> int:
+    probabilities = _sigmoid(
+        np.asarray(row["event_presence_logits"]) / calibration.event_presence_temperature
+    )
+    return sum(
+        label.value in calibration.event_presence_enabled_labels
+        and probabilities[index] >= calibration.event_presence_thresholds[label.value]
+        for index, label in enumerate(SUPPORTED_EVENTS)
+    )
+
+
+def _style_count(row: dict[str, Any], calibration: RuntimeCalibration) -> int:
+    probabilities = _sigmoid(np.asarray(row["style_logits"]) / calibration.style_temperature)
+    return sum(
+        label.value in calibration.style_enabled_labels
+        and probabilities[index] >= calibration.style_thresholds[label.value]
+        for index, label in enumerate(SUPPORTED_STYLES)
+    )
+
+
 def evaluate_joint_scores(
     rows: list[dict[str, Any]],
     calibration: RuntimeCalibration,
@@ -262,6 +294,39 @@ def evaluate_joint_scores(
     include_dataset_slices: bool = True,
 ) -> dict[str, Any]:
     report: dict[str, Any] = {"schema_version": "1.0", "clips": len(rows)}
+    speech_controls = [
+        row
+        for row in rows
+        if "reference_transcript" in row
+        and "event_targets" not in row
+        and "event_presence_targets" not in row
+        and "style_targets" not in row
+    ]
+    if speech_controls:
+        localized_false_clips = presence_false_clips = style_false_clips = 0
+        localized_false_events = 0
+        any_false_clips = 0
+        duration_minutes = 0.0
+        for row in speech_controls:
+            duration_minutes += len(row["event_logits"]) * float(row["frame_hop_ms"]) / 60_000
+            localized = _localized_event_count(row, calibration)
+            presence = _event_presence_count(row, calibration)
+            styles = _style_count(row, calibration)
+            localized_false_events += localized
+            localized_false_clips += localized > 0
+            presence_false_clips += presence > 0
+            style_false_clips += styles > 0
+            any_false_clips += localized + presence + styles > 0
+        report["speech_controls"] = {
+            "clips": len(speech_controls),
+            "localized_event_false_positive_clips": localized_false_clips,
+            "event_presence_false_positive_clips": presence_false_clips,
+            "style_false_positive_clips": style_false_clips,
+            "aux_false_positive_rate": any_false_clips / len(speech_controls),
+            "localized_false_events_per_minute": (
+                localized_false_events / duration_minutes if duration_minutes else 0.0
+            ),
+        }
     asr_rows = [
         row for row in rows if "reference_transcript" in row and "predicted_transcript" in row
     ]
@@ -295,7 +360,9 @@ def evaluate_joint_scores(
         per_class = {}
         average_precision = {}
         for index, label in enumerate(SUPPORTED_EVENTS):
-            prediction = probabilities[:, index] >= calibration.event_thresholds[label.value]
+            prediction = probabilities[:, index] >= calibration.localized_event_threshold(
+                label.value
+            )
             score = _binary_f1(prediction, targets[:, index] >= 0.5)
             per_class[label.value] = score
             average_precision[label.value] = _average_precision(

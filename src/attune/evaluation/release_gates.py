@@ -16,6 +16,10 @@ class ReleaseMetrics:
     int8_wer: float
     fp_event_macro_f1: float
     int8_event_macro_f1: float
+    fp_speech_control_aux_false_positive_rate: float
+    int8_speech_control_aux_false_positive_rate: float
+    fp_speech_control_false_events_per_minute: float
+    int8_speech_control_false_events_per_minute: float
     fp_event_presence_macro_f1: float
     int8_event_presence_macro_f1: float
     fp_style_macro_f1: float
@@ -32,6 +36,7 @@ class ReleaseMetrics:
     xml_validity_rate: float
     cpu_real_time_factor: float
     committed_retraction_rate: float
+    hostile_speech_regression_passed: bool
 
     @classmethod
     def from_mapping(cls, value: dict[str, Any]) -> ReleaseMetrics:
@@ -62,6 +67,16 @@ def evaluate_release_gates(metrics: ReleaseMetrics) -> list[GateResult]:
         maximum("parameter_count", metrics.parameter_count, 300_000_000),
         maximum("fp_wer_degradation", metrics.fp_wer - metrics.base_wer, 0.01),
         minimum("fp_event_macro_f1", metrics.fp_event_macro_f1, 0.50),
+        maximum(
+            "fp_speech_control_aux_false_positive_rate",
+            metrics.fp_speech_control_aux_false_positive_rate,
+            0.01,
+        ),
+        maximum(
+            "fp_speech_control_false_events_per_minute",
+            metrics.fp_speech_control_false_events_per_minute,
+            0.10,
+        ),
         minimum("fp_event_presence_macro_f1", metrics.fp_event_presence_macro_f1, 0.50),
         minimum("fp_style_macro_f1", metrics.fp_style_macro_f1, 0.60),
         minimum("fp_affect_macro_f1", metrics.fp_affect_macro_f1, 0.40),
@@ -86,6 +101,16 @@ def evaluate_release_gates(metrics: ReleaseMetrics) -> list[GateResult]:
             0.02,
         ),
         maximum(
+            "int8_speech_control_aux_false_positive_rate",
+            metrics.int8_speech_control_aux_false_positive_rate,
+            0.01,
+        ),
+        maximum(
+            "int8_speech_control_false_events_per_minute",
+            metrics.int8_speech_control_false_events_per_minute,
+            0.10,
+        ),
+        maximum(
             "int8_event_presence_macro_f1_degradation",
             metrics.fp_event_presence_macro_f1 - metrics.int8_event_presence_macro_f1,
             0.02,
@@ -105,6 +130,12 @@ def evaluate_release_gates(metrics: ReleaseMetrics) -> list[GateResult]:
         minimum("xml_validity_rate", metrics.xml_validity_rate, 1.0),
         maximum("cpu_real_time_factor", metrics.cpu_real_time_factor, 1.0),
         maximum("committed_retraction_rate", metrics.committed_retraction_rate, 0.0),
+        GateResult(
+            "hostile_speech_regression",
+            metrics.hostile_speech_regression_passed,
+            metrics.hostile_speech_regression_passed,
+            "must pass a real-audio retest with no unsupported event or style tags",
+        ),
     ]
 
 

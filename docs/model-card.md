@@ -6,10 +6,12 @@
 
 ## Status
 
-This is a local technical release candidate, not a public-weight release. It
-passes all 20 executable v0.1 engineering gates in
-`artifacts/release/v0.1/release-gates.json`. Public redistribution still
-depends on a final review of the SenseVoice model agreement and every training
+This is an accuracy-hardening prerelease, not a public-weight release. A live
+test found severe false-positive style and event tags while ASR remained
+accurate. The demo and publication were withdrawn. The executable report in
+`artifacts/release/v0.1/release-gates.json` is deliberately
+`release_ready: false` until the original hostile-speech case is retested.
+Public redistribution also depends on a final review of every training
 source's derivative-artifact terms.
 
 The candidate has 241,609,098 parameters. Its trained delta is
@@ -26,10 +28,10 @@ All release hashes are recorded in
 
 For English, single-speaker, 0.5–30 second, 16 kHz mono PCM16 WAV input, emit:
 
-- CTC transcript and genuine CTC-derived word times;
-- localized `laugh`, `cough`, and `throat_clear` spans;
-- utterance-scope presence for weakly supervised event labels;
-- utterance-scope `shouting` and `whispering` styles;
+- CTC transcript;
+- localized `laugh`, `cough`, and `throat_clear` spans at confidence >= 0.98;
+- no user-facing weak event-presence or style labels until they are validated
+  against speech-negative controls;
 - a calibrated distribution over perceived affect categories;
 - abstention and out-of-distribution information; and
 - schema-v2 JSON plus deterministic XML.
@@ -75,7 +77,9 @@ head, but runtime calibration marks dimensional outputs unavailable.
 | Metric | FP | mixed INT8 | Fixed requirement |
 |---|---:|---:|---:|
 | WER | 0.0734 | 0.0782 | FP ≤ base + 0.01; INT8 ≤ FP + 0.005 |
-| Localized-event segment macro-F1 | 0.7700 | 0.7772 | FP ≥ 0.50; loss ≤ 0.02 |
+| Localized-event segment macro-F1 at >= 0.98 | 0.6645 | 0.6548 | FP ≥ 0.50; loss ≤ 0.02 |
+| Speech-control auxiliary false-positive rate | 0.0000 | 0.0000 | ≤ 0.01 |
+| Speech-control localized false events/minute | 0.0000 | 0.0000 | ≤ 0.10 |
 | Event-presence macro-F1 | 0.8258 | 0.8220 | FP ≥ 0.50; loss ≤ 0.02 |
 | Style macro-F1 | 1.0000 | 1.0000 | FP ≥ 0.60; loss ≤ 0.02 |
 | Supported-class affect macro-F1 | 0.4746 | 0.4591 | FP ≥ 0.40; loss ≤ 0.02 |
@@ -88,6 +92,12 @@ development-selected abstention rule. FP Brier score is 0.5999 and ECE is
 0.1134. The categorical metric covers the six supported classes (`neutral`,
 `joy`, `distress`, `anger`, `fear`, `other`); ontology-wide F1 including
 unsupported classes is lower.
+
+The event-presence and style metrics are offline research diagnostics only.
+Those heads are disabled in runtime output because their source data did not
+establish acceptable false-positive behaviour on ordinary speech. Six real
+speech clips that previously triggered multiple false tags emitted zero events
+and zero styles under the hardened policy, with their transcripts preserved.
 
 ### Runtime
 
@@ -122,10 +132,12 @@ sealed perception evaluation was not used to retune perception heads.
 
 - Affect supervision is acted, one-hot CREMA-D—not naturalistic multi-rater
   soft labels.
-- Only three event classes are localized; other events are utterance-presence
-  evidence only.
-- Style F1 is based on a narrow weak-label set and should not be read as broad
-  natural-speech perfection.
+- Only three event classes are localized; all weak utterance-presence event
+  outputs are currently disabled.
+- Style output is currently disabled. Its offline F1 is based on a narrow
+  weak-label set and cannot be read as natural speech-style reliability.
+- Word timestamps group genuine CTC token spans using SentencePiece boundaries;
+  they are approximate acoustic alignments, not interpolated word durations.
 - V/A/D, `surprise`, and `ambiguous` lack positive reviewed supervision.
 - The semantic-conflict set is small; positive APS does not prove lexical
   disentanglement across domains.

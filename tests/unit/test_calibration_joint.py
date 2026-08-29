@@ -45,6 +45,9 @@ def test_joint_calibration_fits_complete_runtime_bundle() -> None:
     assert set(calibration.style_thresholds) == {"shouting", "whispering"}
     assert set(calibration.event_presence_thresholds) == set(calibration.event_thresholds)
     assert set(calibration.localized_event_labels) == set(calibration.event_thresholds)
+    assert calibration.localized_event_min_confidence == 0.98
+    assert calibration.event_presence_enabled_labels == []
+    assert calibration.style_enabled_labels == []
     assert len(calibration.ood_centroid or []) == 4
     assert calibration.ood_distance_scale > 0
     assert calibration.ood_available is True

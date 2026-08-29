@@ -5,31 +5,31 @@
 - **Working codename:** Project Attune
 - **Owner:** Jerry Buaba / HXI Labs
 - **Report date:** 29 August 2026
-- **Release:** Technical v0.1
-- **Status:** Technical model and deployment release completed; future human
-  and naturalistic-data studies remain outstanding
+- **Release:** v0.1 accuracy-hardening candidate
+- **Status:** Release withdrawn after live false-positive failure; ASR remains
+  strong, auxiliary output is narrowed, and a manual regression retest is pending
 
 ## 1. Executive summary
 
-Project Attune now has a working compact speech model that combines ordinary
-speech transcription with time-aligned vocal-event detection, delivery-style
-classification, perceived-affect estimation, uncertainty, out-of-distribution
-detection, and calibrated abstention.
+Project Attune now has a working compact speech model with accurate ordinary
+speech transcription, conservative time-aligned vocal-event detection,
+perceived-affect estimation, uncertainty, out-of-distribution detection, and
+calibrated abstention. User-facing delivery-style and weak utterance-event
+outputs are disabled after a live test revealed unacceptable false positives.
 
 The final model is a 241,609,098-parameter derivative of SenseVoice-Small. It is
 available as both a full-precision ONNX graph and a smaller mixed-precision INT8
-deployment graph. The final candidate passes all 20 executable technical
-release gates covering model size, ASR preservation, event and style quality,
-affect performance, semantic-acoustic preference, uncertainty, quantization,
-runtime, output validity, and streaming stability.
+deployment graph. It is not release-ready: the hardened gate report now adds
+ordinary-speech false-positive requirements and deliberately fails until the
+original hostile-speech audio is manually retested.
 
 The deployed system accepts 16 kHz mono PCM16 WAV audio and returns authoritative
 schema-v2 JSON. It can also generate deterministic, injection-safe XML. Both a
 batch HTTP API and pseudo-streaming WebSocket API have been implemented and
 tested against the real final model.
 
-The work completed here should be considered the technical v0.1 research
-release. It does not yet establish that Attune improves conversational responses
+The work completed here should be considered a technical v0.1 prerelease. It
+does not yet establish that Attune improves conversational responses
 in a controlled human study. It also does not provide reviewed valence,
 arousal, and dominance outputs because a suitable licensed dimensional-affect
 training source was not available.
@@ -39,11 +39,12 @@ training source was not available.
 The completed system produces:
 
 - English speech transcription using the SenseVoice CTC path.
-- CTC-derived word timestamps rather than fabricated uniform timing.
+- CTC-derived word timestamps grouped from genuine SentencePiece boundaries;
+  no uniform word timing is fabricated.
 - Frame-level and segment-level localization for strongly supervised vocal
   events.
-- Utterance-level event-presence output for weakly supervised labels.
-- Delivery-style predictions for shouting and whispering.
+- Weak utterance-level event-presence output is disabled in runtime.
+- Shouting and whispering output is disabled pending speech-negative validation.
 - A probability distribution over perceived affect categories.
 - Confidence-aware affect abstention.
 - Out-of-distribution detection.
@@ -198,6 +199,10 @@ using development scores only. The following were calibrated:
 - OOD temperature and threshold.
 - Minimum event duration and short-gap bridging.
 
+Runtime additionally enforces a 0.98 minimum confidence for localized events.
+Weak event-presence and style label allowlists are empty. These controls were
+added after the isolated-sound heads proved unsafe on ordinary speech.
+
 The final FP affect system covers 82.58% of supported affect clips. Error falls
 from 47.73% at full coverage to 41.28% among retained predictions. This meets the
 requirement that abstention reduce risk rather than merely suppress output.
@@ -212,8 +217,10 @@ does not produce a quality claim without reviewed labels and calibration.
 | Metric | Full precision | Mixed INT8 |
 |---|---:|---:|
 | Word error rate | 0.0734 | 0.0782 |
-| Event frame macro-F1 | 0.6871 | 0.6877 |
-| Localized-event segment macro-F1 | 0.7700 | 0.7772 |
+| Event frame macro-F1 at >= 0.98 | 0.4921 | 0.4887 |
+| Localized-event segment macro-F1 at >= 0.98 | 0.6645 | 0.6548 |
+| Speech-control auxiliary false-positive rate | 0.0000 | 0.0000 |
+| Speech-control localized false events/minute | 0.0000 | 0.0000 |
 | Event-presence macro-F1 | 0.8258 | 0.8220 |
 | Style macro-F1 | 1.0000 | 1.0000 |
 | Supported-class affect macro-F1 | 0.4746 | 0.4591 |
@@ -222,7 +229,8 @@ does not produce a quality claim without reviewed labels and calibration.
 | Affect coverage | 0.8258 | 0.8712 |
 | Acoustic Preference Score | +0.2727 | +0.2727 |
 
-All 20 executable release gates pass.
+All automatic quality gates pass, but the manual hostile-speech regression gate
+does not. The resulting release report correctly states `release_ready: false`.
 
 ### 8.2 Semantic-acoustic reliance
 
@@ -238,13 +246,13 @@ broad lexical-acoustic disentanglement across natural conversation.
 
 | Event | Segment F1 | TP | FP | FN | Boundary MAE |
 |---|---:|---:|---:|---:|---:|
-| Laugh | 0.9195 | 40 | 2 | 5 | 156.8 ms |
-| Cough | 0.6170 | 29 | 21 | 15 | 153.1 ms |
-| Throat clear | 0.7733 | 29 | 5 | 12 | 127.2 ms |
+| Laugh | 0.8889 | 36 | 0 | 9 | 235.0 ms |
+| Cough | 0.3860 | 11 | 2 | 33 | 182.7 ms |
+| Throat clear | 0.7188 | 23 | 0 | 18 | 157.8 ms |
 
-Cough is the weakest localized event because it produces more insertions and
-misses. Other event labels remain utterance-presence evidence only and are not
-presented as temporally localized.
+Cough is the weakest localized event under the precision-first policy. Other
+event labels are not emitted. The policy trades recall for avoiding fabricated
+events in ordinary speech.
 
 ## 9. Quantization and export
 

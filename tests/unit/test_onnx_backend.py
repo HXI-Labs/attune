@@ -76,7 +76,11 @@ def test_onnx_backend_emits_honest_scope_and_calibrated_affect() -> None:
         Path("fixture-int8.onnx"),
         feature_extractor=lambda _wav: np.zeros((12, 80), dtype=np.float32),
         transcript_decoder=lambda _logits, _length: ("hello", 0.9),
-        calibration=_calibration(),
+        calibration=_calibration(
+            localized_event_min_confidence=0.5,
+            event_presence_enabled_labels=["sigh"],
+            style_enabled_labels=["shouting"],
+        ),
         session=FakeSession(),
     )
     result = backend.analyse_wav(_wav())
@@ -91,6 +95,24 @@ def test_onnx_backend_emits_honest_scope_and_calibrated_affect() -> None:
     assert result.affect.top_label == "anger"
     assert result.affect.arousal.value > 0.7
     assert result.transcript.words == []
+
+
+def test_default_runtime_suppresses_unvalidated_presence_and_styles() -> None:
+    backend = OnnxAttuneBackend(
+        Path("fixture-int8.onnx"),
+        feature_extractor=lambda _wav: np.zeros((12, 80), dtype=np.float32),
+        transcript_decoder=lambda _logits, _length: ("hello", 0.9),
+        calibration=_calibration(),
+        session=FakeSession(),
+    )
+
+    result = backend.analyse_wav(_wav())
+
+    assert len(result.events) == 1
+    assert result.events[0].label == "laugh"
+    assert result.events[0].temporal_scope == "localized"
+    assert result.styles == []
+    assert result.transcript.text == "hello"
 
 
 def test_missing_ood_calibration_forces_affect_abstention() -> None:
@@ -149,3 +171,48 @@ def test_greedy_decoder_produces_ctc_derived_word_timestamps() -> None:
     assert [word["text"] for word in words] == ["hello", "world!"]
     assert words[0]["start_ms"] == 100
     assert words[1]["end_ms"] == 700
+
+
+class SentencePieceProcessor:
+    pieces = {1: "▁hello", 2: "▁world", 3: "!", 4: "▁", 5: "11"}
+
+    def IdToPiece(self, identifier):
+        return self.pieces[identifier]
+
+
+class SentencePieceTokenizer:
+    sp = SentencePieceProcessor()
+
+    def decode(self, identifiers):
+        return "".join(self.sp.IdToPiece(item) for item in identifiers).replace("▁", " ")
+
+
+def test_greedy_decoder_uses_real_sensevoice_sentencepiece_boundaries() -> None:
+    logits = np.full((8, 5), -8.0, dtype=np.float32)
+    logits[:, 0] = 2.0
+    logits[1:3, 1] = 9.0
+    logits[4:6, 2] = 9.0
+    logits[6, 3] = 9.0
+    decoder = GreedySenseVoiceDecoder(SentencePieceTokenizer())
+
+    text, confidence, words = decoder.decode_with_words(logits, 8, 800)
+
+    assert text == "hello world!"
+    assert confidence > 0.9
+    assert [word["text"] for word in words] == ["hello", "world!"]
+    assert words[0]["start_ms"] == 100
+    assert words[1]["end_ms"] == 700
+
+
+def test_greedy_decoder_honours_standalone_sentencepiece_boundary() -> None:
+    logits = np.full((7, 7), -8.0, dtype=np.float32)
+    logits[:, 0] = 2.0
+    logits[1:3, 1] = 9.0
+    logits[3, 4] = 9.0
+    logits[4:6, 5] = 9.0
+    decoder = GreedySenseVoiceDecoder(SentencePieceTokenizer())
+
+    text, _confidence, words = decoder.decode_with_words(logits, 7, 700)
+
+    assert text == "hello 11"
+    assert [word["text"] for word in words] == ["hello", "11"]

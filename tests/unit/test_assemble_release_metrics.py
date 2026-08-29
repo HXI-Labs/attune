@@ -16,6 +16,10 @@ def _sealed(value: float) -> dict[str, object]:
     return {
         "asr_wer": value,
         "event_segments": {"macro_f1": 0.7},
+        "speech_controls": {
+            "aux_false_positive_rate": 0.0,
+            "localized_false_events_per_minute": 0.0,
+        },
         "event_presence_macro_f1": 0.68,
         "style_macro_f1": 0.72,
         "affect_macro_f1": 0.61,
@@ -44,6 +48,7 @@ def test_assemble_maps_reports_without_manual_copying() -> None:
     assert metrics["base_wer"] == 0.1
     assert metrics["int8_wer"] == 0.108
     assert metrics["fp_event_macro_f1"] == 0.7
+    assert metrics["hostile_speech_regression_passed"] is False
 
 
 def test_assemble_fails_closed_on_missing_evidence() -> None:

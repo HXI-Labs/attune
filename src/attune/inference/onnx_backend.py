@@ -43,8 +43,11 @@ class RuntimeCalibration(BaseModel):
     localized_event_labels: list[str] = Field(
         default_factory=lambda: ["laugh", "cough", "throat_clear"]
     )
+    localized_event_min_confidence: float = Field(default=0.98, ge=0, le=1)
+    event_presence_enabled_labels: list[str] = Field(default_factory=list)
     style_temperature: float = Field(default=1.0, gt=0)
     style_thresholds: dict[str, float]
+    style_enabled_labels: list[str] = Field(default_factory=list)
     affect_temperature: float = Field(default=1.0, gt=0)
     affect_threshold: float = Field(default=0.55, ge=0, le=1)
     vad_available: bool = False
@@ -66,8 +69,12 @@ class RuntimeCalibration(BaseModel):
             raise ValueError("event_presence_thresholds must contain the supported event inventory")
         if not set(self.localized_event_labels) <= expected_events:
             raise ValueError("localized_event_labels contains an unsupported event")
+        if not set(self.event_presence_enabled_labels) <= expected_events:
+            raise ValueError("event_presence_enabled_labels contains an unsupported event")
         if set(self.style_thresholds) != expected_styles:
             raise ValueError("style_thresholds must contain the supported style inventory")
+        if not set(self.style_enabled_labels) <= expected_styles:
+            raise ValueError("style_enabled_labels contains an unsupported style")
         if any(value < 0 or value > 1 for value in self.event_thresholds.values()):
             raise ValueError("event thresholds must be probabilities")
         if any(value < 0 or value > 1 for value in self.event_presence_thresholds.values()):
@@ -77,6 +84,9 @@ class RuntimeCalibration(BaseModel):
         if (self.ood_centroid is None) != (self.ood_distance_scale is None):
             raise ValueError("OOD centroid and scale must be supplied together")
         return self
+
+    def localized_event_threshold(self, label: str) -> float:
+        return max(self.event_thresholds[label], self.localized_event_min_confidence)
 
 
 @dataclass(frozen=True)
@@ -161,17 +171,29 @@ class GreedySenseVoiceDecoder:
         duration_ms: int,
     ) -> list[dict[str, Any]]:
         encoding = getattr(self.tokenizer, "encoding", None)
-        if encoding is None:
+        sentencepiece = getattr(self.tokenizer, "sp", None)
+        if encoding is None and sentencepiece is None:
             return []
         groups: list[dict[str, Any]] = []
+        pending_word_boundary = False
         for token_id, start, stop, confidence in token_spans:
-            piece = encoding.decode([token_id])
+            if encoding is not None:
+                piece = encoding.decode([token_id])
+                begins_word = bool(piece[:1].isspace())
+                clean = piece.strip() if begins_word else piece
+            else:
+                piece = sentencepiece.IdToPiece(token_id)
+                begins_word = piece.startswith("▁")
+                clean = piece.removeprefix("▁")
             if not piece or RICH_TAG.fullmatch(piece):
                 continue
-            begins_word = bool(piece[:1].isspace())
-            clean = piece.strip() if begins_word else piece
-            if not clean:
+            if clean in {"<unk>", "<s>", "</s>"}:
                 continue
+            if not clean:
+                pending_word_boundary = pending_word_boundary or begins_word
+                continue
+            begins_word = begins_word or pending_word_boundary
+            pending_word_boundary = False
             if begins_word or not groups:
                 groups.append(
                     {"text": clean, "start": start, "stop": stop, "confidence": [confidence]}
@@ -354,7 +376,9 @@ class OnnxAttuneBackend:
         for label_index, label in enumerate(SUPPORTED_EVENTS):
             if label.value not in self.calibration.localized_event_labels:
                 continue
-            active = probabilities[:, label_index] >= self.calibration.event_thresholds[label.value]
+            active = probabilities[:, label_index] >= self.calibration.localized_event_threshold(
+                label.value
+            )
             active = _bridge_short_gaps(active, self.calibration.bridge_event_frames)
             for start, stop in _runs(active, self.calibration.minimum_event_frames):
                 confidence = float(probabilities[start:stop, label_index].max())
@@ -377,7 +401,8 @@ class OnnxAttuneBackend:
         for label_index, label in enumerate(SUPPORTED_EVENTS):
             confidence = float(presence[label_index])
             if (
-                label.value not in already_present
+                label.value in self.calibration.event_presence_enabled_labels
+                and label.value not in already_present
                 and confidence >= self.calibration.event_presence_thresholds[label.value]
             ):
                 items.append(
@@ -398,6 +423,8 @@ class OnnxAttuneBackend:
         probabilities = _sigmoid(outputs["style_logits"][0] / self.calibration.style_temperature)
         items = []
         for index, label in enumerate(SUPPORTED_STYLES):
+            if label.value not in self.calibration.style_enabled_labels:
+                continue
             confidence = float(probabilities[index])
             if confidence >= self.calibration.style_thresholds[label.value]:
                 items.append(

@@ -132,11 +132,14 @@ def fit_runtime_calibration(rows: list[dict[str, Any]]) -> RuntimeCalibration:
             for index, label in enumerate(SUPPORTED_EVENTS)
             if event_targets[..., index].sum() > 0
         ],
+        localized_event_min_confidence=0.98,
+        event_presence_enabled_labels=[],
         style_temperature=style_temperature,
         style_thresholds={
             label.value: _f1_threshold(style_probabilities[:, index], style_targets[:, index])
             for index, label in enumerate(SUPPORTED_STYLES)
         },
+        style_enabled_labels=[],
         affect_temperature=affect_temperature,
         affect_threshold=_affect_threshold(affect_probabilities, affect_targets),
         vad_available=any("vad_target" in row for row in rows),

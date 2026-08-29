@@ -83,3 +83,40 @@ def test_joint_report_includes_aps_and_all_task_metrics() -> None:
     assert report["affect_risk_coverage"][-1]["coverage"] == 1.0
     assert report["by_dataset"]["unknown"]["clips"] == 2
     assert "by_dataset" not in report["by_dataset"]["unknown"]
+
+
+def test_speech_control_metrics_match_runtime_suppression_and_span_rules() -> None:
+    calibration = RuntimeCalibration(
+        event_thresholds={
+            label: 0.5
+            for label in ("laugh", "sob", "scream", "sigh", "cough", "throat_clear", "sneeze")
+        },
+        event_presence_thresholds={
+            label: 0.5
+            for label in ("laugh", "sob", "scream", "sigh", "cough", "throat_clear", "sneeze")
+        },
+        style_thresholds={"shouting": 0.5, "whispering": 0.5},
+    )
+    event_logits = np.full((4, 7), -8.0)
+    event_logits[1, 0] = 5.0  # One frame is below the minimum two-frame span.
+    rows = [
+        {
+            "reference_transcript": "ordinary speech",
+            "predicted_transcript": "ordinary speech",
+            "event_logits": event_logits.tolist(),
+            "event_presence_logits": [8.0] * 7,
+            "style_logits": [8.0, 8.0],
+            "frame_hop_ms": 60.0,
+        }
+    ]
+
+    report = evaluate_joint_scores(rows, calibration)
+
+    assert report["speech_controls"] == {
+        "clips": 1,
+        "localized_event_false_positive_clips": 0,
+        "event_presence_false_positive_clips": 0,
+        "style_false_positive_clips": 0,
+        "aux_false_positive_rate": 0.0,
+        "localized_false_events_per_minute": 0.0,
+    }

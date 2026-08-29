@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -47,3 +48,27 @@ def test_release_files_default_to_int8_bundle(tmp_path: Path) -> None:
 def test_release_files_fail_closed_when_an_artifact_is_missing(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="missing release files"):
         MODULE.release_files(tmp_path, include_fp=False)
+
+
+def test_publication_is_blocked_when_release_gate_is_false(tmp_path: Path) -> None:
+    gate = tmp_path / "artifacts/release/v0.1/release-gates.json"
+    gate.parent.mkdir(parents=True)
+    gate.write_text(
+        json.dumps(
+            {
+                "release_ready": False,
+                "gates": [{"name": "hostile_speech_regression", "passed": False}],
+            }
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="hostile_speech_regression"):
+        MODULE.require_release_ready(tmp_path)
+
+
+def test_publication_gate_accepts_ready_report(tmp_path: Path) -> None:
+    gate = tmp_path / "artifacts/release/v0.1/release-gates.json"
+    gate.parent.mkdir(parents=True)
+    gate.write_text(json.dumps({"release_ready": True, "gates": []}))
+
+    MODULE.require_release_ready(tmp_path)

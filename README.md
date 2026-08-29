@@ -12,18 +12,28 @@ Attune does **not** infer a speaker's true internal state. Its affect output is 
 fallible perception distribution, not a diagnosis, deception judgment, safety
 decision, or protected-trait inference.
 
-## v0.1 technical release status
+## v0.1 accuracy-hardening status
 
-The local v0.1 technical candidate passes all 20 executable release gates. It
-uses a 241,609,098-parameter SenseVoice-Small derivative:
+The local 241,609,098-parameter SenseVoice-Small derivative is **not currently
+release-ready**. A live test exposed severe false-positive `whispering`,
+`cough`, and `sneeze` tags despite an accurate transcript. The public demo,
+release PR, and Hugging Face publication were paused. The release gate now
+fails closed until the same hostile-speech audio is retested successfully.
+
+The hardened candidate keeps the accurate CTC route unchanged and narrows the
+user-facing auxiliary output:
 
 - the lower encoder is shared;
-- the adapted perception path drives localized events, event presence, styles,
-  categorical affect, abstention, and OOD detection;
+- only temporally localized `laugh`, `cough`, and `throat_clear` spans may be
+  emitted, and only at confidence >= 0.98;
+- weak utterance event-presence and style outputs are disabled because their
+  isolated-sound evaluation did not validate them on ordinary speech;
+- categorical affect remains probabilistic and may abstain;
 - frozen copies of only the two original upper encoder blocks preserve CTC ASR;
 - V/A/D is unavailable because the reviewed training bundle has no dimensional
   labels; and
-- only `laugh`, `cough`, and `throat_clear` have strong temporal supervision.
+- real-model regression checks preserve the transcript while requiring no
+  unsupported auxiliary tags on ordinary speech.
 
 The deployment graph is mixed precision: most eligible shared weights are
 dynamic per-channel INT8, while the two high-level perception/ASR tails and
@@ -36,7 +46,9 @@ nodes are recorded in its quantization report.
 | Metric | FP | mixed INT8 |
 |---|---:|---:|
 | WER | 0.0734 | 0.0782 |
-| Localized-event segment macro-F1 | 0.7700 | 0.7772 |
+| Localized-event segment macro-F1 at >= 0.98 | 0.6645 | 0.6548 |
+| Ordinary-speech auxiliary false-positive rate (189 clips) | 0.0000 | 0.0000 |
+| Ordinary-speech localized false events/minute | 0.0000 | 0.0000 |
 | Event-presence macro-F1 | 0.8258 | 0.8220 |
 | Style macro-F1 | 1.0000 | 1.0000 |
 | Supported-class affect macro-F1 | 0.4746 | 0.4591 |
@@ -44,9 +56,13 @@ nodes are recorded in its quantization report.
 | Affect coverage | 0.8258 | 0.8712 |
 | Acoustic Preference Score | +0.2727 | +0.2727 |
 
-The FP selective affect error is 0.4128 versus 0.4773 at full coverage. These
-are engineering results on a small, source-labelled, partly acted/synthetic
-bundle—not evidence of broad naturalistic emotion understanding.
+Event-presence and style scores above are retained as research diagnostics;
+those heads are not emitted by the hardened runtime. The style result comes
+from isolated weak-label audio and does not demonstrate reliable
+speech-embedded shouting or whispering. The FP selective affect error is 0.4128
+versus 0.4773 at full coverage. These are engineering results on a small,
+source-labelled, partly acted/synthetic bundle—not evidence of broad
+naturalistic emotion understanding.
 
 The first sealed pass exposed excessive ASR drift in the originally selected
 single-tail model. The perception checkpoint and calibration were kept fixed,
@@ -71,15 +87,17 @@ Attune improves conversational responses. That study is specified in
 
 ## What a transcription looks like
 
-For audio in which someone shouts “I said leave me alone” and then coughs, a
-compact human-readable rendering can be:
+For the hostile sentence that exposed the false-positive failure, the hardened
+policy should return the accurate transcript without inventing weak evidence:
 
 ```text
-[shouting; perceived anger 68%] I said leave me alone. [cough]
+[affect uncertain] I hate you, I hate you so much—never call me again.
 ```
 
-The actual deterministic XML contains the same evidence in stand-off form. A
-shortened excerpt is:
+The original uploaded audio was processed in memory and was not retained, so
+this exact case remains a mandatory manual retest—not a claimed passing result.
+For a genuine cough whose localized confidence exceeds 0.98, a shortened XML
+excerpt can be:
 
 ```xml
 <attune schema_version="2.0">
@@ -87,13 +105,10 @@ shortened excerpt is:
     <text>I said leave me alone.</text>
     <words>...</words>
   </transcript>
-  <styles>
-    <style id="style-1" label="shouting" temporal_scope="utterance"
-           confidence="0.89" status="committed" />
-  </styles>
+  <styles />
   <events>
     <event id="event-1" label="cough" temporal_scope="localized"
-           start_ms="1450" end_ms="1680" confidence="0.84"
+           start_ms="1450" end_ms="1680" confidence="0.99"
            status="committed" />
   </events>
   <affect start_ms="0" end_ms="1800" abstain="false">...</affect>
@@ -102,13 +117,15 @@ shortened excerpt is:
 
 The bracketed transcription is a human-readable illustration, not a second
 model-generated format. The model actually returns
-validated JSON containing the transcript, CTC-derived word times, event scope
-and timing, style evidence, all affect probabilities, abstention state, OOD
-probability, and an interpretation warning.
+validated JSON containing the transcript, any supported localized event timing,
+all affect probabilities, abstention state, OOD probability, and an
+interpretation warning. Word timestamps are grouped from genuine CTC token
+spans using the tokenizer's SentencePiece boundaries; no uniform timing is
+fabricated.
 
 ### Different delivery within one recording
 
-The intended experience for separately detected speech segments is:
+The long-term intended experience for separately detected speech segments is:
 
 ```text
 [neutral] I’ll take care of it.
@@ -116,7 +133,8 @@ The intended experience for separately detected speech segments is:
 [laughing speech; perceived joy 64%] I’m only joking. [laugh]
 ```
 
-Cadence v0.1 produces one affect distribution per analysed utterance. When VAD
+Cadence v0.1 does not currently emit the style labels shown in that target
+experience. It produces one affect distribution per analysed utterance. When VAD
 or turn boundaries separate these lines, each segment can receive its own
 result. If the speaker changes delivery without a usable boundary inside one
 continuous utterance, v0.1 may return a mixed distribution or abstain:
@@ -127,8 +145,7 @@ I’ll take care of it, but don’t ask me again! I’m only joking. [laugh]
 ```
 
 True within-utterance affect-span tracking is not claimed in v0.1. Supported
-localized events can still carry timestamps; current style evidence and affect
-remain utterance-scope.
+localized events can still carry timestamps; affect remains utterance-scope.
 
 ## Installation
 
@@ -193,7 +210,8 @@ transit and must be reviewed separately.
 
 ## Reproducibility and evidence
 
-- Release gates: `artifacts/release/v0.1/release-gates.json`
+- Release gates (currently `release_ready: false`):
+  `artifacts/release/v0.1/release-gates.json`
 - Artifact hashes: `artifacts/release/v0.1/artifact-manifest.json`
 - Training run: `artifacts/training/local-upper-two-v0.1/`
 - Development/sealed reports: `artifacts/evaluation/split-tail-v0.1/`

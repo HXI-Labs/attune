@@ -53,5 +53,7 @@ scripts/export_onnx.py
 scripts/quantize.py
 scripts/build_joint_error_analysis.py
 scripts/build_release_manifest.py
+scripts/assemble_release_metrics.py
 scripts/publish_huggingface.py
 scripts/smoke_deployment.py
+configs/evaluation/release-metrics-template.json

@@ -24,8 +24,13 @@ tags:
 
 Attune Cadence is a compact English paralinguistic transcription model from
 HXI Labs. It combines CTC speech transcription with supported vocal-event
-localization, utterance-scope delivery styles, perceived-affect probabilities,
+localization, perceived-affect probabilities,
 out-of-distribution detection, calibrated abstention, and word timing.
+
+> **Publication paused:** a live test exposed false-positive event/style tags.
+> The hardened runtime disables weak event-presence and style output, requires
+> >=0.98 confidence for localized events, and remains blocked on a manual
+> hostile-speech regression. Do not publish this package yet.
 
 This v0.1 checkpoint is a 241,609,098-parameter derivative of
 [SenseVoiceSmall](https://huggingface.co/FunAudioLLM/SenseVoiceSmall) by
@@ -35,11 +40,11 @@ and small heads remain floating point.
 
 ## Example
 
-For audio in which someone shouts “I said leave me alone” and then coughs, a
-human-readable summary of the structured result is:
+For the hostile sentence that exposed the failure, the precision-first output
+should preserve the transcript without inventing auxiliary evidence:
 
 ```text
-[shouting; perceived anger 68%] I said leave me alone. [cough]
+[affect uncertain] I hate you, I hate you so much—never call me again.
 ```
 
 The model itself emits validated schema-v2 JSON. Affect is a probability
@@ -51,9 +56,8 @@ speaker's true internal state.
 - English, single-speaker clips or user turns.
 - 16 kHz mono PCM16 WAV input, 0.5–30 seconds.
 - CTC transcript and CTC-derived word times.
-- Localized `laugh`, `cough`, and `throat_clear` events.
-- Utterance-presence evidence for other supported events.
-- Utterance-scope `shouting` and `whispering` styles.
+- Localized `laugh`, `cough`, and `throat_clear` events at confidence >=0.98.
+- Weak utterance event-presence and style output disabled pending stronger data.
 - One calibrated affect distribution per analysed utterance.
 - Abstention and OOD probability.
 - Valence, arousal, and dominance explicitly unavailable in v0.1.
@@ -67,7 +71,9 @@ unsegmented delivery change may produce a mixed distribution or abstention.
 | Metric | Full precision | Mixed INT8 |
 |---|---:|---:|
 | WER | 0.0734 | 0.0782 |
-| Localized-event segment macro-F1 | 0.7700 | 0.7772 |
+| Localized-event segment macro-F1 at >=0.98 | 0.6645 | 0.6548 |
+| Speech-control auxiliary false-positive rate (189 clips) | 0.0000 | 0.0000 |
+| Speech-control localized false events/minute | 0.0000 | 0.0000 |
 | Event-presence macro-F1 | 0.8258 | 0.8220 |
 | Style macro-F1 | 1.0000 | 1.0000 |
 | Supported-class affect macro-F1 | 0.4746 | 0.4591 |
@@ -77,6 +83,9 @@ unsegmented delivery change may produce a mixed distribution or abstention.
 The local Mac CPU benchmark measured mixed-INT8 RTF 0.0534 and p95 latency
 415 ms over 40 contract-valid clips. These are small, partly acted/synthetic
 technical evaluations—not evidence of broad naturalistic emotion understanding.
+Event-presence and style metrics are omitted here because those outputs are
+disabled in the user-facing runtime; isolated-sound scores did not establish
+their reliability on speech.
 
 ## Files
 
@@ -100,6 +109,9 @@ checkpoint and calibration were kept fixed while a frozen two-block ASR tail
 was added, then evaluated on the already-opened partition. The corrected ASR
 result therefore needs confirmation on a new untouched external set before a
 publication-level claim.
+
+The included gate report must state `release_ready: false` until the original
+hostile-speech audio passes the manual regression.
 
 ## Intended use and safety
 

@@ -62,6 +62,22 @@ def release_files(root: Path, *, include_fp: bool) -> list[tuple[Path, str]]:
     return files
 
 
+def require_release_ready(root: Path) -> None:
+    gate_path = root / "artifacts/release/v0.1/release-gates.json"
+    try:
+        report = json.loads(gate_path.read_text())
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"cannot verify release gates at {gate_path}: {error}") from error
+    if report.get("release_ready") is not True:
+        failed = [
+            str(gate.get("name", "unknown"))
+            for gate in report.get("gates", [])
+            if gate.get("passed") is not True
+        ]
+        detail = ", ".join(failed) if failed else "release_ready is not true"
+        raise RuntimeError(f"Hugging Face publication is blocked: {detail}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-id", required=True, help="Hugging Face model repo, e.g. org/name")
@@ -77,6 +93,7 @@ def main() -> None:
 
     root = arguments.root.resolve()
     files = release_files(root, include_fp=arguments.include_fp)
+    require_release_ready(root)
     plan = {
         "repo_id": arguments.repo_id,
         "private": not arguments.public,

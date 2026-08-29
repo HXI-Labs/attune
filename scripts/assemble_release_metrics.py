@@ -29,6 +29,7 @@ def assemble(
     int8: dict[str, Any],
     deployment: dict[str, Any],
     parameter_count: int,
+    hostile_speech_regression_passed: bool = False,
 ) -> dict[str, Any]:
     return {
         "parameter_count": parameter_count,
@@ -37,6 +38,18 @@ def assemble(
         "int8_wer": _required(int8, "asr_wer"),
         "fp_event_macro_f1": _required(full_precision, "event_segments", "macro_f1"),
         "int8_event_macro_f1": _required(int8, "event_segments", "macro_f1"),
+        "fp_speech_control_aux_false_positive_rate": _required(
+            full_precision, "speech_controls", "aux_false_positive_rate"
+        ),
+        "int8_speech_control_aux_false_positive_rate": _required(
+            int8, "speech_controls", "aux_false_positive_rate"
+        ),
+        "fp_speech_control_false_events_per_minute": _required(
+            full_precision, "speech_controls", "localized_false_events_per_minute"
+        ),
+        "int8_speech_control_false_events_per_minute": _required(
+            int8, "speech_controls", "localized_false_events_per_minute"
+        ),
         "fp_event_presence_macro_f1": _required(full_precision, "event_presence_macro_f1"),
         "int8_event_presence_macro_f1": _required(int8, "event_presence_macro_f1"),
         "fp_style_macro_f1": _required(full_precision, "style_macro_f1"),
@@ -53,6 +66,7 @@ def assemble(
         "xml_validity_rate": _required(deployment, "xml_validity_rate"),
         "cpu_real_time_factor": _required(deployment, "cpu_real_time_factor"),
         "committed_retraction_rate": _required(deployment, "committed_retraction_rate"),
+        "hostile_speech_regression_passed": hostile_speech_regression_passed,
     }
 
 
@@ -63,6 +77,7 @@ def main() -> None:
     parser.add_argument("--int8", type=Path, required=True)
     parser.add_argument("--deployment", type=Path, required=True)
     parser.add_argument("--parameter-count", type=int, required=True)
+    parser.add_argument("--hostile-speech-regression-passed", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     metrics = assemble(
@@ -71,6 +86,7 @@ def main() -> None:
         int8=_load(arguments.int8),
         deployment=_load(arguments.deployment),
         parameter_count=arguments.parameter_count,
+        hostile_speech_regression_passed=arguments.hostile_speech_regression_passed,
     )
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     arguments.output.write_text(json.dumps(metrics, indent=2) + "\n")

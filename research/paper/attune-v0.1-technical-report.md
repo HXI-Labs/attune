@@ -12,7 +12,9 @@ shared weights to dynamic per-channel INT8 while retaining sensitive tails and
 heads in FP.
 
 On a 401-row source-labelled evaluation partition, FP/mixed-INT8 WER is
-0.0734/0.0782, localized-event segment macro-F1 is 0.7700/0.7772,
+0.0734/0.0782. Under a precision-first confidence floor, localized-event
+segment macro-F1 is 0.6645/0.6548 and auxiliary false-positive rate across 189
+ordinary-speech controls is 0.0/0.0. Offline
 event-presence macro-F1 is 0.8258/0.8220, style macro-F1 is 1.0/1.0,
 supported-class affect macro-F1 is 0.4746/0.4591, and OOD F1 is
 0.9907/0.9747. Acoustic Preference Score is +0.2727. Development-selected
@@ -21,11 +23,13 @@ abstention reduces FP affect error from 0.4773 at full coverage to 0.4128 at
 development Mac CPU with p95 latency of 415 ms and 100% structurally valid JSON
 and XML.
 
-These results establish a reproducible technical prototype, not broad emotion
-understanding. Affect data is acted and one-hot, only three events have strong
-temporal labels, V/A/D is unavailable, and no downstream human study has been
-run. An initial sealed pass triggered an ASR-only architectural correction, so
-the corrected ASR result also needs confirmation on a new untouched set.
+These results establish a reproducible technical prototype, not a release or
+broad emotion understanding. Affect data is acted and one-hot, only three
+events have strong temporal labels, weak event/style outputs are disabled,
+V/A/D is unavailable, and no downstream human study has been run. An initial
+sealed pass triggered an ASR-only architectural correction, and a later live
+false-positive failure triggered conservative runtime gating. The corrected
+ASR and auxiliary policy need confirmation on new untouched audio.
 
 ## 1. Problem formulation
 
@@ -36,10 +40,10 @@ interpretation. It does not claim access to internal emotion.
 
 The system output contains:
 
-1. transcript text and CTC-derived word times;
+1. transcript text and CTC token spans grouped by SentencePiece word boundaries;
 2. bounded vocal events where strong temporal evidence exists;
-3. utterance-scope event presence where only weak labels exist;
-4. delivery styles;
+3. research-only weak event-presence logits, disabled in runtime;
+4. research-only delivery-style logits, disabled in runtime;
 5. a categorical perceived-affect distribution;
 6. calibrated abstention and OOD information; and
 7. audio-quality and model metadata in schema-v2 JSON.
@@ -139,7 +143,8 @@ Both runs completed locally on CPU; no cloud GPU spend was required.
 
 Temperatures and class-specific thresholds are fit only on development scores.
 FP and mixed INT8 receive separate calibration bundles. Evaluation then uses
-fixed thresholds.
+fixed thresholds. Runtime applies a 0.98 localized-event confidence floor and
+empty allowlists for weak event-presence and style heads.
 
 Metrics include WER, frame and segment event F1, temporal IoU and boundary
 error, weak-presence/style F1, categorical affect F1/Brier/ECE, selective risk,
@@ -154,6 +159,8 @@ Release floors were fixed before the final run:
   ≥0.75, coverage ≥0.50, and APS >0;
 - mixed INT8 perception/OOD losses ≤0.02 and WER loss ≤0.005;
 - CPU RTF ≤1.0, JSON/XML validity 1.0, and committed retraction 0.
+- ordinary-speech auxiliary false-positive rate ≤0.01, localized false events
+  ≤0.10 per minute, and a mandatory hostile-speech real-audio regression.
 
 ## 7. Results
 
@@ -170,8 +177,10 @@ coverage 0.80, and APS +0.42.
 | Metric | FP | mixed INT8 | Delta |
 |---|---:|---:|---:|
 | WER | 0.0734 | 0.0782 | +0.0048 |
-| Event frame macro-F1 | 0.6871 | 0.6877 | +0.0006 |
-| Event segment macro-F1 | 0.7700 | 0.7772 | +0.0072 |
+| Event frame macro-F1 at >= 0.98 | 0.4921 | 0.4887 | -0.0034 |
+| Event segment macro-F1 at >= 0.98 | 0.6645 | 0.6548 | -0.0097 |
+| Speech-control auxiliary false-positive rate | 0.0000 | 0.0000 | 0.0000 |
+| Speech-control localized false events/minute | 0.0000 | 0.0000 | 0.0000 |
 | Event presence macro-F1 | 0.8258 | 0.8220 | -0.0038 |
 | Style macro-F1 | 1.0000 | 1.0000 | 0.0000 |
 | Affect macro-F1 | 0.4746 | 0.4591 | -0.0155 |
@@ -181,7 +190,8 @@ coverage 0.80, and APS +0.42.
 | APS | +0.2727 | +0.2727 | 0.0000 |
 
 FP affect Brier score is 0.5999 and ECE is 0.1134. Selective error is 0.4128
-versus 0.4773 at full coverage. Every executable gate passes.
+versus 0.4773 at full coverage. Automatic gates pass, while the manual
+hostile-speech retest deliberately remains false.
 
 ## 8. Error analysis
 
@@ -193,9 +203,9 @@ errors in Common Voice. Localized event performance is:
 
 | Label | Segment F1 | TP | FP | FN | Boundary MAE |
 |---|---:|---:|---:|---:|---:|
-| laugh | 0.9195 | 40 | 2 | 5 | 156.8 ms |
-| cough | 0.6170 | 29 | 21 | 15 | 153.1 ms |
-| throat_clear | 0.7733 | 29 | 5 | 12 | 127.2 ms |
+| laugh | 0.8889 | 36 | 0 | 9 | 235.0 ms |
+| cough | 0.3860 | 11 | 2 | 33 | 182.7 ms |
+| throat_clear | 0.7188 | 23 | 0 | 18 | 157.8 ms |
 
 Cough is the weakest localized label because it produces both more insertions
 and misses. The highest-confidence categorical errors cross joy/anger,

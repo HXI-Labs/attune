@@ -13,6 +13,10 @@ def passing_metrics() -> ReleaseMetrics:
         int8_wer=0.13,
         fp_event_macro_f1=0.71,
         int8_event_macro_f1=0.70,
+        fp_speech_control_aux_false_positive_rate=0.0,
+        int8_speech_control_aux_false_positive_rate=0.0,
+        fp_speech_control_false_events_per_minute=0.0,
+        int8_speech_control_false_events_per_minute=0.0,
         fp_event_presence_macro_f1=0.68,
         int8_event_presence_macro_f1=0.67,
         fp_style_macro_f1=0.73,
@@ -29,6 +33,7 @@ def passing_metrics() -> ReleaseMetrics:
         xml_validity_rate=1.0,
         cpu_real_time_factor=0.82,
         committed_retraction_rate=0.0,
+        hostile_speech_regression_passed=True,
     )
 
 
@@ -52,3 +57,13 @@ def test_int8_and_acoustic_failures_are_visible() -> None:
 def test_metrics_mapping_rejects_incomplete_evidence() -> None:
     with pytest.raises(ValueError, match="missing"):
         ReleaseMetrics.from_mapping({"parameter_count": 10})
+
+
+def test_release_fails_closed_without_hostile_speech_retest() -> None:
+    values = passing_metrics().__dict__ | {"hostile_speech_regression_passed": False}
+    failed = {
+        result.name
+        for result in evaluate_release_gates(ReleaseMetrics(**values))
+        if not result.passed
+    }
+    assert failed == {"hostile_speech_regression"}
