@@ -37,7 +37,10 @@ the existing heads or changing the label ontology.
   trainable parameter.
 - Train for at most 10 epochs with patience 3.
 - Use corpus-balanced, duration-bucketed batches and seed 42.
-- Use an effective batch size of 24 on Apple MPS.
+- Use physical batches of 6 with four-step accumulation for an effective batch
+  size of 24 on Apple MPS. A batch of 12 passed a short-clip preflight but
+  exceeded the 9.07 GiB MPS limit on a longer duration bucket before the first
+  progress interval; no epoch or checkpoint was written.
 - Use learning rates of 2e-5 for existing heads and 5e-6 for adapted encoder
   parameters.
 
