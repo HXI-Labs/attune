@@ -64,6 +64,47 @@ def test_manifest_rejects_non_british_accent_claim(tmp_path: Path) -> None:
         load_manifest(manifest)
 
 
+def test_new_manifest_selection_skips_previously_used_speakers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    metadata = [
+        {
+            "client_id": client_id,
+            "sentence": f"sentence {index}",
+            "accent": "England English",
+            "path": f"clip-{index}.mp3",
+        }
+        for index, client_id in enumerate(
+            ["used-speaker", *[f"new-speaker-{item}" for item in range(80)]]
+        )
+    ]
+    monkeypatch.setattr(PREPARE_CV, "_stream_metadata", lambda: metadata)
+    monkeypatch.setattr(
+        PREPARE_CV,
+        "_source_row",
+        lambda index, _cache: {
+            **metadata[index],
+            "audio": [{"src": "pinned"}],
+        },
+    )
+    monkeypatch.setattr(PREPARE_CV, "_asset_url", lambda _row: "pinned")
+    monkeypatch.setattr(
+        PREPARE_CV,
+        "_convert",
+        lambda _url, _target: (1.0, "a" * 64, f"{len(list(tmp_path.rglob('*'))):064x}"),
+    )
+
+    rows = PREPARE_CV.create_manifest(
+        tmp_path / "new.jsonl",
+        tmp_path / "cache",
+        80,
+        excluded_clients={"used-speaker"},
+    )
+
+    assert len(rows) == 80
+    assert "used-speaker" not in {row["client_id"] for row in rows}
+
+
 def test_transcode_drift_is_opt_in_and_never_relaxes_source_hash(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -28,6 +28,12 @@ the existing heads or changing the label ontology.
 
 ## Candidate
 
+- Train from `artifacts/manifests/joint-affect-v0.7.jsonl` (SHA-256
+  `a7d4e13aaa162353409a5ce23e65b19fa8ee10fd89b18109852757999c25e238`).
+  It retains all 1,458 development and 2,161 regression-test rows while capping
+  training clips at 10 seconds. This removes 101 of 8,266 training clips whose
+  quadratic attention cost dominated local runtime; evaluation still covers
+  clips through 30 seconds.
 - Warm start the Attune heads from
   `artifacts/training/local-frozen-full-head-v0.6/model.pt`.
 - Adapt only the upper two SenseVoice encoder blocks and their final norms.
@@ -62,7 +68,7 @@ Authoritative configuration:
 
 ```bash
 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/train_joint.py \
-  --manifest artifacts/manifests/joint-affect-v0.6.jsonl \
+  --manifest artifacts/manifests/joint-affect-v0.7.jsonl \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
   --output-dir artifacts/training/local-upper-two-affect-v0.6 \
   --adaptation-policy upper_two \
@@ -86,3 +92,10 @@ RAVDESS and the original sealed split have now informed architecture selection,
 so they remain regression sets rather than final confirmation sets. No runtime
 threshold is fitted on either. A new untouched, speaker-disjoint confirmation
 set is required before release.
+
+The replacement British confirmation manifest is
+`data/manifests/common-voice-british-confirmation-v0.1.jsonl` (SHA-256
+`fe37d0c61e2fe28bd5f165415e69cc39c6be0d18bdaad67fed7b9d6466169308`). It
+contains 100 CC0 Common Voice speakers and has zero speaker overlap with the
+100-speaker set already used during development. Its labels remain uninspected
+until a candidate has passed the regression gates.

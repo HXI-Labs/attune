@@ -20,6 +20,7 @@ def merge_manifests(
     pair_overlap_allowed: set[str] | None = None,
     minimum_duration_ms: int | None = None,
     maximum_duration_ms: int | None = None,
+    training_maximum_duration_ms: int | None = None,
 ) -> list[JointManifestRow]:
     if len(inputs) < 2:
         raise ValueError("merge requires at least two input manifests")
@@ -30,6 +31,8 @@ def merge_manifests(
         raise ValueError("minimum duration must be positive")
     if maximum_duration_ms is not None and maximum_duration_ms <= 0:
         raise ValueError("maximum duration must be positive")
+    if training_maximum_duration_ms is not None and training_maximum_duration_ms <= 0:
+        raise ValueError("training maximum duration must be positive")
     if (
         minimum_duration_ms is not None
         and maximum_duration_ms is not None
@@ -67,6 +70,20 @@ def merge_manifests(
                         "clip_id": row.clip_id,
                         "duration_ms": row.duration_ms,
                         "reason": "above_maximum_duration",
+                    }
+                )
+                continue
+            if (
+                training_maximum_duration_ms is not None
+                and row.split == "train"
+                and row.duration_ms > training_maximum_duration_ms
+            ):
+                excluded_rows.append(
+                    {
+                        "dataset_id": row.dataset_id,
+                        "clip_id": row.clip_id,
+                        "duration_ms": row.duration_ms,
+                        "reason": "above_training_maximum_duration",
                     }
                 )
                 continue
@@ -108,6 +125,7 @@ def merge_manifests(
         "duration_filter": {
             "minimum_duration_ms": minimum_duration_ms,
             "maximum_duration_ms": maximum_duration_ms,
+            "training_maximum_duration_ms": training_maximum_duration_ms,
             "excluded_count": len(excluded_rows),
             "excluded_rows": excluded_rows,
         },
@@ -129,6 +147,7 @@ def main() -> None:
     parser.add_argument("--allow-pair-overlap-dataset", action="append", default=[])
     parser.add_argument("--minimum-duration-ms", type=int)
     parser.add_argument("--maximum-duration-ms", type=int)
+    parser.add_argument("--training-maximum-duration-ms", type=int)
     arguments = parser.parse_args()
     rows = merge_manifests(
         arguments.input,
@@ -137,6 +156,7 @@ def main() -> None:
         pair_overlap_allowed=set(arguments.allow_pair_overlap_dataset),
         minimum_duration_ms=arguments.minimum_duration_ms,
         maximum_duration_ms=arguments.maximum_duration_ms,
+        training_maximum_duration_ms=arguments.training_maximum_duration_ms,
     )
     print(f"Merged {len(rows)} rows into {arguments.output}", flush=True)
 

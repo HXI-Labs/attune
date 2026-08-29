@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import tempfile
+import time
 import urllib.parse
 import urllib.request
 import wave
@@ -164,11 +165,15 @@ def verify(manifest: Path, cache_root: Path) -> int:
 
 def _request_json(url: str) -> dict[str, Any]:
     request = urllib.request.Request(url, headers={"User-Agent": "attune-common-voice-slice/1"})
-    try:
-        with urllib.request.urlopen(request, timeout=120) as response:
-            return json.load(response)
-    except (OSError, json.JSONDecodeError) as error:
-        raise CommonVoicePreparationError(f"metadata request failed: {error}") from error
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                return json.load(response)
+        except (OSError, json.JSONDecodeError) as error:
+            if attempt == 3:
+                raise CommonVoicePreparationError(f"metadata request failed: {error}") from error
+            time.sleep(2**attempt)
+    raise AssertionError("unreachable")
 
 
 def _page(offset: int, length: int = PAGE_SIZE) -> dict[str, Any]:
@@ -202,13 +207,20 @@ def _asset_url(api_row: dict[str, Any]) -> str:
 
 def _download(url: str, target: Path) -> None:
     request = urllib.request.Request(url, headers={"User-Agent": "attune-common-voice-slice/1"})
-    try:
-        with urllib.request.urlopen(request, timeout=120) as response, target.open("wb") as handle:
-            while chunk := response.read(1024 * 1024):
-                handle.write(chunk)
-    except OSError as error:
-        target.unlink(missing_ok=True)
-        raise CommonVoicePreparationError(f"audio fetch failed: {error}") from error
+    for attempt in range(4):
+        try:
+            with (
+                urllib.request.urlopen(request, timeout=120) as response,
+                target.open("wb") as handle,
+            ):
+                while chunk := response.read(1024 * 1024):
+                    handle.write(chunk)
+            return
+        except OSError as error:
+            target.unlink(missing_ok=True)
+            if attempt == 3:
+                raise CommonVoicePreparationError(f"audio fetch failed: {error}") from error
+            time.sleep(2**attempt)
 
 
 def _convert(source_url: str, target: Path) -> tuple[float, str, str]:
@@ -280,12 +292,18 @@ def _stream_metadata() -> Any:
     return dataset.select_columns(["client_id", "path", "sentence", ACCENT_FIELD])
 
 
-def create_manifest(manifest: Path, cache_root: Path, clip_count: int) -> list[dict[str, Any]]:
+def create_manifest(
+    manifest: Path,
+    cache_root: Path,
+    clip_count: int,
+    *,
+    excluded_clients: set[str] | None = None,
+) -> list[dict[str, Any]]:
     """Select one exact-accent clip per client while downloading only candidates."""
     if not 80 <= clip_count <= 120:
         raise CommonVoicePreparationError("clip_count must remain between 80 and 120")
     rows: list[dict[str, Any]] = []
-    seen_clients: set[str] = set()
+    seen_clients = set(excluded_clients or ())
     page_cache: dict[int, dict[int, dict[str, Any]]] = {}
     for row_index, metadata in enumerate(_stream_metadata()):
         client_id = str(metadata.get("client_id", "")).strip()
@@ -435,9 +453,26 @@ def main() -> None:
     )
     parser.add_argument("--create-manifest", action="store_true")
     parser.add_argument("--clip-count", type=int, default=DEFAULT_CLIP_COUNT)
+    parser.add_argument(
+        "--exclude-manifest",
+        action="append",
+        type=Path,
+        default=[],
+        help="Skip every speaker already present in this validated manifest; repeat as needed",
+    )
     arguments = parser.parse_args()
     if arguments.create_manifest:
-        rows = create_manifest(arguments.manifest, arguments.cache_dir, arguments.clip_count)
+        excluded_clients = {
+            row["client_id"]
+            for excluded_manifest in arguments.exclude_manifest
+            for row in load_manifest(excluded_manifest)
+        }
+        rows = create_manifest(
+            arguments.manifest,
+            arguments.cache_dir,
+            arguments.clip_count,
+            excluded_clients=excluded_clients,
+        )
         print(f"Wrote {len(rows)} CC0 British-English rows to {arguments.manifest}")
     elif arguments.download:
         count = download_manifest_rows(

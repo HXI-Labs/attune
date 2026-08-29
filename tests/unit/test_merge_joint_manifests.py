@@ -99,3 +99,36 @@ def test_merge_filters_out_of_scope_durations_and_records_provenance(tmp_path: P
         "below_minimum_duration",
         "above_maximum_duration",
     }
+
+
+def test_merge_can_cap_training_duration_without_removing_long_evaluation_rows(
+    tmp_path: Path,
+) -> None:
+    first = tmp_path / "first.jsonl"
+    second = tmp_path / "second.jsonl"
+    output = tmp_path / "merged.jsonl"
+    train_feature = tmp_path / "train.pt"
+    test_feature = tmp_path / "test.pt"
+    train_feature.write_bytes(b"train")
+    test_feature.write_bytes(b"test")
+    manifest(first, train_feature, "long-train", "first", duration_ms=12000)
+    row = json.loads(first.read_text())
+    row["clip_id"] = "long-test"
+    row["dataset_id"] = "second"
+    row["split"] = "sealed_test"
+    row["feature_path"] = str(test_feature)
+    row["feature_sha256"] = MERGE.file_digest(test_feature)
+    second.write_text(json.dumps(row) + "\n")
+
+    rows = MERGE.merge_manifests(
+        [first, second],
+        output,
+        training_maximum_duration_ms=10000,
+    )
+
+    assert [row.clip_id for row in rows] == ["long-test"]
+    provenance = json.loads(output.with_suffix(".provenance.json").read_text())
+    assert provenance["duration_filter"]["training_maximum_duration_ms"] == 10000
+    assert provenance["duration_filter"]["excluded_rows"][0]["reason"] == (
+        "above_training_maximum_duration"
+    )
