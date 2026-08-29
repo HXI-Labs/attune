@@ -1,0 +1,51 @@
+dataset_id: thorsten_voice_2021_06_emotional
+dataset_name: Thorsten-Voice Dataset 2021.06 Emotional
+version: "2.0"
+source_url: https://zenodo.org/records/5525023
+intended_use: CC0 auxiliary acoustic affect and whisper-speech development
+licence:
+  name: Creative Commons Zero v1.0 Universal
+  identifier: CC0-1.0
+  source_text_url: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+  licence_review_status: reviewed_permissive
+  reviewed_by: Codex on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-29"
+redistribution:
+  original_audio: permitted
+  annotations: permitted
+  derivative_weights: permitted
+consent_review_status: source_creator_dedicated_personal_voice_to_cc0
+contains_personal_data: true
+speaker_count: 1
+speaker_disjoint_split_possible: false
+sentence_disjoint_split_required: true
+downloaded_at: "2026-08-29"
+checksums_manifest: data/manifests/thorsten-emotional-v0.1.jsonl
+checksums_manifest_sha256: df129e78549e03d36478a5a14cdf6c18d812fa07aa5ab7f5506218f9ec8286a8
+source_archive:
+  record_id: "5525023"
+  filename: thorsten-emotional_v02.tgz
+  published_md5: f19585f3759c6d026757c46024a37aa4
+  verified_sha256: ff17a96a8c11742a7798e7800386159ada2ceb682ebef6402ecc68abf8c6e9bf
+prepared_contract:
+  source_wav_count: 2399
+  expected_documented_count: 2400
+  known_missing_clip: whisper/2cc2cc4a34b961ef1657cc82dbd18875.wav
+  normalized_sample_rate_hz: 16000
+  normalized_channels: 1
+  normalized_sample_width_bits: 16
+  split_unit: sentence
+  sentence_counts:
+    train: 210
+    development: 45
+    sealed_test: 45
+  clip_counts:
+    train: 1679
+    development: 360
+    sealed_test: 360
+  asr_supervised_clips: 0
+notes:
+  - The corpus contains 300 sentences recorded in eight deliveries: neutral, disgusted, angry, amused, surprised, sleepy, drunk (acted), and whispering.
+  - It is German and contains one male speaker; it cannot establish English or speaker-generalized performance.
+  - Whispering is a lexical-speech style positive. Angry is an affect label and must not be relabelled as shouting.
+  - Keep raw audio off git even though redistribution is permitted.

@@ -23,6 +23,7 @@ class SourceRow(BaseModel):
     audio_sha256: str
     duration_ms: int = Field(gt=0)
     transcript: str | None = None
+    asr_supervised: bool = True
     events: list[TemporalTarget] | None = None
     event_presence: list[str] | None = None
     styles: list[str] | None = None
@@ -31,6 +32,7 @@ class SourceRow(BaseModel):
     pair_id: int = -1
     is_ood: bool = False
     lexical_affect_label: str | None = None
+    split_unit: Literal["speaker", "sentence"] = "speaker"
     auxiliary_negative_tasks: list[Literal["event_presence", "styles"]] = Field(
         default_factory=list
     )
@@ -45,6 +47,8 @@ class SourceRow(BaseModel):
             raise ValueError("style controls require an explicit empty target list")
         if self.auxiliary_negative_tasks and self.transcript is None:
             raise ValueError("auxiliary negative controls must contain verified speech")
+        if self.split_unit == "sentence" and self.pair_id < 0:
+            raise ValueError("sentence-disjoint rows require a non-negative pair_id")
         return self
 
 
@@ -74,11 +78,26 @@ def load_source_rows(path: Path) -> list[SourceRow]:
 def _validate_partition_leakage(rows: list[SourceRow]) -> None:
     seen_clips: set[str] = set()
     speakers: dict[tuple[str, str], str] = {}
+    pairs: dict[tuple[str, int], str] = {}
+    split_units: dict[str, Literal["speaker", "sentence"]] = {}
     for row in rows:
         key = f"{row.dataset_id}:{row.clip_id}"
         if key in seen_clips:
             raise ValueError(f"duplicate source clip: {key}")
         seen_clips.add(key)
+        previous_unit = split_units.setdefault(row.dataset_id, row.split_unit)
+        if previous_unit != row.split_unit:
+            raise ValueError(f"dataset {row.dataset_id!r} mixes split-unit policies")
+        if row.pair_id >= 0:
+            pair_key = (row.dataset_id, row.pair_id)
+            previous_pair_split = pairs.setdefault(pair_key, row.split)
+            if previous_pair_split != row.split:
+                raise ValueError(
+                    f"pair {row.pair_id} from {row.dataset_id} crosses "
+                    f"{previous_pair_split}/{row.split}"
+                )
+        if row.split_unit == "sentence":
+            continue
         if row.speaker_id is None:
             continue
         speaker_key = (row.dataset_id, row.speaker_id)
@@ -113,7 +132,7 @@ def prepare_joint_features(
         feature_path = feature_dir / f"{row.dataset_id}-{safe_id}.pt"
         torch.save(features, feature_path)
         token_ids = None
-        if row.transcript is not None:
+        if row.transcript is not None and row.asr_supervised:
             token_ids = list(frontend.tokenizer.encode(row.transcript))
         prepared.append(
             JointManifestRow(
@@ -152,6 +171,7 @@ def write_source_template(path: Path) -> None:
         "audio_sha256": "0" * 64,
         "duration_ms": 1200,
         "transcript": "example transcript",
+        "asr_supervised": True,
         "events": None,
         "event_presence": None,
         "styles": None,
@@ -160,6 +180,7 @@ def write_source_template(path: Path) -> None:
         "pair_id": -1,
         "is_ood": False,
         "lexical_affect_label": None,
+        "split_unit": "speaker",
         "auxiliary_negative_tasks": [],
     }
     path.write_text(json.dumps(example, sort_keys=True) + "\n")

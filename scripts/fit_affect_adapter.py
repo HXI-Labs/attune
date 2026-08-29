@@ -23,6 +23,18 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _named_paths(value: str | list[str] | dict[str, str], prefix: str) -> dict[str, Path]:
+    if isinstance(value, str):
+        return {prefix: Path(value)}
+    if isinstance(value, list):
+        return {f"{prefix}_{index}": Path(path) for index, path in enumerate(value)}
+    return {name: Path(path) for name, path in value.items()}
+
+
+def _load_combined(paths: dict[str, Path]) -> list[dict[str, object]]:
+    return [row for path in paths.values() for row in load_score_rows(path)]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -32,26 +44,39 @@ def main() -> None:
     parser.add_argument("--report-output", type=Path, required=True)
     arguments = parser.parse_args()
     config = json.loads(arguments.config.read_text())
-    train_path = Path(config["training_scores"])
-    development_path = Path(config["selection_scores"])
-    diagnostic_path = Path(config["diagnostic_scores"])
-    external_path = Path(config["external_evaluation_scores"])
-    train = load_score_rows(train_path)
-    development = load_score_rows(development_path)
-    diagnostic = load_score_rows(diagnostic_path)
-    external = load_score_rows(external_path)
+    train_paths = _named_paths(config["training_scores"], "train")
+    development_paths = _named_paths(config["selection_scores"], "development")
+    diagnostic_paths = _named_paths(
+        config["diagnostic_scores"], "opened_sealed_diagnostic"
+    )
+    external_paths = _named_paths(
+        config["external_evaluation_scores"], "external_ravdess"
+    )
+    train = _load_combined(train_paths)
+    development = _load_combined(development_paths)
     adapter = fit_affect_adapter(
         train,
         development,
         candidate_c=tuple(float(value) for value in config["model"]["candidate_c"]),
     )
     reports = {
-        "development": evaluate_affect_adapter(adapter, development),
-        "opened_sealed_diagnostic": evaluate_affect_adapter(adapter, diagnostic),
-        "external_ravdess": evaluate_affect_adapter(adapter, external),
+        "selection_combined": evaluate_affect_adapter(adapter, development),
+        **{
+            name: evaluate_affect_adapter(adapter, load_score_rows(path))
+            for name, path in development_paths.items()
+        },
+        **{
+            name: evaluate_affect_adapter(adapter, load_score_rows(path))
+            for name, path in diagnostic_paths.items()
+        },
+        **{
+            name: evaluate_affect_adapter(adapter, load_score_rows(path))
+            for name, path in external_paths.items()
+        },
     }
     acceptance = config["acceptance"]
-    external_report = reports["external_ravdess"]
+    external_name = str(acceptance.get("primary_external_report", "external_ravdess"))
+    external_report = reports[external_name]
     gates = {
         "macro_f1": external_report["macro_f1"]
         >= acceptance["external_ravdess_macro_f1_minimum"],
@@ -63,14 +88,16 @@ def main() -> None:
         "selective_risk": bool(external_report["selective_risk_improves"]),
         "deployment_disabled": adapter.deployment_enabled is False,
     }
+    for report_name, minimum in acceptance.get("additional_macro_f1_minimums", {}).items():
+        gates[f"{report_name}_macro_f1"] = reports[report_name]["macro_f1"] >= minimum
     report = {
         "schema_version": "1.0",
         "config_sha256": file_sha256(arguments.config),
         "score_sha256": {
-            "train": file_sha256(train_path),
-            "development": file_sha256(development_path),
-            "diagnostic": file_sha256(diagnostic_path),
-            "external": file_sha256(external_path),
+            **{name: file_sha256(path) for name, path in train_paths.items()},
+            **{name: file_sha256(path) for name, path in development_paths.items()},
+            **{name: file_sha256(path) for name, path in diagnostic_paths.items()},
+            **{name: file_sha256(path) for name, path in external_paths.items()},
         },
         "selected_c": adapter.selected_c,
         "temperature": adapter.temperature,
@@ -86,7 +113,8 @@ def main() -> None:
     arguments.report_output.parent.mkdir(parents=True, exist_ok=True)
     arguments.report_output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     print(
-        f"Fitted affect adapter; external macro-F1={external_report['macro_f1']:.4f}; "
+        f"Fitted affect adapter; {external_name} macro-F1="
+        f"{external_report['macro_f1']:.4f}; "
         f"candidate_passes={str(report['candidate_passes']).lower()}",
         flush=True,
     )
