@@ -187,6 +187,14 @@ def test_public_redistribution_requires_explicit_approval(tmp_path: Path) -> Non
         MODULE.require_public_redistribution_review(review, complete_bundle(tmp_path))
 
 
+def test_committed_redistribution_template_covers_required_sources() -> None:
+    review = json.loads(
+        (SCRIPT.parents[1] / "data/provenance/public_weight_redistribution.json").read_text()
+    )
+
+    assert set(review["training_sources"]) == MODULE.REQUIRED_TRAINING_SOURCES
+
+
 def test_public_redistribution_review_is_revision_scoped(tmp_path: Path) -> None:
     review = tmp_path / "review.json"
     review.write_text(
