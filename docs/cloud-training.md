@@ -132,9 +132,9 @@ serve CTC ASR. Export it with:
 ```bash
 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/export_onnx.py \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
-  --checkpoint artifacts/training/local-upper-two-v0.1/model.pt \
+  --checkpoint artifacts/training/cadence-release-candidate-v0.11/model.pt \
   --adaptation-policy upper_two --preserve-base-asr \
-  --output artifacts/models/attune-split-tail-v0.1-fp.onnx
+  --output artifacts/models/attune-cadence-v0.11-fp.onnx
 ```
 
 Fit thresholds on `development`, freeze them, then evaluate `sealed_test`.
@@ -143,15 +143,15 @@ file and recalibrate before its sealed evaluation.
 
 ```bash
 uv run python scripts/collect_joint_scores.py \
-  --manifest data/manifests/joint-v0.1.jsonl \
-  --model artifacts/attune-fp.onnx --split development \
+  --manifest artifacts/manifests/joint-release-v0.11.jsonl \
+  --model artifacts/models/attune-cadence-v0.11-fp.onnx --split development \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
   --output artifacts/fp-development.jsonl
 uv run python scripts/calibrate_joint.py \
   --scores artifacts/fp-development.jsonl --output artifacts/fp-calibration.json
 uv run python scripts/collect_joint_scores.py \
-  --manifest data/manifests/joint-v0.1.jsonl \
-  --model artifacts/attune-fp.onnx --split sealed_test \
+  --manifest artifacts/manifests/joint-release-evaluation-v0.11.jsonl \
+  --model artifacts/models/attune-cadence-v0.11-fp.onnx --split sealed_test \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
   --output artifacts/fp-sealed.jsonl
 uv run python scripts/evaluate_joint.py \
@@ -162,11 +162,12 @@ uv run python scripts/evaluate_joint.py \
 Repeat this sequence for INT8. WER values are fractions (`0.12` means 12%);
 allowed FP and INT8 degradations are therefore `0.01` and `0.005`.
 
-The released mixed-INT8 graph retains the upper eight perception blocks, the
-frozen ASR tail, attentive pooling, and utterance heads in FP. Use repeatable
-`--exclude-node-prefix` arguments to `scripts/quantize.py`; the resolved exact
-node list is written into the quantization report. Do not describe this graph
-as fully integer-only.
+The v0.11 pipeline first applies dynamic per-channel INT8 to every eligible
+weight and records the exact graph conversion. It then recalibrates the graph
+and repeats the external event, style, affect, gain, and speech-control gates.
+Use `--exclude-node-prefix` only if the measured all-eligible conversion fails
+and a predeclared selective-precision follow-up is required. “INT8” describes
+the quantized eligible weights, not every operator in the ONNX graph.
 
 For a fresh scientific reproduction, do not reuse the existing sealed split as
 the final untouched ASR estimate: the initial v0.1 sealed pass triggered the

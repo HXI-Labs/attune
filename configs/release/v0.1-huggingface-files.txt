@@ -12,6 +12,9 @@ artifacts/evaluation/cadence-release-v0.11-int8/calibration.json=calibration.jso
 
 # Reproducibility and release decisions
 artifacts/training/cadence-release-candidate-v0.11/composition.json=composition.json
+artifacts/training/local-event-weak-v1.2/lineage.json=lineage/event.json
+artifacts/training/local-berst-style-v0.1/lineage.json=lineage/style.json
+artifacts/training/local-berst-affect-v0.1/lineage.json=lineage/affect.json
 artifacts/release/cadence-v0.1/artifact-manifest.json=artifact-manifest.json
 artifacts/release/cadence-v0.1/release-metrics.json=metrics.json
 artifacts/release/cadence-v0.1/release-gates.json=release-gates.json
