@@ -45,6 +45,9 @@ def test_assemble_maps_reports_without_manual_copying() -> None:
         event_acceptance={"candidate_passes": True},
         style_acceptance={"candidate_passes": True},
         affect_acceptance={"candidate_passes": True},
+        int8_event_acceptance={"candidate_passes": True},
+        int8_style_acceptance={"candidate_passes": True},
+        int8_affect_acceptance={"candidate_passes": True},
         parameter_count=235_291_018,
     )
 
@@ -67,6 +70,9 @@ def test_assemble_fails_closed_on_missing_evidence() -> None:
             event_acceptance={"candidate_passes": True},
             style_acceptance={"candidate_passes": True},
             affect_acceptance={"candidate_passes": True},
+            int8_event_acceptance={"candidate_passes": True},
+            int8_style_acceptance={"candidate_passes": True},
+            int8_affect_acceptance={"candidate_passes": True},
             parameter_count=1,
         )
 
@@ -88,6 +94,9 @@ def test_assemble_accepts_hashed_human_regression_evidence() -> None:
         event_acceptance={"candidate_passes": True},
         style_acceptance={"candidate_passes": True},
         affect_acceptance={"candidate_passes": True},
+        int8_event_acceptance={"candidate_passes": True},
+        int8_style_acceptance={"candidate_passes": True},
+        int8_affect_acceptance={"candidate_passes": True},
         parameter_count=235_291_018,
         hostile_speech_report={
             "passed": True,
@@ -125,5 +134,8 @@ def test_assemble_rejects_non_boolean_acceptance() -> None:
             event_acceptance={"candidate_passes": 1},
             style_acceptance={"candidate_passes": True},
             affect_acceptance={"candidate_passes": True},
+            int8_event_acceptance={"candidate_passes": True},
+            int8_style_acceptance={"candidate_passes": True},
+            int8_affect_acceptance={"candidate_passes": True},
             parameter_count=1,
         )

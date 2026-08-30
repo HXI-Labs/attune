@@ -14,6 +14,9 @@ REQUIRED_PUBLICATION_GATES = {
     "event_external_validation",
     "style_external_validation",
     "affect_external_validation",
+    "int8_event_external_validation",
+    "int8_style_external_validation",
+    "int8_affect_external_validation",
     "hostile_speech_regression",
 }
 REQUIRED_BUNDLE_DESTINATIONS = {
@@ -99,7 +102,7 @@ def require_release_ready(gate_path: Path) -> None:
         report = json.loads(gate_path.read_text())
     except (OSError, json.JSONDecodeError) as error:
         raise RuntimeError(f"cannot verify release gates at {gate_path}: {error}") from error
-    if report.get("schema_version") != "1.1":
+    if report.get("schema_version") != "1.2":
         raise RuntimeError("Hugging Face publication is blocked: stale release-gate schema")
 
     gate_status = {

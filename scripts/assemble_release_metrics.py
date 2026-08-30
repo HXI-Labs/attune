@@ -62,6 +62,9 @@ def assemble(
     event_acceptance: dict[str, Any],
     style_acceptance: dict[str, Any],
     affect_acceptance: dict[str, Any],
+    int8_event_acceptance: dict[str, Any],
+    int8_style_acceptance: dict[str, Any],
+    int8_affect_acceptance: dict[str, Any],
     parameter_count: int,
     hostile_speech_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -103,6 +106,9 @@ def assemble(
         "event_external_validation_passed": _accepted(event_acceptance, "event"),
         "style_external_validation_passed": _accepted(style_acceptance, "style"),
         "affect_external_validation_passed": _accepted(affect_acceptance, "affect"),
+        "int8_event_external_validation_passed": _accepted(int8_event_acceptance, "INT8 event"),
+        "int8_style_external_validation_passed": _accepted(int8_style_acceptance, "INT8 style"),
+        "int8_affect_external_validation_passed": _accepted(int8_affect_acceptance, "INT8 affect"),
         "hostile_speech_regression_passed": _accepted_hostile_regression(hostile_speech_report),
     }
 
@@ -116,6 +122,9 @@ def main() -> None:
     parser.add_argument("--event-acceptance", type=Path, required=True)
     parser.add_argument("--style-acceptance", type=Path, required=True)
     parser.add_argument("--affect-acceptance", type=Path, required=True)
+    parser.add_argument("--int8-event-acceptance", type=Path, required=True)
+    parser.add_argument("--int8-style-acceptance", type=Path, required=True)
+    parser.add_argument("--int8-affect-acceptance", type=Path, required=True)
     parser.add_argument("--parameter-count", type=int, required=True)
     parser.add_argument("--hostile-speech-report", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -128,6 +137,9 @@ def main() -> None:
         event_acceptance=_load(arguments.event_acceptance),
         style_acceptance=_load(arguments.style_acceptance),
         affect_acceptance=_load(arguments.affect_acceptance),
+        int8_event_acceptance=_load(arguments.int8_event_acceptance),
+        int8_style_acceptance=_load(arguments.int8_style_acceptance),
+        int8_affect_acceptance=_load(arguments.int8_affect_acceptance),
         parameter_count=arguments.parameter_count,
         hostile_speech_report=_load(arguments.hostile_speech_report),
     )

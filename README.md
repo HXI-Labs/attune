@@ -266,6 +266,8 @@ the gate report and every local source-to-repository file mapping with its
 SHA-256 digest. The publisher rejects missing or changed files, incomplete or
 unsafe destinations, stale gate schemas, failed external event/style/affect
 validation, and a missing or failed human hostile-speech regression.
+External event, style, and affect gates are rerun independently after INT8
+quantization and recalibration; full-precision acceptance is not reused.
 
 After a candidate passes the full-precision and INT8 release suite, inspect the
 upload plan before publishing:

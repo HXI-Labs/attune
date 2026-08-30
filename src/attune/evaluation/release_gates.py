@@ -39,6 +39,9 @@ class ReleaseMetrics:
     event_external_validation_passed: bool
     style_external_validation_passed: bool
     affect_external_validation_passed: bool
+    int8_event_external_validation_passed: bool
+    int8_style_external_validation_passed: bool
+    int8_affect_external_validation_passed: bool
     hostile_speech_regression_passed: bool
 
     @classmethod
@@ -152,6 +155,24 @@ def evaluate_release_gates(metrics: ReleaseMetrics) -> list[GateResult]:
             "must pass core, conflict, RAVDESS, and sealed BERSt gates",
         ),
         GateResult(
+            "int8_event_external_validation",
+            metrics.int8_event_external_validation_passed,
+            metrics.int8_event_external_validation_passed,
+            "INT8 must independently pass the external event gates",
+        ),
+        GateResult(
+            "int8_style_external_validation",
+            metrics.int8_style_external_validation_passed,
+            metrics.int8_style_external_validation_passed,
+            "INT8 must independently pass the external style and gain gates",
+        ),
+        GateResult(
+            "int8_affect_external_validation",
+            metrics.int8_affect_external_validation_passed,
+            metrics.int8_affect_external_validation_passed,
+            "INT8 must independently pass the external affect gates after recalibration",
+        ),
+        GateResult(
             "hostile_speech_regression",
             metrics.hostile_speech_regression_passed,
             metrics.hostile_speech_regression_passed,
@@ -164,7 +185,7 @@ def write_release_gate_report(
     path: Path, metrics: ReleaseMetrics, results: list[GateResult]
 ) -> dict[str, Any]:
     payload = {
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "release_ready": all(result.passed for result in results),
         "metrics": asdict(metrics),
         "gates": [asdict(result) for result in results],

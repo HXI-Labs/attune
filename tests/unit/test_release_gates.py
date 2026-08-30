@@ -36,6 +36,9 @@ def passing_metrics() -> ReleaseMetrics:
         event_external_validation_passed=True,
         style_external_validation_passed=True,
         affect_external_validation_passed=True,
+        int8_event_external_validation_passed=True,
+        int8_style_external_validation_passed=True,
+        int8_affect_external_validation_passed=True,
         hostile_speech_regression_passed=True,
     )
 
@@ -78,6 +81,9 @@ def test_release_fails_closed_without_hostile_speech_retest() -> None:
         ("event_external_validation_passed", "event_external_validation"),
         ("style_external_validation_passed", "style_external_validation"),
         ("affect_external_validation_passed", "affect_external_validation"),
+        ("int8_event_external_validation_passed", "int8_event_external_validation"),
+        ("int8_style_external_validation_passed", "int8_style_external_validation"),
+        ("int8_affect_external_validation_passed", "int8_affect_external_validation"),
     ],
 )
 def test_release_fails_closed_without_external_validation(metric: str, gate: str) -> None:

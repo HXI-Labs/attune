@@ -108,13 +108,14 @@ def test_publication_is_blocked_when_release_gate_is_false(tmp_path: Path) -> No
     gate.write_text(
         json.dumps(
             {
-                "schema_version": "1.1",
+                "schema_version": "1.2",
                 "release_ready": False,
                 "gates": [
-                    {"name": "event_external_validation", "passed": True},
-                    {"name": "style_external_validation", "passed": True},
-                    {"name": "affect_external_validation", "passed": True},
-                    {"name": "hostile_speech_regression", "passed": False},
+                    {
+                        "name": name,
+                        "passed": name != "hostile_speech_regression",
+                    }
+                    for name in MODULE.REQUIRED_PUBLICATION_GATES
                 ],
             }
         )
@@ -130,7 +131,7 @@ def test_publication_gate_accepts_ready_report(tmp_path: Path) -> None:
     gate.write_text(
         json.dumps(
             {
-                "schema_version": "1.1",
+                "schema_version": "1.2",
                 "release_ready": True,
                 "gates": [
                     {"name": name, "passed": True} for name in MODULE.REQUIRED_PUBLICATION_GATES
@@ -157,7 +158,7 @@ def test_publication_rejects_missing_external_gate(tmp_path: Path) -> None:
     gate.write_text(
         json.dumps(
             {
-                "schema_version": "1.1",
+                "schema_version": "1.2",
                 "release_ready": True,
                 "gates": [
                     {"name": "hostile_speech_regression", "passed": True},

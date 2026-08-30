@@ -28,5 +28,8 @@
   "event_external_validation_passed": false,
   "style_external_validation_passed": false,
   "affect_external_validation_passed": false,
+  "int8_event_external_validation_passed": false,
+  "int8_style_external_validation_passed": false,
+  "int8_affect_external_validation_passed": false,
   "hostile_speech_regression_passed": false
 }
