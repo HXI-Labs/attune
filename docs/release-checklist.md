@@ -78,5 +78,6 @@ internally good score is not sufficient.
    local plan before making the repository public or marking the pull request
    ready for review.
 7. Public upload additionally requires a completed redistribution review that
-   approves the exact pinned SenseVoice revision. The current committed record
+   approves the exact pinned SenseVoice revision, training-source set, and
+   SHA-256 digest of every bundled ONNX artifact. The current committed record
    is deliberately not approved and cannot be treated as a legal sign-off.

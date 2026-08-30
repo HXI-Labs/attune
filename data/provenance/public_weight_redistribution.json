@@ -1,9 +1,22 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "public_weight_redistribution_approved": false,
   "sensevoice_revision": "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7",
   "reviewed_by": "",
   "reviewed_at": "",
   "scope": "",
+  "training_sources": [
+    "attune_inline_event_mixtures_v0.1",
+    "berst_v1",
+    "common_voice_17_en",
+    "crema_d_perceptual_v1",
+    "dcase2016_task2",
+    "disfluency_speech_v0.1",
+    "fsd50k_bounded_v0.1",
+    "subesco_v1_1",
+    "thorsten_voice_2021_06_emotional",
+    "vocalsound_v0.1"
+  ],
+  "approved_artifacts": [],
   "reason": "The current internal review permits private derivative use but does not authorize public redistribution."
 }

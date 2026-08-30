@@ -176,7 +176,7 @@ def test_public_redistribution_requires_explicit_approval(tmp_path: Path) -> Non
     review.write_text(
         json.dumps(
             {
-                "schema_version": "1.0",
+                "schema_version": "1.1",
                 "public_weight_redistribution_approved": False,
                 "sensevoice_revision": MODULE.SENSEVOICE_REVISION,
             }
@@ -184,7 +184,7 @@ def test_public_redistribution_requires_explicit_approval(tmp_path: Path) -> Non
     )
 
     with pytest.raises(RuntimeError, match="not approved"):
-        MODULE.require_public_redistribution_review(review)
+        MODULE.require_public_redistribution_review(review, complete_bundle(tmp_path))
 
 
 def test_public_redistribution_review_is_revision_scoped(tmp_path: Path) -> None:
@@ -192,7 +192,7 @@ def test_public_redistribution_review_is_revision_scoped(tmp_path: Path) -> None
     review.write_text(
         json.dumps(
             {
-                "schema_version": "1.0",
+                "schema_version": "1.1",
                 "public_weight_redistribution_approved": True,
                 "sensevoice_revision": "wrong",
                 "reviewed_by": "HXI Labs",
@@ -203,22 +203,55 @@ def test_public_redistribution_review_is_revision_scoped(tmp_path: Path) -> None
     )
 
     with pytest.raises(RuntimeError, match="different base revision"):
-        MODULE.require_public_redistribution_review(review)
+        MODULE.require_public_redistribution_review(review, complete_bundle(tmp_path))
 
 
 def test_public_redistribution_accepts_complete_scoped_review(tmp_path: Path) -> None:
+    manifest = complete_bundle(tmp_path)
+    model_records = [
+        {
+            "destination": record["destination"],
+            "sha256": record["sha256"],
+        }
+        for record in manifest["files"]
+        if record["destination"].endswith(".onnx")
+    ]
     review = tmp_path / "review.json"
     review.write_text(
         json.dumps(
             {
-                "schema_version": "1.0",
+                "schema_version": "1.1",
                 "public_weight_redistribution_approved": True,
                 "sensevoice_revision": MODULE.SENSEVOICE_REVISION,
                 "reviewed_by": "HXI Labs",
                 "reviewed_at": "2026-08-30",
                 "scope": "public derivative weights",
+                "training_sources": sorted(MODULE.REQUIRED_TRAINING_SOURCES),
+                "approved_artifacts": model_records,
             }
         )
     )
 
-    MODULE.require_public_redistribution_review(review)
+    MODULE.require_public_redistribution_review(review, manifest)
+
+
+def test_public_redistribution_is_artifact_scoped(tmp_path: Path) -> None:
+    manifest = complete_bundle(tmp_path)
+    review = tmp_path / "review.json"
+    review.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.1",
+                "public_weight_redistribution_approved": True,
+                "sensevoice_revision": MODULE.SENSEVOICE_REVISION,
+                "reviewed_by": "HXI Labs",
+                "reviewed_at": "2026-08-30",
+                "scope": "public derivative weights",
+                "training_sources": sorted(MODULE.REQUIRED_TRAINING_SOURCES),
+                "approved_artifacts": [{"destination": "cadence-int8.onnx", "sha256": "0" * 64}],
+            }
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="exact ONNX artifacts"):
+        MODULE.require_public_redistribution_review(review, manifest)

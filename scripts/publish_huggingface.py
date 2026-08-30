@@ -30,6 +30,18 @@ REQUIRED_BUNDLE_DESTINATIONS = {
     "hostile-speech-regression.json",
 }
 SENSEVOICE_REVISION = "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7"
+REQUIRED_TRAINING_SOURCES = {
+    "attune_inline_event_mixtures_v0.1",
+    "berst_v1",
+    "common_voice_17_en",
+    "crema_d_perceptual_v1",
+    "dcase2016_task2",
+    "disfluency_speech_v0.1",
+    "fsd50k_bounded_v0.1",
+    "subesco_v1_1",
+    "thorsten_voice_2021_06_emotional",
+    "vocalsound_v0.1",
+}
 
 
 def load_bundle_manifest(path: Path) -> dict[str, Any]:
@@ -123,14 +135,14 @@ def require_release_ready(gate_path: Path) -> None:
         raise RuntimeError(f"Hugging Face publication is blocked: {detail}")
 
 
-def require_public_redistribution_review(path: Path) -> None:
+def require_public_redistribution_review(path: Path, bundle_manifest: dict[str, Any]) -> None:
     try:
         review = json.loads(path.read_text())
     except (OSError, json.JSONDecodeError) as error:
         raise RuntimeError(
             f"cannot verify public redistribution review at {path}: {error}"
         ) from error
-    if review.get("schema_version") != "1.0":
+    if review.get("schema_version") != "1.1":
         raise RuntimeError("public publication is blocked: stale redistribution-review schema")
     if review.get("public_weight_redistribution_approved") is not True:
         raise RuntimeError("public publication is blocked: weight redistribution is not approved")
@@ -141,6 +153,28 @@ def require_public_redistribution_review(path: Path) -> None:
             raise RuntimeError(
                 f"public publication is blocked: redistribution review lacks {field}"
             )
+    reviewed_sources = review.get("training_sources")
+    if not isinstance(reviewed_sources, list) or set(reviewed_sources) != REQUIRED_TRAINING_SOURCES:
+        raise RuntimeError(
+            "public publication is blocked: review does not cover the exact training-source set"
+        )
+    approved_artifacts = review.get("approved_artifacts")
+    if not isinstance(approved_artifacts, list):
+        raise RuntimeError("public publication is blocked: review lacks approved_artifacts")
+    approved_by_destination = {
+        record.get("destination"): record.get("sha256")
+        for record in approved_artifacts
+        if isinstance(record, dict)
+    }
+    bundled_models = {
+        record["destination"]: record["sha256"]
+        for record in bundle_manifest["files"]
+        if record["destination"].endswith(".onnx")
+    }
+    if approved_by_destination != bundled_models:
+        raise RuntimeError(
+            "public publication is blocked: review does not cover the exact ONNX artifacts"
+        )
 
 
 def main() -> None:
@@ -179,7 +213,7 @@ def main() -> None:
         review_path = arguments.redistribution_review
         if not review_path.is_absolute():
             review_path = root / review_path
-        require_public_redistribution_review(review_path)
+        require_public_redistribution_review(review_path, manifest)
     plan = {
         "release_name": manifest["release_name"],
         "repo_id": arguments.repo_id,

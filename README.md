@@ -316,8 +316,9 @@ recording. The release bundle includes the report, not the identifiable WAV.
 
 Omit `--dry-run` to upload privately. Public repository creation additionally
 requires `--public` plus `--redistribution-review`. The committed review record
-currently denies public weight redistribution, so a complete approval covering
-the pinned SenseVoice revision must replace it before a public upload can run.
+currently denies public weight redistribution. Public upload requires an
+approval covering the pinned SenseVoice revision, the exact training-source
+set, and the SHA-256 digest of every ONNX artifact in the bundle.
 Private upload does not override the upstream model agreement or dataset terms.
 
 ## Licence and use restrictions
