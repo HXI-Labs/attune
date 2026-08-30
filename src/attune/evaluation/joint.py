@@ -103,6 +103,29 @@ def _binary_f1(prediction: np.ndarray, target: np.ndarray) -> float:
     return 2 * true_positive / denominator if denominator else 0.0
 
 
+def _binary_metrics(prediction: np.ndarray, target: np.ndarray) -> dict[str, float | int]:
+    prediction = prediction.astype(bool)
+    target = target.astype(bool)
+    true_positive = int((prediction & target).sum())
+    false_positive = int((prediction & ~target).sum())
+    false_negative = int((~prediction & target).sum())
+    true_negative = int((~prediction & ~target).sum())
+    precision_denominator = true_positive + false_positive
+    recall_denominator = true_positive + false_negative
+    negative_count = false_positive + true_negative
+    f1_denominator = 2 * true_positive + false_positive + false_negative
+    return {
+        "precision": true_positive / precision_denominator if precision_denominator else 0.0,
+        "recall": true_positive / recall_denominator if recall_denominator else 0.0,
+        "f1": 2 * true_positive / f1_denominator if f1_denominator else 0.0,
+        "false_positive_rate": false_positive / negative_count if negative_count else 0.0,
+        "true_positive": true_positive,
+        "false_positive": false_positive,
+        "false_negative": false_negative,
+        "true_negative": true_negative,
+    }
+
+
 def _average_precision(probability: np.ndarray, target: np.ndarray) -> float:
     truth = target.astype(bool).reshape(-1)
     if not truth.any():
@@ -477,17 +500,21 @@ def evaluate_joint_scores(
         probabilities = _sigmoid(logits / calibration.style_temperature)
         scores = []
         per_class = {}
+        classification_metrics = {}
         average_precision = {}
         for index, label in enumerate(SUPPORTED_STYLES):
             prediction = probabilities[:, index] >= calibration.style_thresholds[label.value]
-            score = _binary_f1(prediction, targets[:, index] >= 0.5)
+            target = targets[:, index] >= 0.5
+            score = _binary_f1(prediction, target)
             per_class[label.value] = score
+            classification_metrics[label.value] = _binary_metrics(prediction, target)
             average_precision[label.value] = _average_precision(
                 probabilities[:, index], targets[:, index]
             )
             scores.append(score)
         report["style_macro_f1"] = float(np.mean(scores))
         report["style_f1"] = per_class
+        report["style_metrics"] = classification_metrics
         report["style_average_precision"] = average_precision
         report["style_map"] = float(np.mean(list(average_precision.values())))
     affect_rows = [row for row in rows if "affect_distribution" in row]

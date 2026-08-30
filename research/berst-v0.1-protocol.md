@@ -53,6 +53,11 @@ style-supervised train rows using corpus-balanced sampling. Validation combines
 the corresponding development rows. Whispering remains disabled regardless of
 this run because BERSt contains no whisper positives.
 
+The predeclared local exploratory configuration is
+`configs/training/local-mps-berst-style-v0.1.json`: ten permitted epochs,
+8,192 corpus-balanced samples per epoch, effective batch size 32, head learning
+rate 5e-5, and early stopping after three non-improving development epochs.
+
 The checkpoint is selected by development loss. Calibration is fit on
 development only. It may proceed to the BERSt test split only if all of the
 following pass:
@@ -81,6 +86,12 @@ same accepted event/style base and updates only `affect_projection` and
 multi-corpus affect manifest. Sampling is balanced by corpus and within-corpus
 argmax class. BERSt's intended labels are reported separately from perceptual
 datasets rather than pooled into one headline score.
+
+The predeclared local exploratory configuration is
+`configs/training/local-mps-berst-affect-v0.1.json`: eight permitted epochs,
+8,192 corpus-and-class-balanced samples per epoch, effective batch size 32,
+head learning rate 2e-5, a 15% paired-batch target for eligible counterfactual
+groups, and early stopping after three non-improving development epochs.
 
 The affect candidate may proceed beyond development only if:
 

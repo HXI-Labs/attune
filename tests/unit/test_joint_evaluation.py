@@ -70,6 +70,9 @@ def test_joint_report_includes_aps_and_all_task_metrics() -> None:
     assert report["event_presence_average_precision"]["laugh"] == 1.0
     assert report["event_segments"]["per_class"]["laugh"]["segment_f1"] == 1.0
     assert report["style_f1"]["shouting"] == 1.0
+    assert report["style_metrics"]["shouting"]["precision"] == 1.0
+    assert report["style_metrics"]["shouting"]["recall"] == 1.0
+    assert report["style_metrics"]["shouting"]["false_positive_rate"] == 0.0
     assert report["style_average_precision"]["shouting"] == 1.0
     assert report["acoustic_preference_score"] == 1.0
     assert report["affect_macro_f1"] == 1.0
@@ -114,6 +117,35 @@ def test_affect_metrics_apply_calibrated_class_bias() -> None:
 
     assert report["affect_prediction_share"]["joy"] == 1.0
     assert report["affect_macro_f1"] == 1.0
+
+
+def test_style_metrics_report_no_shout_false_positive_rate() -> None:
+    calibration = RuntimeCalibration(
+        event_thresholds={
+            label: 0.5
+            for label in ("laugh", "sob", "scream", "sigh", "cough", "throat_clear", "sneeze")
+        },
+        event_presence_thresholds={
+            label: 0.5
+            for label in ("laugh", "sob", "scream", "sigh", "cough", "throat_clear", "sneeze")
+        },
+        style_thresholds={"shouting": 0.5, "whispering": 0.5},
+    )
+    rows = [
+        {"style_logits": [8.0, -8.0], "style_targets": [1.0, 0.0]},
+        {"style_logits": [8.0, -8.0], "style_targets": [0.0, 0.0]},
+        {"style_logits": [-8.0, -8.0], "style_targets": [0.0, 0.0]},
+    ]
+
+    report = evaluate_joint_scores(rows, calibration)
+
+    shouting = report["style_metrics"]["shouting"]
+    assert shouting["precision"] == 0.5
+    assert shouting["recall"] == 1.0
+    assert shouting["false_positive_rate"] == 0.5
+    assert shouting["true_positive"] == 1
+    assert shouting["false_positive"] == 1
+    assert shouting["true_negative"] == 1
 
 
 def test_speech_control_metrics_match_runtime_suppression_and_span_rules() -> None:
