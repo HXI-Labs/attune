@@ -132,3 +132,64 @@ def test_merge_can_cap_training_duration_without_removing_long_evaluation_rows(
     assert provenance["duration_filter"]["excluded_rows"][0]["reason"] == (
         "above_training_maximum_duration"
     )
+
+
+def test_merge_can_replace_a_dataset_without_rewriting_the_base_manifest(
+    tmp_path: Path,
+) -> None:
+    old_feature = tmp_path / "old.pt"
+    retained_feature = tmp_path / "retained.pt"
+    replacement_feature = tmp_path / "replacement.pt"
+    old_feature.write_bytes(b"old")
+    retained_feature.write_bytes(b"retained")
+    replacement_feature.write_bytes(b"replacement")
+    base = tmp_path / "base.jsonl"
+    replacement = tmp_path / "replacement.jsonl"
+    manifest(base, old_feature, "old", "replace-me")
+    retained = tmp_path / "retained.jsonl"
+    manifest(retained, retained_feature, "retained", "keep-me")
+    base.write_text(base.read_text() + retained.read_text())
+    manifest(replacement, replacement_feature, "new", "replacement")
+    output = tmp_path / "merged.jsonl"
+
+    rows = MERGE.merge_manifests(
+        [base, replacement],
+        output,
+        excluded_datasets={"replace-me"},
+    )
+
+    assert [(row.dataset_id, row.clip_id) for row in rows] == [
+        ("keep-me", "retained"),
+        ("replacement", "new"),
+    ]
+    provenance = json.loads(output.with_suffix(".provenance.json").read_text())
+    assert provenance["dataset_filter"]["excluded_datasets"] == ["replace-me"]
+    assert provenance["dataset_filter"]["excluded_rows"][0]["reason"] == ("excluded_dataset")
+
+
+def test_merge_applies_the_declared_split_unit(tmp_path: Path) -> None:
+    first_feature = tmp_path / "first.pt"
+    second_feature = tmp_path / "second.pt"
+    first_feature.write_bytes(b"first")
+    second_feature.write_bytes(b"second")
+    first = tmp_path / "first.jsonl"
+    second = tmp_path / "second.jsonl"
+    manifest(first, first_feature, "one", "sentence-disjoint")
+    first_row = json.loads(first.read_text())
+    first_row.update({"split_unit": "sentence", "pair_id": 1, "speaker_id": "same-speaker"})
+    first.write_text(json.dumps(first_row) + "\n")
+    manifest(second, second_feature, "two", "sentence-disjoint")
+    second_row = json.loads(second.read_text())
+    second_row.update(
+        {
+            "split": "development",
+            "split_unit": "sentence",
+            "pair_id": 2,
+            "speaker_id": "same-speaker",
+        }
+    )
+    second.write_text(json.dumps(second_row) + "\n")
+
+    rows = MERGE.merge_manifests([first, second], tmp_path / "merged.jsonl")
+
+    assert [row.split for row in rows] == ["train", "development"]

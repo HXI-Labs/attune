@@ -11,8 +11,18 @@ from typing import Any
 from attune.schema.output import AffectCategory
 
 CREMA_SENTENCES = {
+    "DFA": "Don't forget a jacket.",
     "IEO": "It's eleven o'clock.",
+    "IOM": "I'm on my way to the meeting.",
+    "ITH": "I think I have a doctor's appointment.",
+    "ITS": "I think I've seen this before.",
     "IWL": "I would like a new alarm clock.",
+    "IWW": "I wonder what this is about.",
+    "MTI": "Maybe tomorrow it will be cold.",
+    "TAI": "The airplane is almost full.",
+    "TIE": "That is exactly what happened.",
+    "TSI": "The surface is slick.",
+    "WSI": "We'll stop in a couple of minutes.",
 }
 
 
@@ -121,10 +131,13 @@ def adapt_crema(
             raise ValueError(f"unsupported CREMA filename: {filename}")
         sentence_code = parts[1]
         pair_id = pair_ids.setdefault(sentence_code, len(pair_ids))
+        affect_distribution = row.get("affect_distribution")
+        if affect_distribution is None:
+            affect_distribution = _one_hot_affect(row["target_affect"])
         normalized.append(
             {
                 "clip_id": row["clip_id"],
-                "dataset_id": "crema_d_paired_v0.1",
+                "dataset_id": row.get("attune_dataset_id", "crema_d_paired_v0.1"),
                 "split": row["partition"],
                 "speaker_id": row["speaker_id"],
                 "audio_path": str((cache_root / row["cache_path"]).resolve()),
@@ -134,7 +147,7 @@ def adapt_crema(
                 "events": None,
                 "event_presence": [] if auxiliary_negative_controls else None,
                 "styles": None,
-                "affect_distribution": _one_hot_affect(row["target_affect"]),
+                "affect_distribution": affect_distribution,
                 "vad": None,
                 "pair_id": pair_id,
                 "is_ood": False,

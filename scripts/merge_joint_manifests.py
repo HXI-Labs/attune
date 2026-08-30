@@ -21,12 +21,14 @@ def merge_manifests(
     minimum_duration_ms: int | None = None,
     maximum_duration_ms: int | None = None,
     training_maximum_duration_ms: int | None = None,
+    excluded_datasets: set[str] | None = None,
 ) -> list[JointManifestRow]:
     if len(inputs) < 2:
         raise ValueError("merge requires at least two input manifests")
     output = output.resolve()
     speaker_overlap_allowed = speaker_overlap_allowed or set()
     pair_overlap_allowed = pair_overlap_allowed or set()
+    excluded_datasets = excluded_datasets or set()
     if minimum_duration_ms is not None and minimum_duration_ms <= 0:
         raise ValueError("minimum duration must be positive")
     if maximum_duration_ms is not None and maximum_duration_ms <= 0:
@@ -41,6 +43,7 @@ def merge_manifests(
         raise ValueError("maximum duration must not be below minimum duration")
     rows: list[JointManifestRow] = []
     excluded_rows: list[dict[str, object]] = []
+    dataset_excluded_rows: list[dict[str, object]] = []
     seen: set[tuple[str, str]] = set()
     speaker_splits: dict[tuple[str, str], str] = {}
     pair_splits: dict[tuple[str, int], str] = {}
@@ -53,6 +56,16 @@ def merge_manifests(
                 row = JointManifestRow.model_validate_json(line)
             except ValueError as error:
                 raise ValueError(f"{source}:{line_number}: {error}") from error
+            if row.dataset_id in excluded_datasets:
+                dataset_excluded_rows.append(
+                    {
+                        "dataset_id": row.dataset_id,
+                        "clip_id": row.clip_id,
+                        "duration_ms": row.duration_ms,
+                        "reason": "excluded_dataset",
+                    }
+                )
+                continue
             if minimum_duration_ms is not None and row.duration_ms < minimum_duration_ms:
                 excluded_rows.append(
                     {
@@ -91,12 +104,12 @@ def merge_manifests(
             if key in seen:
                 raise ValueError(f"duplicate merged clip: {key}")
             seen.add(key)
-            if row.speaker_id is not None:
+            if row.speaker_id is not None and row.split_unit == "speaker":
                 speaker_key = (row.dataset_id, row.speaker_id)
                 previous = speaker_splits.setdefault(speaker_key, row.split)
                 if previous != row.split and row.dataset_id not in speaker_overlap_allowed:
                     raise ValueError(f"speaker crosses merged partitions: {speaker_key}")
-            if row.pair_id >= 0:
+            if row.pair_id >= 0 and row.split_unit == "sentence":
                 pair_key = (row.dataset_id, row.pair_id)
                 previous = pair_splits.setdefault(pair_key, row.split)
                 if previous != row.split and row.dataset_id not in pair_overlap_allowed:
@@ -122,6 +135,11 @@ def merge_manifests(
         ],
         "speaker_overlap_allowed": sorted(speaker_overlap_allowed),
         "pair_overlap_allowed": sorted(pair_overlap_allowed),
+        "dataset_filter": {
+            "excluded_datasets": sorted(excluded_datasets),
+            "excluded_count": len(dataset_excluded_rows),
+            "excluded_rows": dataset_excluded_rows,
+        },
         "duration_filter": {
             "minimum_duration_ms": minimum_duration_ms,
             "maximum_duration_ms": maximum_duration_ms,
@@ -148,6 +166,7 @@ def main() -> None:
     parser.add_argument("--minimum-duration-ms", type=int)
     parser.add_argument("--maximum-duration-ms", type=int)
     parser.add_argument("--training-maximum-duration-ms", type=int)
+    parser.add_argument("--exclude-dataset", action="append", default=[])
     arguments = parser.parse_args()
     rows = merge_manifests(
         arguments.input,
@@ -157,6 +176,7 @@ def main() -> None:
         minimum_duration_ms=arguments.minimum_duration_ms,
         maximum_duration_ms=arguments.maximum_duration_ms,
         training_maximum_duration_ms=arguments.training_maximum_duration_ms,
+        excluded_datasets=set(arguments.exclude_dataset),
     )
     print(f"Merged {len(rows)} rows into {arguments.output}", flush=True)
 

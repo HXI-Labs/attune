@@ -14,6 +14,12 @@
       "styles": "masked",
       "rationale": "Acted lexical speech is a whole-clip vocal-event negative, but intensity is not treated as shouting supervision."
     },
+    "crema_d_perceptual_v1": {
+      "localized_events": "explicit_negative",
+      "event_presence": "explicit_negative",
+      "styles": "masked",
+      "rationale": "Crowd-rated lexical speech is a whole-clip vocal-event negative, but actor intensity is not treated as shouting supervision."
+    },
     "thorsten_voice_2021_06_emotional": {
       "localized_events": "explicit_negative",
       "event_presence": "preserve_source_annotation",

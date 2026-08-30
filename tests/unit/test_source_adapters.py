@@ -90,6 +90,35 @@ def test_crema_pair_keeps_source_label_and_neutral_lexical_control() -> None:
     assert output["transcript"] == "It's eleven o'clock."
 
 
+def test_crema_perceptual_rows_preserve_listener_distribution_and_full_sentence_set() -> None:
+    distribution = {
+        "neutral": 0.2,
+        "joy": 0.1,
+        "distress": 0.1,
+        "anger": 0.4,
+        "fear": 0.1,
+        "surprise": 0.0,
+        "other": 0.1,
+    }
+    row = {
+        "attune_dataset_id": "crema_d_perceptual_v1",
+        "clip_id": "c2",
+        "source_filename": "1071_DFA_ANG_XX.wav",
+        "cache_path": "c2.wav",
+        "sha256": "f" * 64,
+        "duration_ms": 1200,
+        "partition": "train",
+        "speaker_id": "crema-d:1071",
+        "affect_distribution": distribution,
+    }
+
+    output = adapt_crema([row], cache_root=Path("/audio"))[0]
+
+    assert output["dataset_id"] == "crema_d_perceptual_v1"
+    assert output["affect_distribution"] == distribution
+    assert output["transcript"] == "Don't forget a jacket."
+
+
 def test_v2_speech_controls_are_explicit_and_opt_in() -> None:
     row = {
         "clip_id": "cv-1",
