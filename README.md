@@ -279,6 +279,13 @@ uv run python scripts/publish_huggingface.py \
   --dry-run
 ```
 
+Create `huggingface-bundle.json` with
+`scripts/build_huggingface_bundle.py`, passing one
+`--file SOURCE=DESTINATION` mapping for each required artifact. The builder
+hashes every source and requires the selected release-gate report to be one of
+the mapped files; the publisher recalculates those hashes immediately before
+upload.
+
 The hostile-speech gate cannot be enabled with a bare Boolean flag. Analyse a
 fresh, consented, event-free human recording of the regression sentence with
 the final graph, then create the hashed evidence report:
