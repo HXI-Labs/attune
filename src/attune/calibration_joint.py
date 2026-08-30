@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 
@@ -17,6 +17,7 @@ from attune.models.joint import SUPPORTED_EVENTS, SUPPORTED_STYLES
 from attune.schema.output import AffectCategory
 
 AFFECT_BIAS_REGULARIZATION = 1e-3
+AffectBiasMode = Literal["fitted", "none", "aps_constrained"]
 
 
 def _binary_nll(logits: np.ndarray, targets: np.ndarray, temperature: float) -> float:
@@ -80,9 +81,20 @@ def _affect_bias(
     return bias
 
 
-def _affect_calibration(logits: np.ndarray, targets: np.ndarray) -> tuple[float, np.ndarray]:
+def _affect_calibration(
+    logits: np.ndarray,
+    targets: np.ndarray,
+    *,
+    bias_mode: Literal["fitted", "none"],
+) -> tuple[float, np.ndarray]:
     temperature = 1.0
     bias = np.zeros(len(AffectCategory), dtype=np.float64)
+    if bias_mode == "none":
+        candidates = np.geomspace(0.25, 10.0, 400)
+        temperature = float(
+            min(candidates, key=lambda value: _affect_nll(logits, targets, float(value), bias))
+        )
+        return temperature, bias
     for _ in range(8):
         bias = _affect_bias(logits, targets, temperature, bias)
         candidates = np.geomspace(0.25, 10.0, 400)
@@ -93,6 +105,61 @@ def _affect_calibration(logits: np.ndarray, targets: np.ndarray) -> tuple[float,
             )
         )
     return temperature, bias
+
+
+def _multiclass_macro_f1(prediction: np.ndarray, target: np.ndarray) -> float:
+    scores = []
+    for class_index in np.unique(target):
+        predicted = prediction == class_index
+        expected = target == class_index
+        true_positive = int((predicted & expected).sum())
+        false_positive = int((predicted & ~expected).sum())
+        false_negative = int((~predicted & expected).sum())
+        denominator = 2 * true_positive + false_positive + false_negative
+        scores.append(2 * true_positive / denominator if denominator else 0.0)
+    return float(np.mean(scores))
+
+
+def _aps_constrained_bias_scale(
+    logits: np.ndarray,
+    targets: np.ndarray,
+    rows: list[dict[str, Any]],
+    temperature: float,
+    bias: np.ndarray,
+) -> float:
+    hard_targets = targets.argmax(axis=-1)
+    category_order = tuple(AffectCategory)
+    conflicts = [
+        index
+        for index, row in enumerate(rows)
+        if row.get("lexical_affect_label") is not None
+        and category_order[hard_targets[index]].value != row["lexical_affect_label"]
+    ]
+    if not conflicts:
+        raise ValueError("APS-constrained calibration requires lexical-acoustic conflicts")
+    lexical_targets = np.asarray(
+        [
+            category_order.index(AffectCategory(rows[index]["lexical_affect_label"]))
+            for index in conflicts
+        ]
+    )
+    candidates = []
+    for scale in np.linspace(0.0, 1.0, 21):
+        prediction = (logits / temperature + scale * bias).argmax(axis=-1)
+        acoustic_accuracy = float((prediction[conflicts] == hard_targets[conflicts]).mean())
+        lexical_accuracy = float((prediction[conflicts] == lexical_targets).mean())
+        acoustic_preference = acoustic_accuracy - lexical_accuracy
+        if acoustic_preference > 0:
+            candidates.append(
+                (
+                    _multiclass_macro_f1(prediction, hard_targets),
+                    acoustic_preference,
+                    -float(scale),
+                )
+            )
+    if not candidates:
+        raise ValueError("no calibrated affect bias scale preserves positive APS")
+    return -max(candidates)[2]
 
 
 def _f1_threshold(probabilities: np.ndarray, targets: np.ndarray) -> float:
@@ -164,7 +231,11 @@ def _event_thresholds(
     return thresholds
 
 
-def fit_runtime_calibration(rows: list[dict[str, Any]]) -> RuntimeCalibration:
+def fit_runtime_calibration(
+    rows: list[dict[str, Any]],
+    *,
+    affect_bias_mode: AffectBiasMode = "fitted",
+) -> RuntimeCalibration:
     if not rows:
         raise ValueError("calibration requires validation rows")
     event_rows = [row for row in rows if "event_targets" in row]
@@ -205,7 +276,22 @@ def fit_runtime_calibration(rows: list[dict[str, Any]]) -> RuntimeCalibration:
     event_temperature = _binary_temperature(event_logits, event_targets)
     presence_temperature = _binary_temperature(presence_logits, presence_targets)
     style_temperature = _binary_temperature(style_logits, style_targets)
-    affect_temperature, affect_bias = _affect_calibration(affect_logits, affect_targets)
+    fitted_bias_mode: Literal["fitted", "none"] = "none" if affect_bias_mode == "none" else "fitted"
+    affect_temperature, affect_bias = _affect_calibration(
+        affect_logits,
+        affect_targets,
+        bias_mode=fitted_bias_mode,
+    )
+    affect_bias_scale = 1.0
+    if affect_bias_mode == "aps_constrained":
+        affect_bias_scale = _aps_constrained_bias_scale(
+            affect_logits,
+            affect_targets,
+            affect_rows,
+            affect_temperature,
+            affect_bias,
+        )
+        affect_bias *= affect_bias_scale
     event_probabilities = _sigmoid(event_logits / event_temperature)
     presence_probabilities = _sigmoid(presence_logits / presence_temperature)
     style_probabilities = _sigmoid(style_logits / style_temperature)
@@ -244,6 +330,8 @@ def fit_runtime_calibration(rows: list[dict[str, Any]]) -> RuntimeCalibration:
         style_enabled_labels=[],
         affect_temperature=affect_temperature,
         affect_bias=affect_bias.tolist(),
+        affect_bias_mode=affect_bias_mode,
+        affect_bias_scale=affect_bias_scale,
         affect_threshold=_affect_threshold(affect_probabilities, affect_targets),
         vad_available=any("vad_target" in row for row in rows),
         ood_centroid=centroid.tolist(),

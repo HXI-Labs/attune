@@ -83,12 +83,47 @@ def test_corpus_sampler_honours_fixed_epoch_size() -> None:
     assert len(sampler) == 7
 
 
+def test_affect_class_balancing_equalizes_classes_within_each_corpus() -> None:
+    def row(dataset: str, label: str):
+        return SimpleNamespace(
+            dataset_id=dataset,
+            affect_distribution={
+                "neutral": float(label == "neutral"),
+                "anger": float(label == "anger"),
+            },
+        )
+
+    dataset = SimpleNamespace(
+        rows=[
+            row("first", "neutral"),
+            row("first", "neutral"),
+            row("first", "neutral"),
+            row("first", "anger"),
+            row("second", "neutral"),
+            row("second", "anger"),
+        ]
+    )
+
+    sampler = _corpus_balanced_sampler(
+        dataset,
+        generator=torch.Generator().manual_seed(42),
+        num_samples=6,
+        affect_class_balancing=True,
+    )
+
+    assert sampler.weights[:3].sum().item() == pytest.approx(0.5)
+    assert sampler.weights[3].item() == pytest.approx(0.5)
+    assert sampler.weights[4].item() == pytest.approx(0.5)
+    assert sampler.weights[5].item() == pytest.approx(0.5)
+
+
 @pytest.mark.parametrize(
     "config, message",
     [
         (TrainerConfig(samples_per_epoch=0), "samples_per_epoch"),
         (TrainerConfig(validation_batch_size=0), "validation_batch_size"),
         (TrainerConfig(paired_batch_fraction=1.1), "paired_batch_fraction"),
+        (TrainerConfig(affect_class_balancing=True), "affect_class_balancing"),
         (TrainerConfig(training_target="unknown"), "training target"),
     ],
 )

@@ -60,6 +60,7 @@ class TrainerConfig:
     gpu_hour_cost_gbp: float = 0.36
     early_stopping_patience: int = 3
     corpus_balancing: bool = True
+    affect_class_balancing: bool = False
     resume: bool = True
     log_interval_steps: int = 25
     duration_bucket_multiplier: int = 20
@@ -87,6 +88,8 @@ class TrainerConfig:
             and self.training_target not in JointFeatureDataset._TARGET_FIELDS
         ):
             raise ValueError(f"unsupported training target: {self.training_target}")
+        if self.affect_class_balancing and self.training_target != "affect":
+            raise ValueError("affect_class_balancing requires training_target='affect'")
 
 
 def _parameter_groups(model: AttuneJointModel, config: TrainerConfig) -> list[dict[str, Any]]:
@@ -164,8 +167,35 @@ def _corpus_balanced_sampler(
     *,
     generator: torch.Generator,
     num_samples: int | None = None,
+    affect_class_balancing: bool = False,
 ) -> WeightedRandomSampler:
     """Sample corpora uniformly while retaining natural variation within each corpus."""
+
+    if affect_class_balancing:
+        class_counts: dict[tuple[str, str], int] = {}
+        classes_by_dataset: dict[str, set[str]] = {}
+        labels = []
+        for row in dataset.rows:
+            if row.affect_distribution is None:
+                raise ValueError("affect class balancing requires an affect target on every row")
+            label = max(row.affect_distribution, key=row.affect_distribution.get)
+            key = (row.dataset_id, label)
+            labels.append(key)
+            class_counts[key] = class_counts.get(key, 0) + 1
+            classes_by_dataset.setdefault(row.dataset_id, set()).add(label)
+        weights = torch.tensor(
+            [
+                1.0 / (len(classes_by_dataset[dataset_id]) * class_counts[(dataset_id, label)])
+                for dataset_id, label in labels
+            ],
+            dtype=torch.double,
+        )
+        return WeightedRandomSampler(
+            weights,
+            num_samples=num_samples or len(dataset),
+            replacement=True,
+            generator=generator,
+        )
 
     counts: dict[str, int] = {}
     for row in dataset.rows:
@@ -338,6 +368,7 @@ def train_joint_model(
             train_data,
             generator=generator,
             num_samples=config.samples_per_epoch,
+            affect_class_balancing=config.affect_class_balancing,
         )
     else:
         sampler = RandomSampler(

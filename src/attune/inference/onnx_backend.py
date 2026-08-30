@@ -12,7 +12,7 @@ import tempfile
 import wave
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -50,6 +50,8 @@ class RuntimeCalibration(BaseModel):
     style_enabled_labels: list[str] = Field(default_factory=list)
     affect_temperature: float = Field(default=1.0, gt=0)
     affect_bias: list[float] = Field(default_factory=lambda: [0.0] * len(AffectCategory))
+    affect_bias_mode: Literal["fitted", "none", "aps_constrained"] = "fitted"
+    affect_bias_scale: float = Field(default=1.0, ge=0, le=1)
     affect_threshold: float = Field(default=0.55, ge=0, le=1)
     vad_available: bool = False
     ood_centroid: list[float] | None = None

@@ -44,3 +44,27 @@ The candidate is retained only if all of the following hold:
 
 If any gate fails, v0.9 remains the retained candidate. No threshold or epoch
 will be adjusted against RAVDESS or the opened regression split.
+
+## Result
+
+Epoch 5 was selected at validation loss 1.1427. All six epochs achieved an
+active paired-batch fraction of 1.0. The selected checkpoint has SHA-256
+`6bf0699cbdcea4629e249d788fc441f9edb349e4f18d925217cf23d9f1f519b2`;
+its ONNX export has SHA-256
+`828137774d8ce9805973415c6b2e70c26db64b9149027485654b47002b10c534`
+and maximum parity error `6.64e-05`. Eight affect tensors changed and no
+out-of-scope tensor changed.
+
+| Evaluation | Macro-F1 | APS | Decision |
+|---|---:|---:|---|
+| Development, fitted bias | 0.6221 | -0.1313 | Fail |
+| Development, temperature only | 0.6135 | +0.1111 | Fail |
+| Development, APS-constrained bias | 0.6237 | +0.0303 | Fail |
+| Opened RAVDESS, fitted bias | 0.4228 | +0.2656 | External floor passes |
+
+All 1,241 development speech controls and all 480 RAVDESS controls produced
+zero localized-event, event-presence, and style false positives. RAVDESS had
+no class above 29.4%. The candidate is nevertheless rejected because no
+development calibration passes the 0.64 floor while preserving positive APS.
+The result supports pair-aware batching but identifies within-corpus affect
+imbalance as the next controlled variable. Retained v0.9 remains unchanged.

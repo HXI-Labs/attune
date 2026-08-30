@@ -166,3 +166,72 @@ def test_affect_calibration_corrects_class_prior_bias() -> None:
 
     assert calibration.affect_bias[0] < calibration.affect_bias[1]
     assert np.mean(probabilities.argmax(axis=1) == np.arange(80) % 2) > 0.95
+
+
+def test_temperature_only_affect_calibration_preserves_class_ranking() -> None:
+    rng = np.random.default_rng(31)
+    rows = []
+    for index in range(24):
+        target = np.zeros(8, dtype=float)
+        target[index % 2] = 1.0
+        rows.append(
+            {
+                "event_logits": np.full((2, 7), -2.0).tolist(),
+                "event_targets": np.zeros((2, 7)).tolist(),
+                "event_presence_logits": [-2.0] * 7,
+                "event_presence_targets": [0.0] * 7,
+                "style_logits": [-2.0] * 2,
+                "style_targets": [0.0] * 2,
+                "affect_logits": (target * 3.0 + rng.normal(0, 0.1, 8)).tolist(),
+                "affect_distribution": target.tolist(),
+                "ood_embedding": rng.normal(0, 0.1, 4).tolist(),
+                "ood_logit": float(-3 if index < 20 else 3),
+                "is_ood": index >= 20,
+            }
+        )
+
+    calibration = fit_runtime_calibration(rows, affect_bias_mode="none")
+
+    assert calibration.affect_bias == [0.0] * 8
+    assert calibration.affect_bias_mode == "none"
+    assert calibration.affect_temperature > 0
+
+
+def test_aps_constrained_calibration_keeps_acoustic_preference_positive() -> None:
+    rng = np.random.default_rng(32)
+    rows = []
+    for index in range(32):
+        target_index = index % 2
+        target = np.zeros(8, dtype=float)
+        target[target_index] = 1.0
+        logits = rng.normal(0, 0.05, 8)
+        logits[target_index] += 2.0
+        logits[0] += 0.8
+        rows.append(
+            {
+                "event_logits": np.full((2, 7), -2.0).tolist(),
+                "event_targets": np.zeros((2, 7)).tolist(),
+                "event_presence_logits": [-2.0] * 7,
+                "event_presence_targets": [0.0] * 7,
+                "style_logits": [-2.0] * 2,
+                "style_targets": [0.0] * 2,
+                "affect_logits": logits.tolist(),
+                "affect_distribution": target.tolist(),
+                "lexical_affect_label": "joy" if target_index == 0 else "neutral",
+                "ood_embedding": rng.normal(0, 0.1, 4).tolist(),
+                "ood_logit": float(-3 if index < 28 else 3),
+                "is_ood": index >= 28,
+            }
+        )
+
+    calibration = fit_runtime_calibration(rows, affect_bias_mode="aps_constrained")
+    probabilities = _affect_probabilities(
+        np.asarray([row["affect_logits"] for row in rows]), calibration
+    )
+    prediction = probabilities.argmax(axis=-1)
+    acoustic = np.arange(32) % 2
+    lexical = 1 - acoustic
+
+    assert np.mean(prediction == acoustic) > np.mean(prediction == lexical)
+    assert calibration.affect_bias_mode == "aps_constrained"
+    assert 0 <= calibration.affect_bias_scale <= 1
