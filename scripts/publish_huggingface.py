@@ -34,6 +34,7 @@ REQUIRED_TRAINING_SOURCES = {
     "attune_inline_event_mixtures_v0.1",
     "berst_v1",
     "common_voice_17_en",
+    "crema_d_paired_v0.1",
     "crema_d_perceptual_v1",
     "dcase2016_task2",
     "disfluency_speech_v0.1",
