@@ -37,3 +37,14 @@ Training will begin from the best accepted affect checkpoint and update only the
 
 Synthetic development results are diagnostic only. The candidate is rejected if it
 passes synthetic validation while missing these opened external gates.
+
+The prepared 18,104-row feature manifest has SHA-256
+`aa860da8b6ceb47cb0e9cf1ced07565fb81c5977e94c0953d4aa431a31d1b151`.
+It contains 7,997 train and 1,575 development rows with explicit strong-event
+targets, including empty speech controls. The integrity audit found 18,104
+unique feature paths and no known-speaker overlap among partitions.
+
+The run permits eight epochs of 8,192 corpus-balanced samples, with physical
+batches of six, four-step gradient accumulation, a `5e-5` head learning rate,
+and early stopping after three stale development losses. No encoder or
+non-event head is trainable.
