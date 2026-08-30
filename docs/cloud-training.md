@@ -37,7 +37,7 @@ Source audio stays local and off git. These commands are explicit and never run
 during installation or tests.
 
 ```bash
-uv sync --extra dev --extra torch --extra model-runners --extra dataset-tools
+uv sync --extra dev --extra model-runners --extra dataset-tools
 uv run python scripts/prepare_fsd50k_probe.py --download
 uv run python scripts/prepare_dataset.py --download
 # Extract the full reviewed VocalSound corpus as 16 kHz mono WAV under

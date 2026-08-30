@@ -175,7 +175,7 @@ candidate would not resolve its data-generalization failures.
 Python 3.12 and [uv](https://docs.astral.sh/uv/) are required.
 
 ```bash
-uv sync --extra dev --extra torch --extra model-runners --extra deployment --extra serving
+uv sync --extra dev --extra model-runners --extra dataset-tools
 make check
 ```
 
