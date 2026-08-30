@@ -75,3 +75,15 @@ def test_berst_affect_candidate_requires_risk_to_improve_with_abstention() -> No
     assert not next(gate for gate in gates if gate["name"] == "berst_selective_risk_improves")[
         "passed"
     ]
+
+
+def test_deployment_affect_check_can_omit_checkpoint_scope() -> None:
+    gates = CHECK.check_candidate(
+        report(0.64),
+        report(0.30),
+        report(0.40, largest_share=0.45),
+        None,
+    )
+
+    assert all(gate["name"] != "checkpoint_scope" for gate in gates)
+    assert all(gate["passed"] for gate in gates)

@@ -20,7 +20,7 @@ def check_candidate(
     core_report: dict[str, Any],
     berst_report: dict[str, Any],
     ravdess_report: dict[str, Any],
-    scope_report: dict[str, Any],
+    scope_report: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
     largest_ravdess_share = max(ravdess_report["affect_prediction_share"].values())
     requirements = (
@@ -31,8 +31,9 @@ def check_candidate(
         ("berst_selective_risk_improves", _risk_improves(berst_report), "==", True),
         ("ravdess_macro_f1", ravdess_report["affect_macro_f1"], ">=", 0.40),
         ("ravdess_largest_prediction_share", largest_ravdess_share, "<=", 0.45),
-        ("checkpoint_scope", bool(scope_report.get("passed", False)), "==", True),
     )
+    if scope_report is not None:
+        requirements += (("checkpoint_scope", bool(scope_report.get("passed", False)), "==", True),)
     gates = []
     for name, value, comparison, threshold in requirements:
         if comparison == ">=":
@@ -60,21 +61,22 @@ def main() -> None:
     parser.add_argument("--core-report", type=Path, required=True)
     parser.add_argument("--berst-report", type=Path, required=True)
     parser.add_argument("--ravdess-report", type=Path, required=True)
-    parser.add_argument("--scope-report", type=Path, required=True)
+    parser.add_argument("--scope-report", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     paths = {
         "core_development": arguments.core_report,
         "berst_development": arguments.berst_report,
         "ravdess": arguments.ravdess_report,
-        "checkpoint_scope": arguments.scope_report,
     }
+    if arguments.scope_report is not None:
+        paths["checkpoint_scope"] = arguments.scope_report
     reports = {name: json.loads(path.read_text()) for name, path in paths.items()}
     gates = check_candidate(
         reports["core_development"],
         reports["berst_development"],
         reports["ravdess"],
-        reports["checkpoint_scope"],
+        reports.get("checkpoint_scope"),
     )
     passed = all(gate["passed"] for gate in gates)
     output = {

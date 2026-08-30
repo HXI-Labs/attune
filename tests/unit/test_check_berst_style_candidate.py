@@ -44,3 +44,15 @@ def test_berst_style_candidate_fails_closed_on_external_recall() -> None:
 
     assert not next(gate for gate in gates if gate["name"] == "wesr_shouting_recall")["passed"]
     assert not all(gate["passed"] for gate in gates)
+
+
+def test_deployment_style_check_can_omit_checkpoint_scope() -> None:
+    gates = CHECK.check_candidate(
+        report(f1=0.85, precision=0.80, recall=0.80, false_positive_rate=0.05),
+        report(f1=0.55, precision=0.50, recall=0.60, false_positive_rate=0.10),
+        {"speech_controls": {"style_false_positive_clips": 0}},
+        None,
+    )
+
+    assert all(gate["name"] != "checkpoint_scope" for gate in gates)
+    assert all(gate["passed"] for gate in gates)

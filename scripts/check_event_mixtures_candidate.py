@@ -14,7 +14,7 @@ from attune.integrity import file_digest
 def check_candidate(
     wesr_report: dict[str, Any],
     regression_report: dict[str, Any],
-    scope_report: dict[str, Any],
+    scope_report: dict[str, Any] | None,
     weak_development_report: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     controls = regression_report["speech_controls"]
@@ -49,7 +49,6 @@ def check_candidate(
             "<=",
             2,
         ),
-        ("checkpoint_scope", bool(scope_report.get("passed", False)), "==", True),
     )
     if weak_development_report is not None:
         requirements += (
@@ -72,6 +71,8 @@ def check_candidate(
                 0.10,
             ),
         )
+    if scope_report is not None:
+        requirements += (("checkpoint_scope", bool(scope_report.get("passed", False)), "==", True),)
     gates = []
     for name, value, comparison, threshold in requirements:
         if comparison == ">=":
@@ -96,7 +97,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wesr-report", type=Path, required=True)
     parser.add_argument("--regression-report", type=Path, required=True)
-    parser.add_argument("--scope-report", type=Path, required=True)
+    parser.add_argument("--scope-report", type=Path)
     parser.add_argument("--weak-development-report", type=Path)
     parser.add_argument("--candidate", default="event-mixtures-v1.1")
     parser.add_argument("--output", type=Path, required=True)
@@ -104,15 +105,16 @@ def main() -> None:
     paths = {
         "wesr": arguments.wesr_report,
         "opened_regression": arguments.regression_report,
-        "checkpoint_scope": arguments.scope_report,
     }
+    if arguments.scope_report is not None:
+        paths["checkpoint_scope"] = arguments.scope_report
     if arguments.weak_development_report is not None:
         paths["weak_development"] = arguments.weak_development_report
     reports = {name: json.loads(path.read_text()) for name, path in paths.items()}
     gates = check_candidate(
         reports["wesr"],
         reports["opened_regression"],
-        reports["checkpoint_scope"],
+        reports.get("checkpoint_scope"),
         reports.get("weak_development"),
     )
     passed = all(gate["passed"] for gate in gates)

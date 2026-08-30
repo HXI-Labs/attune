@@ -90,3 +90,12 @@ def test_weak_event_candidate_rejects_excess_false_positives() -> None:
         gate for gate in gates if gate["name"] == "disfluency_temporal_presence_false_positive_rate"
     )
     assert not false_positive_gate["passed"]
+
+
+def test_deployment_event_check_can_omit_checkpoint_scope() -> None:
+    wesr, regression = reports()
+
+    gates = CHECK.check_candidate(wesr, regression, None)
+
+    assert all(gate["name"] != "checkpoint_scope" for gate in gates)
+    assert all(gate["passed"] for gate in gates)

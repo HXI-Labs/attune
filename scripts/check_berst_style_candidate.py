@@ -15,7 +15,7 @@ def check_candidate(
     berst_report: dict[str, Any],
     wesr_report: dict[str, Any],
     british_report: dict[str, Any],
-    scope_report: dict[str, Any],
+    scope_report: dict[str, Any] | None,
 ) -> list[dict[str, Any]]:
     berst = berst_report["style_metrics"]["shouting"]
     wesr = wesr_report["style_metrics"]["shouting"]
@@ -40,15 +40,16 @@ def check_candidate(
         }
         for name, value, comparison, threshold in requirements
     ]
-    gates.append(
-        {
-            "name": "checkpoint_scope",
-            "value": bool(scope_report.get("passed", False)),
-            "comparison": "==",
-            "threshold": True,
-            "passed": bool(scope_report.get("passed", False)),
-        }
-    )
+    if scope_report is not None:
+        gates.append(
+            {
+                "name": "checkpoint_scope",
+                "value": bool(scope_report.get("passed", False)),
+                "comparison": "==",
+                "threshold": True,
+                "passed": bool(scope_report.get("passed", False)),
+            }
+        )
     return gates
 
 
@@ -57,21 +58,22 @@ def main() -> None:
     parser.add_argument("--berst-report", type=Path, required=True)
     parser.add_argument("--wesr-report", type=Path, required=True)
     parser.add_argument("--british-report", type=Path, required=True)
-    parser.add_argument("--scope-report", type=Path, required=True)
+    parser.add_argument("--scope-report", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     paths = {
         "berst_development": arguments.berst_report,
         "wesr": arguments.wesr_report,
         "british_controls": arguments.british_report,
-        "checkpoint_scope": arguments.scope_report,
     }
+    if arguments.scope_report is not None:
+        paths["checkpoint_scope"] = arguments.scope_report
     reports = {name: json.loads(path.read_text()) for name, path in paths.items()}
     gates = check_candidate(
         reports["berst_development"],
         reports["wesr"],
         reports["british_controls"],
-        reports["checkpoint_scope"],
+        reports.get("checkpoint_scope"),
     )
     passed = all(gate["passed"] for gate in gates)
     output = {
