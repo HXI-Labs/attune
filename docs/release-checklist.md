@@ -77,3 +77,6 @@ internally good score is not sufficient.
 6. Upload privately first. Compare the remote file list and hashes with the
    local plan before making the repository public or marking the pull request
    ready for review.
+7. Public upload additionally requires a completed redistribution review that
+   approves the exact pinned SenseVoice revision. The current committed record
+   is deliberately not approved and cannot be treated as a legal sign-off.

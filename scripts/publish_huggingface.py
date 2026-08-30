@@ -29,6 +29,7 @@ REQUIRED_BUNDLE_DESTINATIONS = {
     "artifact-manifest.json",
     "hostile-speech-regression.json",
 }
+SENSEVOICE_REVISION = "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7"
 
 
 def load_bundle_manifest(path: Path) -> dict[str, Any]:
@@ -122,6 +123,26 @@ def require_release_ready(gate_path: Path) -> None:
         raise RuntimeError(f"Hugging Face publication is blocked: {detail}")
 
 
+def require_public_redistribution_review(path: Path) -> None:
+    try:
+        review = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(
+            f"cannot verify public redistribution review at {path}: {error}"
+        ) from error
+    if review.get("schema_version") != "1.0":
+        raise RuntimeError("public publication is blocked: stale redistribution-review schema")
+    if review.get("public_weight_redistribution_approved") is not True:
+        raise RuntimeError("public publication is blocked: weight redistribution is not approved")
+    if review.get("sensevoice_revision") != SENSEVOICE_REVISION:
+        raise RuntimeError("public publication is blocked: review covers a different base revision")
+    for field in ("reviewed_by", "reviewed_at", "scope"):
+        if not isinstance(review.get(field), str) or not review[field].strip():
+            raise RuntimeError(
+                f"public publication is blocked: redistribution review lacks {field}"
+            )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-id", required=True, help="Hugging Face model repo, e.g. org/name")
@@ -131,6 +152,11 @@ def main() -> None:
         "--public",
         action="store_true",
         help="Create a public repo. Omit until the public redistribution review is complete.",
+    )
+    parser.add_argument(
+        "--redistribution-review",
+        type=Path,
+        help="Required approval record when --public is used.",
     )
     parser.add_argument("--dry-run", action="store_true")
     arguments = parser.parse_args()
@@ -147,6 +173,13 @@ def main() -> None:
     except ValueError as error:
         raise RuntimeError("gate report is outside repository") from error
     require_release_ready(gate_path)
+    if arguments.public:
+        if arguments.redistribution_review is None:
+            raise RuntimeError("public publication requires --redistribution-review")
+        review_path = arguments.redistribution_review
+        if not review_path.is_absolute():
+            review_path = root / review_path
+        require_public_redistribution_review(review_path)
     plan = {
         "release_name": manifest["release_name"],
         "repo_id": arguments.repo_id,

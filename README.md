@@ -315,8 +315,10 @@ and no event or style output for that deliberately event-free, ordinary-voice
 recording. The release bundle includes the report, not the identifiable WAV.
 
 Omit `--dry-run` to upload privately. Public repository creation additionally
-requires `--public` and should happen only after the model-weight and training-
-data redistribution review is recorded.
+requires `--public` plus `--redistribution-review`. The committed review record
+currently denies public weight redistribution, so a complete approval covering
+the pinned SenseVoice revision must replace it before a public upload can run.
+Private upload does not override the upstream model agreement or dataset terms.
 
 ## Licence and use restrictions
 

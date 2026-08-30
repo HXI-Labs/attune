@@ -169,3 +169,56 @@ def test_publication_rejects_missing_external_gate(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeError, match="missing required gates"):
         MODULE.require_release_ready(gate)
+
+
+def test_public_redistribution_requires_explicit_approval(tmp_path: Path) -> None:
+    review = tmp_path / "review.json"
+    review.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "public_weight_redistribution_approved": False,
+                "sensevoice_revision": MODULE.SENSEVOICE_REVISION,
+            }
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="not approved"):
+        MODULE.require_public_redistribution_review(review)
+
+
+def test_public_redistribution_review_is_revision_scoped(tmp_path: Path) -> None:
+    review = tmp_path / "review.json"
+    review.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "public_weight_redistribution_approved": True,
+                "sensevoice_revision": "wrong",
+                "reviewed_by": "HXI Labs",
+                "reviewed_at": "2026-08-30",
+                "scope": "public derivative weights",
+            }
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="different base revision"):
+        MODULE.require_public_redistribution_review(review)
+
+
+def test_public_redistribution_accepts_complete_scoped_review(tmp_path: Path) -> None:
+    review = tmp_path / "review.json"
+    review.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "public_weight_redistribution_approved": True,
+                "sensevoice_revision": MODULE.SENSEVOICE_REVISION,
+                "reviewed_by": "HXI Labs",
+                "reviewed_at": "2026-08-30",
+                "scope": "public derivative weights",
+            }
+        )
+    )
+
+    MODULE.require_public_redistribution_review(review)
