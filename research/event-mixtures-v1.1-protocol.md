@@ -9,14 +9,15 @@ Version 1.1 adds deterministic mixtures of reviewed Common Voice speech and the 
 supported VocalSound classes: laugh, sigh, cough, throat clear, and sneeze. Each
 Common Voice clip is paired once with each class. Events are placed before speech,
 overlaid within speech, or appended after speech. Event level and final waveform peak
-vary independently to reduce reliance on raw amplitude. Only train and development
+vary independently of event class to reduce reliance on raw amplitude. Only train and development
 source partitions are used; the existing sealed rows remain untouched.
 
 The generated source manifest has SHA-256
-`337a08b15e72304b3440994239ef589a9508e58262c2f39f99040fc432e4a602`.
+`edaa669a9b18d77490afa37ef3d21913fecb7b2c3eed51f1ae839227b935040b`.
 It contains 2,715 mixtures: 2,405 train and 310 development examples, with
-exactly 481/62 examples per event class. Placement is also balanced: 926
-before, 869 overlay, and 920 after. Ten silent VocalSound files were rejected
+exactly 481/62 examples per event class. Placement is also balanced: 931
+before, 906 overlay, and 878 after. The five event levels contain between 534
+and 547 examples each, independently of class. Ten silent VocalSound files were rejected
 and recorded in the generation audit. Exact source pairings and synthesis
 parameters are deterministic from the pinned manifests and generation script.
 
@@ -39,7 +40,7 @@ Synthetic development results are diagnostic only. The candidate is rejected if 
 passes synthetic validation while missing these opened external gates.
 
 The prepared 18,104-row feature manifest has SHA-256
-`aa860da8b6ceb47cb0e9cf1ced07565fb81c5977e94c0953d4aa431a31d1b151`.
+`844eccce5ede16c206df96a5ad32f5c853dc9f17de4949ad9d1b1cb3a1c70e98`.
 It contains 7,997 train and 1,575 development rows with explicit strong-event
 targets, including empty speech controls. The integrity audit found 18,104
 unique feature paths and no known-speaker overlap among partitions.

@@ -47,6 +47,19 @@ def test_mixture_span_matches_inserted_event(placement: str) -> None:
     assert 0.54 < np.max(np.abs(mixed)) < 0.93
 
 
+def test_synthesis_level_and_placement_are_not_tied_to_event_class() -> None:
+    module = _module()
+    levels_by_label = {label: set() for label in module.EVENT_LABELS}
+    placements_by_label = {label: set() for label in module.EVENT_LABELS}
+    for index in range(100):
+        for label in module.EVENT_LABELS:
+            placement, level = module._synthesis_parameters(module._seed(f"speech-{index}", label))
+            levels_by_label[label].add(level)
+            placements_by_label[label].add(placement)
+    assert all(values == set(module.EVENT_LEVEL_DB) for values in levels_by_label.values())
+    assert all(values == set(module.PLACEMENTS) for values in placements_by_label.values())
+
+
 def test_pcm16_round_trip(tmp_path: Path) -> None:
     module = _module()
     path = tmp_path / "audio.wav"

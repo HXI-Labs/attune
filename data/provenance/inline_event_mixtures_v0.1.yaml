@@ -17,10 +17,11 @@ redistribution:
 generation:
   script: scripts/prepare_inline_event_mixtures.py
   source_manifest: data/manifests/inline-event-mixtures-source-v0.1.jsonl
-  source_manifest_sha256: 337a08b15e72304b3440994239ef589a9508e58262c2f39f99040fc432e4a602
+  source_manifest_sha256: edaa669a9b18d77490afa37ef3d21913fecb7b2c3eed51f1ae839227b935040b
   audit: data/manifests/inline-event-mixtures-v0.1-audit.json
   sample_rate_hz: 16000
   deterministic: true
+  class_independent_gain_and_placement: true
   rows: 2715
   train_rows: 2405
   development_rows: 310
@@ -46,3 +47,4 @@ notes:
   - Ten VocalSound source clips with no measurable activity were excluded and recorded in the audit.
   - Generated waveforms and derived features remain local and gitignored.
   - Generated audio paths are relative to the source manifest for portable local reproduction.
+  - Placement and event level are hash-derived independently of class; their realized counts are recorded in the audit.

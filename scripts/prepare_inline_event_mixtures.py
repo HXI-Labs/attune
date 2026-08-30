@@ -123,6 +123,12 @@ def _seed(*values: str) -> int:
     return int.from_bytes(digest[:8], "big")
 
 
+def _synthesis_parameters(selection_seed: int) -> tuple[str, float]:
+    placement = PLACEMENTS[(selection_seed >> 16) % len(PLACEMENTS)]
+    event_level_db = EVENT_LEVEL_DB[(selection_seed >> 32) % len(EVENT_LEVEL_DB)]
+    return placement, event_level_db
+
+
 def _select_event(
     candidates: list[dict[str, Any]],
     selection_seed: int,
@@ -181,7 +187,7 @@ def create_mixtures(
         if file_sha256(speech_path) != speech_row["sha256"]:
             raise ValueError(f"Common Voice hash mismatch: {speech_path}")
         speech = _read_pcm16(speech_path)
-        for label_index, label in enumerate(EVENT_LABELS):
+        for label in EVENT_LABELS:
             candidates = events_by_split_and_label[(split, label)]
             if not candidates:
                 raise ValueError(f"no {split} VocalSound candidates for {label}")
@@ -192,8 +198,7 @@ def create_mixtures(
                 event_cache,
                 excluded_events,
             )
-            placement = PLACEMENTS[(selection_seed // len(candidates)) % len(PLACEMENTS)]
-            level_db = EVENT_LEVEL_DB[label_index]
+            placement, level_db = _synthesis_parameters(selection_seed)
             mixed, start, end, _ = _mix(
                 speech,
                 event,
@@ -237,6 +242,18 @@ def create_mixtures(
 
     write_source_rows(output_manifest, rows)
     counts = Counter((row["split"], row["events"][0]["label"]) for row in rows)
+    placement_counts: Counter[str] = Counter()
+    level_counts: Counter[float] = Counter()
+    placement_by_label: dict[str, Counter[str]] = {label: Counter() for label in EVENT_LABELS}
+    level_by_label: dict[str, Counter[float]] = {label: Counter() for label in EVENT_LABELS}
+    for speech_row in speech_rows:
+        for label in EVENT_LABELS:
+            selection_seed = _seed(speech_row["clip_id"], label)
+            placement, level_db = _synthesis_parameters(selection_seed)
+            placement_counts[placement] += 1
+            level_counts[level_db] += 1
+            placement_by_label[label][placement] += 1
+            level_by_label[label][level_db] += 1
     audit = {
         "schema_version": "1.0",
         "dataset_id": "attune_inline_event_mixtures_v0.1",
@@ -255,6 +272,17 @@ def create_mixtures(
         "rows": len(rows),
         "excluded_silent_event_clips": sorted(excluded_events),
         "counts": {f"{split}:{label}": count for (split, label), count in sorted(counts.items())},
+        "placement_counts": dict(sorted(placement_counts.items())),
+        "event_level_db_counts": {
+            f"{level:g}": count for level, count in sorted(level_counts.items())
+        },
+        "placement_counts_by_label": {
+            label: dict(sorted(counts.items())) for label, counts in placement_by_label.items()
+        },
+        "event_level_db_counts_by_label": {
+            label: {f"{level:g}": count for level, count in sorted(counts.items())}
+            for label, counts in level_by_label.items()
+        },
         "synthesis": {
             "placements": list(PLACEMENTS),
             "event_levels_db": list(EVENT_LEVEL_DB),

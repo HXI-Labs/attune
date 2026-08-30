@@ -13,6 +13,50 @@
     "train:throat_clear": 481
   },
   "dataset_id": "attune_inline_event_mixtures_v0.1",
+  "event_level_db_counts": {
+    "-3": 547,
+    "-6": 541,
+    "0": 547,
+    "3": 534,
+    "6": 546
+  },
+  "event_level_db_counts_by_label": {
+    "cough": {
+      "-3": 123,
+      "-6": 109,
+      "0": 109,
+      "3": 99,
+      "6": 103
+    },
+    "laugh": {
+      "-3": 110,
+      "-6": 114,
+      "0": 102,
+      "3": 117,
+      "6": 100
+    },
+    "sigh": {
+      "-3": 115,
+      "-6": 105,
+      "0": 108,
+      "3": 102,
+      "6": 113
+    },
+    "sneeze": {
+      "-3": 85,
+      "-6": 110,
+      "0": 116,
+      "3": 112,
+      "6": 120
+    },
+    "throat_clear": {
+      "-3": 114,
+      "-6": 103,
+      "0": 112,
+      "3": 104,
+      "6": 110
+    }
+  },
   "excluded_silent_event_clips": [
     "vocalsound-joint-f0116_0_cough",
     "vocalsound-joint-f0116_0_laughter",
@@ -25,6 +69,38 @@
     "vocalsound-joint-m2069_1_sigh",
     "vocalsound-joint-m2669_0_laughter"
   ],
+  "placement_counts": {
+    "after": 878,
+    "before": 931,
+    "overlay": 906
+  },
+  "placement_counts_by_label": {
+    "cough": {
+      "after": 157,
+      "before": 199,
+      "overlay": 187
+    },
+    "laugh": {
+      "after": 185,
+      "before": 199,
+      "overlay": 159
+    },
+    "sigh": {
+      "after": 185,
+      "before": 178,
+      "overlay": 180
+    },
+    "sneeze": {
+      "after": 173,
+      "before": 181,
+      "overlay": 189
+    },
+    "throat_clear": {
+      "after": 178,
+      "before": 174,
+      "overlay": 191
+    }
+  },
   "rows": 2715,
   "sample_rate_hz": 16000,
   "schema_version": "1.0",
