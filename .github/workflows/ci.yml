@@ -28,11 +28,11 @@ jobs:
 
       - name: Check formatting and lint
         run: |
-          uv run --frozen --extra dev --extra torch ruff format --check .
-          uv run --frozen --extra dev --extra torch ruff check .
+          uv run --frozen --extra dev ruff format --check .
+          uv run --frozen --extra dev ruff check .
 
       - name: Run tests
-        run: uv run --frozen --extra dev --extra torch pytest
+        run: uv run --frozen --extra dev pytest
 
       - name: Build packages
         run: uv build

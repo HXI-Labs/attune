@@ -1251,8 +1251,19 @@ deployment = [
     { name = "onnxscript" },
 ]
 dev = [
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "numpy" },
+    { name = "onnx" },
+    { name = "onnxruntime" },
+    { name = "onnxscript" },
+    { name = "pyarrow" },
     { name = "pytest" },
+    { name = "python-multipart" },
     { name = "ruff" },
+    { name = "scikit-learn" },
+    { name = "torch" },
+    { name = "websockets" },
 ]
 model-runners = [
     { name = "funasr" },
@@ -1273,21 +1284,32 @@ torch = [
 [package.metadata]
 requires-dist = [
     { name = "datasets", marker = "extra == 'dataset-tools'", specifier = ">=5.0.1" },
+    { name = "fastapi", marker = "extra == 'dev'", specifier = ">=0.115,<1" },
     { name = "fastapi", marker = "extra == 'serving'", specifier = ">=0.115,<1" },
     { name = "funasr", marker = "extra == 'model-runners'", specifier = ">=1.4.4" },
+    { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.28,<1" },
+    { name = "numpy", marker = "extra == 'dev'", specifier = ">=2.5.2" },
     { name = "numpy", marker = "extra == 'model-runners'", specifier = ">=2.5.2" },
     { name = "onnx", marker = "extra == 'deployment'", specifier = ">=1.17,<2" },
+    { name = "onnx", marker = "extra == 'dev'", specifier = ">=1.17,<2" },
     { name = "onnxruntime", marker = "extra == 'deployment'", specifier = ">=1.20,<2" },
+    { name = "onnxruntime", marker = "extra == 'dev'", specifier = ">=1.20,<2" },
     { name = "onnxscript", marker = "extra == 'deployment'", specifier = ">=0.5,<1" },
+    { name = "onnxscript", marker = "extra == 'dev'", specifier = ">=0.5,<1" },
+    { name = "pyarrow", marker = "extra == 'dev'", specifier = ">=21,<26" },
     { name = "pydantic", specifier = ">=2.9,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3" },
+    { name = "python-multipart", marker = "extra == 'dev'", specifier = ">=0.0.20,<1" },
     { name = "python-multipart", marker = "extra == 'serving'", specifier = ">=0.0.20,<1" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8" },
+    { name = "scikit-learn", marker = "extra == 'dev'", specifier = ">=1.6,<2" },
+    { name = "torch", marker = "extra == 'dev'", specifier = ">=2.5" },
     { name = "torch", marker = "extra == 'torch'", specifier = ">=2.5" },
     { name = "torchaudio", marker = "extra == 'model-runners'", specifier = ">=2.11.0" },
     { name = "transformers", marker = "extra == 'model-runners'", specifier = ">=5.16.1" },
     { name = "uvicorn", marker = "extra == 'serving'", specifier = ">=0.34,<1" },
+    { name = "websockets", marker = "extra == 'dev'", specifier = ">=14,<18" },
     { name = "websockets", marker = "extra == 'serving'", specifier = ">=14,<18" },
 ]
 
