@@ -10,6 +10,22 @@ artifacts/models/attune-cadence-v0.11-int8.onnx=attune-cadence-241m-int8.onnx
 artifacts/models/attune-cadence-v0.11-int8.quantization.json=quantization.json
 artifacts/evaluation/cadence-release-v0.11-int8/calibration.json=calibration.json
 
+# Final measured evidence
+artifacts/evaluation/cadence-release-v0.11-fp/overall-report.json=evidence/fp/overall.json
+artifacts/evaluation/cadence-release-v0.11-fp/event-acceptance.json=evidence/fp/event-acceptance.json
+artifacts/evaluation/cadence-release-v0.11-fp/style-acceptance.json=evidence/fp/style-acceptance.json
+artifacts/evaluation/cadence-release-v0.11-fp/affect-acceptance.json=evidence/fp/affect-acceptance.json
+artifacts/evaluation/cadence-release-v0.11-fp/wesr-report.json=evidence/fp/wesr.json
+artifacts/evaluation/cadence-release-v0.11-fp/berst-confirmation-report.json=evidence/fp/berst-confirmation.json
+artifacts/evaluation/cadence-release-v0.11-fp/ravdess-report.json=evidence/fp/ravdess.json
+artifacts/evaluation/cadence-release-v0.11-int8/overall-report.json=evidence/int8/overall.json
+artifacts/evaluation/cadence-release-v0.11-int8/event-acceptance.json=evidence/int8/event-acceptance.json
+artifacts/evaluation/cadence-release-v0.11-int8/style-acceptance.json=evidence/int8/style-acceptance.json
+artifacts/evaluation/cadence-release-v0.11-int8/affect-acceptance.json=evidence/int8/affect-acceptance.json
+artifacts/evaluation/cadence-release-v0.11-int8/wesr-report.json=evidence/int8/wesr.json
+artifacts/evaluation/cadence-release-v0.11-int8/berst-confirmation-report.json=evidence/int8/berst-confirmation.json
+artifacts/evaluation/cadence-release-v0.11-int8/ravdess-report.json=evidence/int8/ravdess.json
+
 # Reproducibility and release decisions
 artifacts/training/cadence-release-candidate-v0.11/composition.json=composition.json
 artifacts/training/local-event-weak-v1.2/lineage.json=lineage/event.json
