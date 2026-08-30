@@ -33,6 +33,9 @@ def passing_metrics() -> ReleaseMetrics:
         xml_validity_rate=1.0,
         cpu_real_time_factor=0.82,
         committed_retraction_rate=0.0,
+        event_external_validation_passed=True,
+        style_external_validation_passed=True,
+        affect_external_validation_passed=True,
         hostile_speech_regression_passed=True,
     )
 
@@ -67,3 +70,21 @@ def test_release_fails_closed_without_hostile_speech_retest() -> None:
         if not result.passed
     }
     assert failed == {"hostile_speech_regression"}
+
+
+@pytest.mark.parametrize(
+    ("metric", "gate"),
+    [
+        ("event_external_validation_passed", "event_external_validation"),
+        ("style_external_validation_passed", "style_external_validation"),
+        ("affect_external_validation_passed", "affect_external_validation"),
+    ],
+)
+def test_release_fails_closed_without_external_validation(metric: str, gate: str) -> None:
+    values = passing_metrics().__dict__ | {metric: False}
+    failed = {
+        result.name
+        for result in evaluate_release_gates(ReleaseMetrics(**values))
+        if not result.passed
+    }
+    assert failed == {gate}

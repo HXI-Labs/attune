@@ -42,12 +42,18 @@ def test_assemble_maps_reports_without_manual_copying() -> None:
             "cpu_real_time_factor": 0.7,
             "committed_retraction_rate": 0.0,
         },
+        event_acceptance={"candidate_passes": True},
+        style_acceptance={"candidate_passes": True},
+        affect_acceptance={"candidate_passes": True},
         parameter_count=235_291_018,
     )
 
     assert metrics["base_wer"] == 0.1
     assert metrics["int8_wer"] == 0.108
     assert metrics["fp_event_macro_f1"] == 0.7
+    assert metrics["event_external_validation_passed"] is True
+    assert metrics["style_external_validation_passed"] is True
+    assert metrics["affect_external_validation_passed"] is True
     assert metrics["hostile_speech_regression_passed"] is False
 
 
@@ -58,5 +64,27 @@ def test_assemble_fails_closed_on_missing_evidence() -> None:
             full_precision={"asr_wer": 0.1},
             int8=_sealed(0.1),
             deployment={},
+            event_acceptance={"candidate_passes": True},
+            style_acceptance={"candidate_passes": True},
+            affect_acceptance={"candidate_passes": True},
+            parameter_count=1,
+        )
+
+
+def test_assemble_rejects_non_boolean_acceptance() -> None:
+    with pytest.raises(ValueError, match="event acceptance"):
+        MODULE.assemble(
+            base={"asr_wer": 0.1},
+            full_precision=_sealed(0.1),
+            int8=_sealed(0.1),
+            deployment={
+                "json_validity_rate": 1.0,
+                "xml_validity_rate": 1.0,
+                "cpu_real_time_factor": 0.7,
+                "committed_retraction_rate": 0.0,
+            },
+            event_acceptance={"candidate_passes": 1},
+            style_acceptance={"candidate_passes": True},
+            affect_acceptance={"candidate_passes": True},
             parameter_count=1,
         )

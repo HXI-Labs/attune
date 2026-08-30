@@ -36,6 +36,9 @@ class ReleaseMetrics:
     xml_validity_rate: float
     cpu_real_time_factor: float
     committed_retraction_rate: float
+    event_external_validation_passed: bool
+    style_external_validation_passed: bool
+    affect_external_validation_passed: bool
     hostile_speech_regression_passed: bool
 
     @classmethod
@@ -50,7 +53,7 @@ class ReleaseMetrics:
 class GateResult:
     name: str
     passed: bool
-    observed: float | int
+    observed: float | int | bool
     requirement: str
 
 
@@ -131,6 +134,24 @@ def evaluate_release_gates(metrics: ReleaseMetrics) -> list[GateResult]:
         maximum("cpu_real_time_factor", metrics.cpu_real_time_factor, 1.0),
         maximum("committed_retraction_rate", metrics.committed_retraction_rate, 0.0),
         GateResult(
+            "event_external_validation",
+            metrics.event_external_validation_passed,
+            metrics.event_external_validation_passed,
+            "must pass the predeclared external event gates",
+        ),
+        GateResult(
+            "style_external_validation",
+            metrics.style_external_validation_passed,
+            metrics.style_external_validation_passed,
+            "must pass BERSt, WESR, negative-control, and gain-robustness gates",
+        ),
+        GateResult(
+            "affect_external_validation",
+            metrics.affect_external_validation_passed,
+            metrics.affect_external_validation_passed,
+            "must pass core, conflict, RAVDESS, and sealed BERSt gates",
+        ),
+        GateResult(
             "hostile_speech_regression",
             metrics.hostile_speech_regression_passed,
             metrics.hostile_speech_regression_passed,
@@ -143,7 +164,7 @@ def write_release_gate_report(
     path: Path, metrics: ReleaseMetrics, results: list[GateResult]
 ) -> dict[str, Any]:
     payload = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "release_ready": all(result.passed for result in results),
         "metrics": asdict(metrics),
         "gates": [asdict(result) for result in results],

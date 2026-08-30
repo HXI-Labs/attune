@@ -25,5 +25,8 @@
   "xml_validity_rate": 0.0,
   "cpu_real_time_factor": 0.0,
   "committed_retraction_rate": 0.0,
+  "event_external_validation_passed": false,
+  "style_external_validation_passed": false,
+  "affect_external_validation_passed": false,
   "hostile_speech_regression_passed": false
 }

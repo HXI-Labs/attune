@@ -22,12 +22,22 @@ def _required(value: dict[str, Any], *path: str) -> Any:
     return current
 
 
+def _accepted(value: dict[str, Any], name: str) -> bool:
+    accepted = _required(value, "candidate_passes")
+    if not isinstance(accepted, bool):
+        raise ValueError(f"{name} acceptance candidate_passes must be a boolean")
+    return accepted
+
+
 def assemble(
     *,
     base: dict[str, Any],
     full_precision: dict[str, Any],
     int8: dict[str, Any],
     deployment: dict[str, Any],
+    event_acceptance: dict[str, Any],
+    style_acceptance: dict[str, Any],
+    affect_acceptance: dict[str, Any],
     parameter_count: int,
     hostile_speech_regression_passed: bool = False,
 ) -> dict[str, Any]:
@@ -66,6 +76,9 @@ def assemble(
         "xml_validity_rate": _required(deployment, "xml_validity_rate"),
         "cpu_real_time_factor": _required(deployment, "cpu_real_time_factor"),
         "committed_retraction_rate": _required(deployment, "committed_retraction_rate"),
+        "event_external_validation_passed": _accepted(event_acceptance, "event"),
+        "style_external_validation_passed": _accepted(style_acceptance, "style"),
+        "affect_external_validation_passed": _accepted(affect_acceptance, "affect"),
         "hostile_speech_regression_passed": hostile_speech_regression_passed,
     }
 
@@ -76,6 +89,9 @@ def main() -> None:
     parser.add_argument("--fp", type=Path, required=True)
     parser.add_argument("--int8", type=Path, required=True)
     parser.add_argument("--deployment", type=Path, required=True)
+    parser.add_argument("--event-acceptance", type=Path, required=True)
+    parser.add_argument("--style-acceptance", type=Path, required=True)
+    parser.add_argument("--affect-acceptance", type=Path, required=True)
     parser.add_argument("--parameter-count", type=int, required=True)
     parser.add_argument("--hostile-speech-regression-passed", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
@@ -85,6 +101,9 @@ def main() -> None:
         full_precision=_load(arguments.fp),
         int8=_load(arguments.int8),
         deployment=_load(arguments.deployment),
+        event_acceptance=_load(arguments.event_acceptance),
+        style_acceptance=_load(arguments.style_acceptance),
+        affect_acceptance=_load(arguments.affect_acceptance),
         parameter_count=arguments.parameter_count,
         hostile_speech_regression_passed=arguments.hostile_speech_regression_passed,
     )

@@ -52,6 +52,13 @@ RELEASE_FILES = (
     ),
 )
 
+REQUIRED_PUBLICATION_GATES = {
+    "event_external_validation",
+    "style_external_validation",
+    "affect_external_validation",
+    "hostile_speech_regression",
+}
+
 
 def release_files(root: Path, *, include_fp: bool) -> list[tuple[Path, str]]:
     selected = [item for item in RELEASE_FILES if include_fp or not item.optional]
@@ -68,12 +75,22 @@ def require_release_ready(root: Path) -> None:
         report = json.loads(gate_path.read_text())
     except (OSError, json.JSONDecodeError) as error:
         raise RuntimeError(f"cannot verify release gates at {gate_path}: {error}") from error
+    if report.get("schema_version") != "1.1":
+        raise RuntimeError("Hugging Face publication is blocked: stale release-gate schema")
+
+    gate_status = {
+        str(gate.get("name")): gate.get("passed") is True
+        for gate in report.get("gates", [])
+        if isinstance(gate, dict)
+    }
+    missing = sorted(REQUIRED_PUBLICATION_GATES - gate_status.keys())
+    if missing:
+        raise RuntimeError(
+            "Hugging Face publication is blocked: missing required gates: " + ", ".join(missing)
+        )
+
     if report.get("release_ready") is not True:
-        failed = [
-            str(gate.get("name", "unknown"))
-            for gate in report.get("gates", [])
-            if gate.get("passed") is not True
-        ]
+        failed = [name for name, passed in gate_status.items() if not passed]
         detail = ", ".join(failed) if failed else "release_ready is not true"
         raise RuntimeError(f"Hugging Face publication is blocked: {detail}")
 
