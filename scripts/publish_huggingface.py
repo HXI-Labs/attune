@@ -24,6 +24,7 @@ REQUIRED_BUNDLE_DESTINATIONS = {
     "quantization.json",
     "release-gates.json",
     "artifact-manifest.json",
+    "hostile-speech-regression.json",
 }
 
 

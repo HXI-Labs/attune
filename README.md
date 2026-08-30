@@ -277,6 +277,32 @@ uv run python scripts/publish_huggingface.py \
   --dry-run
 ```
 
+The hostile-speech gate cannot be enabled with a bare Boolean flag. Analyse a
+fresh, consented, event-free human recording of the regression sentence with
+the final graph, then create the hashed evidence report:
+
+```bash
+uv run python scripts/infer_onnx.py hostile-human.wav \
+  --model <final-model.onnx> \
+  --sensevoice-path data/raw/model-cache/sensevoice-small \
+  --calibration <final-calibration.json> \
+  --quantization int8 \
+  --output-dir artifacts/release/cadence-v0.1/hostile
+
+uv run python scripts/check_hostile_speech_regression.py \
+  --audio hostile-human.wav \
+  --inference artifacts/release/cadence-v0.1/hostile/hostile-human.attune.json \
+  --model <final-model.onnx> \
+  --calibration <final-calibration.json> \
+  --human-recording-confirmed \
+  --speaker-consent-confirmed \
+  --output artifacts/release/cadence-v0.1/hostile-speech-regression.json
+```
+
+The check requires an exact normalized transcript at confidence 0.90 or above
+and no event or style output for that deliberately event-free, ordinary-voice
+recording. The release bundle includes the report, not the identifiable WAV.
+
 Omit `--dry-run` to upload privately. Public repository creation additionally
 requires `--public` and should happen only after the model-weight and training-
 data redistribution review is recorded.

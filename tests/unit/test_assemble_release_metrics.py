@@ -71,6 +71,45 @@ def test_assemble_fails_closed_on_missing_evidence() -> None:
         )
 
 
+def test_assemble_accepts_hashed_human_regression_evidence() -> None:
+    evidence = {
+        name: {"sha256": "a" * 64} for name in ("audio", "inference", "model", "calibration")
+    }
+    metrics = MODULE.assemble(
+        base={"asr_wer": 0.1},
+        full_precision=_sealed(0.105),
+        int8=_sealed(0.108),
+        deployment={
+            "json_validity_rate": 1.0,
+            "xml_validity_rate": 1.0,
+            "cpu_real_time_factor": 0.7,
+            "committed_retraction_rate": 0.0,
+        },
+        event_acceptance={"candidate_passes": True},
+        style_acceptance={"candidate_passes": True},
+        affect_acceptance={"candidate_passes": True},
+        parameter_count=235_291_018,
+        hostile_speech_report={
+            "passed": True,
+            "human_recording_confirmed": True,
+            "speaker_consent_confirmed": True,
+            **evidence,
+        },
+    )
+
+    assert metrics["hostile_speech_regression_passed"] is True
+
+
+def test_assemble_rejects_unhashed_hostile_regression() -> None:
+    report = {
+        "passed": True,
+        "human_recording_confirmed": True,
+        "speaker_consent_confirmed": True,
+    }
+
+    assert MODULE._accepted_hostile_regression(report) is False
+
+
 def test_assemble_rejects_non_boolean_acceptance() -> None:
     with pytest.raises(ValueError, match="event acceptance"):
         MODULE.assemble(

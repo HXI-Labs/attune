@@ -29,6 +29,30 @@ def _accepted(value: dict[str, Any], name: str) -> bool:
     return accepted
 
 
+def _accepted_hostile_regression(value: dict[str, Any] | None) -> bool:
+    if value is None:
+        return False
+    required_confirmations = (
+        value.get("passed") is True,
+        value.get("human_recording_confirmed") is True,
+        value.get("speaker_consent_confirmed") is True,
+    )
+    evidence = (
+        value.get("audio"),
+        value.get("inference"),
+        value.get("model"),
+        value.get("calibration"),
+    )
+    hashes_are_present = all(
+        isinstance(record, dict)
+        and isinstance(record.get("sha256"), str)
+        and len(record["sha256"]) == 64
+        and all(character in "0123456789abcdef" for character in record["sha256"])
+        for record in evidence
+    )
+    return all(required_confirmations) and hashes_are_present
+
+
 def assemble(
     *,
     base: dict[str, Any],
@@ -39,7 +63,7 @@ def assemble(
     style_acceptance: dict[str, Any],
     affect_acceptance: dict[str, Any],
     parameter_count: int,
-    hostile_speech_regression_passed: bool = False,
+    hostile_speech_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "parameter_count": parameter_count,
@@ -79,7 +103,7 @@ def assemble(
         "event_external_validation_passed": _accepted(event_acceptance, "event"),
         "style_external_validation_passed": _accepted(style_acceptance, "style"),
         "affect_external_validation_passed": _accepted(affect_acceptance, "affect"),
-        "hostile_speech_regression_passed": hostile_speech_regression_passed,
+        "hostile_speech_regression_passed": _accepted_hostile_regression(hostile_speech_report),
     }
 
 
@@ -93,7 +117,7 @@ def main() -> None:
     parser.add_argument("--style-acceptance", type=Path, required=True)
     parser.add_argument("--affect-acceptance", type=Path, required=True)
     parser.add_argument("--parameter-count", type=int, required=True)
-    parser.add_argument("--hostile-speech-regression-passed", action="store_true")
+    parser.add_argument("--hostile-speech-report", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     metrics = assemble(
@@ -105,7 +129,7 @@ def main() -> None:
         style_acceptance=_load(arguments.style_acceptance),
         affect_acceptance=_load(arguments.affect_acceptance),
         parameter_count=arguments.parameter_count,
-        hostile_speech_regression_passed=arguments.hostile_speech_regression_passed,
+        hostile_speech_report=_load(arguments.hostile_speech_report),
     )
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     arguments.output.write_text(json.dumps(metrics, indent=2) + "\n")

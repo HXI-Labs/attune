@@ -1,12 +1,13 @@
-# Attune v0.1 source-labelled dataset card
+# Attune release-candidate dataset card
 
 ## Status and claim boundary
 
-This is a multi-corpus bundle, not a new gold dataset. Every label retains its
-source status. Audio is not committed or redistributed. Feature/audio hashes
-and source revisions are recorded in manifests and `data/provenance/`.
+This project uses several head-specific multi-corpus bundles, not one new gold
+dataset. Every label retains its source status. Audio is not committed or
+redistributed by this repository. Feature/audio hashes and pinned source
+revisions are recorded in manifests and `data/provenance/`.
 
-## Components
+## Original prototype bundle
 
 | Source | Purpose | Split rule | Important limitation |
 |---|---|---|---|
@@ -29,6 +30,26 @@ The corresponding source-audio manifest SHA-256 is
 `685d3353f79a3567c9e64a58b93854cdb6f44bbfac09bcbbeae56cc5d6e527de`.
 The release artifact manifest records both files and the audit report.
 
+## Subsequent candidate sources
+
+Later isolated event, style, and affect branches add the following sources.
+They do not silently change the original prototype split or convert weak
+labels into gold annotations.
+
+| Source | Prepared clips | Purpose | Split rule | Important limitation |
+|---|---:|---|---|---|
+| SUBESCO v1.1 | 7,000 | auxiliary acoustic affect | 14/2/4 actors across train/development/sealed | Bangla acted intended labels; no English ASR supervision |
+| Thorsten Emotional v2 | 2,399 | auxiliary affect and whisper experiments | 210/45/45 sentences across train/development/sealed | one German speaker; cannot establish English or speaker generalization |
+| BERSt | 4,441 | English shouting, affect, ASR replay, device/gain robustness | official 78/10/10-speaker train/development/sealed split | actor prompts are intended delivery, not listener distributions |
+| DisfluencySpeech | 5,000 | weak event-presence training | official 4,500/250/250 sentence-disjoint clips | one English speaker; no timestamps inferred from word-position tags |
+| Attune inline-event mixtures | 2,715 | synthetic strong event-span augmentation | Common Voice speaker-disjoint train/development sources; sealed sources excluded | exact synthesis envelopes are not human event boundaries |
+
+SUBESCO and BERSt are CC BY 4.0; Thorsten Emotional is CC0 1.0;
+DisfluencySpeech is Apache-2.0; inline-event mixtures combine CC0 Common Voice
+speech with CC BY-SA 4.0 VocalSound events and retain the share-alike condition.
+Exact source hashes, attribution, and redistribution notes are in the
+corresponding provenance records.
+
 ## Supervision semantics
 
 - DCASE onset/offset annotations may supervise localized spans.
@@ -36,6 +57,12 @@ The release artifact manifest records both files and the audit report.
 - FSD50K shout/whisper labels supervise only utterance-scope styles.
 - CREMA-D categories are acted source labels, not Attune consensus or verified
   internal emotion.
+- SUBESCO and BERSt affect categories are acted or prompted intended-delivery
+  labels, not listener-verified perceived affect.
+- BERSt `shout` supervises only `shouting`; `no-shout` is an explicit negative.
+- DisfluencySpeech transcript tags supervise utterance event presence only.
+- Inline-event mixtures supervise their deterministic insertion spans but are
+  never external evaluation evidence.
 - DCASE/FSD50K are known OOD examples for affect, but remain in-domain for
   their event/style tasks.
 - Missing task annotations are masked, never converted to negatives.
@@ -48,9 +75,12 @@ it does not alter this v0.1 manifest. See
 ## Leakage controls
 
 The source validator rejects duplicate IDs and known speakers crossing splits.
-DCASE groups source recordings. Common Voice uses unique clients. CREMA-D uses
-disjoint actors. FSD50K lacks speaker identity, so its clip/inspection exclusion
-is retained and reported as a limitation.
+DCASE groups source recordings. Common Voice uses unique clients. CREMA-D,
+SUBESCO, and BERSt use disjoint actors. BERSt preparation also excludes all 82
+rows in 31 repeated-waveform groups, including a group that crossed official
+development and test partitions. FSD50K lacks speaker identity. Thorsten and
+DisfluencySpeech contain one speaker each, so only sentence/clip disjointness
+can be claimed for those corpora.
 
 ## Rights, privacy, and release
 
@@ -69,8 +99,9 @@ and evaluated on the already-opened partition. The final ASR score therefore
 needs confirmation on a new untouched external set. The perception branch was
 not retuned from sealed labels.
 
-The current bundle does not establish naturalistic cross-corpus affect,
-multi-rater ambiguity, subgroup fairness, or broad accent robustness. CREMA-D
-affect is acted and one-hot; DCASE timing is synthetic; FSD50K and VocalSound
-labels are weak or acted. These limitations are part of the evidence, not
-future labels to infer away.
+The current sources do not establish naturalistic cross-corpus affect,
+multi-rater ambiguity, subgroup fairness, or broad accent robustness. Most
+affect labels are acted, prompted, and one-hot. DCASE timing and inline-event
+mixtures are synthetic; FSD50K, VocalSound, and DisfluencySpeech labels are
+weak or acted. These limitations are part of the evidence, not future labels
+to infer away.
