@@ -44,8 +44,19 @@ def audit_joint_manifest(
             f"expected only {expected_feature_size}-wide features; found {dict(feature_sizes)}"
         )
 
+    split_units: dict[str, set[str]] = collections.defaultdict(set)
+    for row in rows:
+        split_units[row.dataset_id].add(row.split_unit)
+    mixed_units = {
+        dataset_id: sorted(units) for dataset_id, units in split_units.items() if len(units) > 1
+    }
+    if mixed_units:
+        raise ValueError(f"datasets mix split-unit policies: {mixed_units}")
+
     speakers = {
-        split: {row.speaker_id for row in dataset.rows if row.speaker_id}
+        split: {
+            row.speaker_id for row in dataset.rows if row.speaker_id and row.split_unit == "speaker"
+        }
         for split, dataset in datasets.items()
     }
     overlaps = {
@@ -58,6 +69,18 @@ def audit_joint_manifest(
     }
     if any(overlaps.values()):
         raise ValueError(f"known speakers cross partitions: {overlaps}")
+
+    pair_splits: dict[tuple[str, int], str] = {}
+    crossed_pairs = []
+    for row in rows:
+        if row.split_unit != "sentence":
+            continue
+        key = (row.dataset_id, row.pair_id)
+        previous = pair_splits.setdefault(key, row.split)
+        if previous != row.split:
+            crossed_pairs.append((row.dataset_id, row.pair_id, previous, row.split))
+    if crossed_pairs:
+        raise ValueError(f"sentence pairs cross partitions: {crossed_pairs[:5]}")
 
     dataset_counts = collections.Counter(row.dataset_id for row in rows)
 
@@ -109,6 +132,7 @@ def audit_joint_manifest(
         "feature_sizes": {str(key): value for key, value in sorted(feature_sizes.items())},
         "unique_feature_paths": len(set(feature_paths)),
         "known_speaker_overlap": overlaps,
+        "sentence_disjoint_pairs": len(pair_splits),
         "supervision_rows": dict(supervision),
         "supervision_by_split": supervision_by_split,
         "duration_hours": sum(row.duration_ms for row in rows) / 3_600_000.0,

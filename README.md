@@ -12,8 +12,8 @@ protected-trait inference, surveillance, or automated high-stakes decisions.
 
 ## Current status
 
-The code, evaluation pipeline, local API, browser test interface, and deployment
-exports are implemented. Model publication remains disabled.
+The code, evaluation pipeline, local API, browser test interface, and ONNX
+export path are implemented. Model publication remains disabled.
 
 A live hostile-speech test produced an accurate transcript but false
 `whispering`, `cough`, and `sneeze` annotations. Runtime hardening now permits
@@ -22,19 +22,24 @@ confidence. Utterance-level event and style allowlists are empty. The original
 uploaded clip was processed in memory and was not retained, so a recording of
 that case must be tested again before release.
 
-ASR is not the current failure. On an external 480-clip RAVDESS inspection set,
-the deployed INT8 lineage reached 0.0104 WER, while affect macro-F1 was 0.1213
-and 70.8% of clips were classified as anger. The release gate therefore remains
-closed while a frozen-encoder, full-head affect candidate is trained and
-evaluated. The encoder and CTC parameters are locked during this work.
+ASR is not the current failure. Cadence v0.9 keeps a frozen base-ASR tail; its
+CTC logits are bit-identical to the preceding candidate on real speech clips.
+The 241,904,650-parameter model adapts the upper acoustic encoder for perception
+and then trains isolated event, style, and affect branches. Its self-contained
+delta contains 7,905,483 learned parameters; the remaining base weights stay
+frozen.
 
-The last complete mixed-precision candidate had 241,609,098 parameters and a
-595 MB ONNX graph. Its small reviewed sealed set produced 0.0782 WER, 0.6548
-localized-event segment macro-F1, and no auxiliary false positives across 189
-ordinary-speech controls. Those results do not establish broad naturalistic
-emotion recognition. Detailed results and limitations are in
-[`research/v0.1-implementation-status.md`](research/v0.1-implementation-status.md)
-and [`research/ravdess-affect-external-v0.1.md`](research/ravdess-affect-external-v0.1.md).
+The current candidate reaches affect macro-F1 of 0.6643 on development, 0.6336
+on the opened regression set, and 0.3853 on the external 480-clip RAVDESS set.
+Localized-event segment macro-F1 is 0.6204 on opened regression data, with no
+localized false positives across 549 regression speech controls or 480
+RAVDESS speech clips. External WESR results remain weak: temporal event
+presence macro-F1 is 0.2882 and style macro-F1 is 0.3795. Event-presence and
+style allowlists therefore remain empty, quantization is deferred, and the
+fresh confirmation set remains sealed. Protocols and complete results are in
+[`research/affect-focus-v0.9-protocol.md`](research/affect-focus-v0.9-protocol.md),
+[`research/event-hardening-v0.8-protocol.md`](research/event-hardening-v0.8-protocol.md),
+and [`research/style-branch-v0.7-protocol.md`](research/style-branch-v0.7-protocol.md).
 
 ## Output
 
@@ -153,10 +158,9 @@ The deployment path keeps transcript content and model-produced metadata in
 separate fields. Downstream applications should pass them through trusted
 structured channels rather than concatenate markup into the spoken text.
 
-The current export uses mixed precision. Most eligible shared weights are
-dynamic per-channel INT8, while sensitive tail and output layers remain in
-floating point. Export reports record the exact excluded nodes; the `INT8`
-label does not mean that every operator is quantized.
+The active v0.9 candidate is a full-precision ONNX export. INT8 work is deferred
+until the external affect, event, and style gates pass; quantizing an unreleasable
+candidate would not resolve its data-generalization failures.
 
 ## Installation
 
@@ -181,10 +185,10 @@ The command-line runner accepts PCM16, 16 kHz, mono WAV files between 0.5 and
 
 ```bash
 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/infer_onnx.py \
-  --model artifacts/models/attune-split-tail-v0.1-int8.onnx \
+  --model artifacts/models/attune-affect-focus-v0.9-fp.onnx \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
-  --calibration artifacts/evaluation/split-tail-v0.1/int8-calibration.json \
-  --quantization int8 \
+  --calibration artifacts/evaluation/affect-focus-v0.9/calibration.json \
+  --quantization fp32 \
   --xml input.wav
 ```
 
@@ -192,10 +196,10 @@ Run the same backend behind FastAPI:
 
 ```bash
 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/serve.py \
-  --model artifacts/models/attune-split-tail-v0.1-int8.onnx \
+  --model artifacts/models/attune-affect-focus-v0.9-fp.onnx \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
-  --calibration artifacts/evaluation/split-tail-v0.1/int8-calibration.json \
-  --quantization int8
+  --calibration artifacts/evaluation/affect-focus-v0.9/calibration.json \
+  --quantization fp32
 ```
 
 The service exposes `POST /v1/analyse`, `WS /v1/stream`, `/healthz`, and
@@ -213,10 +217,10 @@ ATTUNE_DEMO_USERNAME=attune-test \
 ATTUNE_DEMO_PASSWORD='generate-a-new-secret' \
 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 \
 uv run python scripts/serve.py \
-  --model artifacts/models/attune-split-tail-v0.1-int8.onnx \
+  --model artifacts/models/attune-affect-focus-v0.9-fp.onnx \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
-  --calibration artifacts/evaluation/split-tail-v0.1/int8-calibration.json \
-  --quantization int8
+  --calibration artifacts/evaluation/affect-focus-v0.9/calibration.json \
+  --quantization fp32
 ```
 
 Uploads are processed in memory. A reverse proxy or tunnel still handles audio
@@ -229,8 +233,8 @@ task labels are masked rather than interpreted as negatives. Each run records
 the manifest hash, training-source hash, seed, configuration, parameter counts,
 loss history, elapsed time, and estimated compute cost.
 
-The current frozen full-head protocol is documented in
-[`research/frozen-full-head-v0.6-protocol.md`](research/frozen-full-head-v0.6-protocol.md).
+The current affect-focused protocol is documented in
+[`research/affect-focus-v0.9-protocol.md`](research/affect-focus-v0.9-protocol.md).
 The wider reproduction guide is
 [`docs/cloud-training.md`](docs/cloud-training.md). Dataset and weight terms are
 recorded under [`data/provenance/`](data/provenance/); third-party audio and

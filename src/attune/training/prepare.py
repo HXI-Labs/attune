@@ -33,7 +33,7 @@ class SourceRow(BaseModel):
     is_ood: bool = False
     lexical_affect_label: str | None = None
     split_unit: Literal["speaker", "sentence"] = "speaker"
-    auxiliary_negative_tasks: list[Literal["event_presence", "styles"]] = Field(
+    auxiliary_negative_tasks: list[Literal["localized_events", "event_presence", "styles"]] = Field(
         default_factory=list
     )
 
@@ -43,6 +43,8 @@ class SourceRow(BaseModel):
             raise ValueError("audio_sha256 must be a SHA-256 hex digest")
         if "event_presence" in self.auxiliary_negative_tasks and self.event_presence != []:
             raise ValueError("event-presence controls require an explicit empty target list")
+        if "localized_events" in self.auxiliary_negative_tasks and self.events != []:
+            raise ValueError("localized-event controls require an explicit empty target list")
         if "styles" in self.auxiliary_negative_tasks and self.styles != []:
             raise ValueError("style controls require an explicit empty target list")
         if self.auxiliary_negative_tasks and self.transcript is None:
@@ -154,6 +156,7 @@ def prepare_joint_features(
                 pair_id=row.pair_id,
                 is_ood=row.is_ood,
                 lexical_affect_label=row.lexical_affect_label,
+                split_unit=row.split_unit,
                 auxiliary_negative_tasks=row.auxiliary_negative_tasks,
             )
         )

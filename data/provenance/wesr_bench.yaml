@@ -1,0 +1,34 @@
+dataset_id: wesr_bench_en_v0.1
+dataset_name: WESR-Bench
+source_url: https://huggingface.co/datasets/yfish/WESR-Bench
+paper_url: https://arxiv.org/abs/2601.04508
+intended_use: External English event and style evaluation only
+licence:
+  name: MIT License
+  identifier: MIT
+  source_text_url: https://huggingface.co/datasets/yfish/WESR-Bench/blob/main/README.md
+  licence_review_status: dataset_card_reviewed_evaluation_only
+  reviewed_by: Codex on behalf of Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-30"
+redistribution:
+  original_audio: not_authorised_by_this_review
+  derived_manifest: internal_only_pending_source_audit
+contains_personal_data: true
+downloaded_at: "2026-08-30"
+download:
+  repository: yfish/WESR-Bench
+  revision: b36cdd52cf648073d179258b4a3c656e571ad133
+  english_parquet: data/raw/wesr-bench/data/en-00000-of-00001.parquet
+  english_parquet_sha256: e9bda3cfaf3c14ccdbf9e06c64d1ef838035c2bdce3965112ee94cdf35d2d515
+  dataset_card_sha256: e25c3f0a84573660379169fef99508bc235edf471232569b784991a54d2a7819
+evaluation_slice:
+  language: English
+  clips: 438
+  training_use: prohibited_for_attune_v0.1
+  calibration_use: prohibited
+  source_markup_retained: true
+notes:
+  - The dataset card labels WESR-Bench as MIT; the paper describes publicly sourced audio. Evaluation remains local while source-level redistribution terms are audited.
+  - The annotation sidecar retains mapped Project Attune ontology labels, while the score manifest contains only labels emitted by the current checkpoint: six event classes plus shouting and whispering.
+  - Keep audio and derived features off git and do not download them in CI.
+  - This is an operational research review, not legal advice or lawyer sign-off.

@@ -19,6 +19,8 @@ class DatasetControlPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid")
     event_presence: ControlAction
     styles: ControlAction
+    localized_events: ControlAction = "preserve_source_annotation"
+    split_unit: Literal["speaker", "sentence"] | None = None
     rationale: str | None = None
 
 
@@ -37,17 +39,24 @@ def load_control_policy(path: Path) -> AuxiliaryControlPolicy:
 def apply_control_policy(row: JointManifestRow, policy: AuxiliaryControlPolicy) -> JointManifestRow:
     selected = policy.datasets.get(row.dataset_id, policy.default)
     updates: dict[str, object] = {}
+    if selected.split_unit is not None:
+        updates["split_unit"] = selected.split_unit
     negative_tasks = list(row.auxiliary_negative_tasks)
-    for task in ("event_presence", "styles"):
+    target_fields = {
+        "localized_events": "events",
+        "event_presence": "event_presence",
+        "styles": "styles",
+    }
+    for task, field in target_fields.items():
         action = getattr(selected, task)
         if action != "explicit_negative":
             continue
-        current = getattr(row, task)
+        current = getattr(row, field)
         if current not in (None, []):
             raise ValueError(
                 f"{row.dataset_id}:{row.clip_id} already has positive {task} supervision"
             )
-        updates[task] = []
+        updates[field] = []
         if task not in negative_tasks:
             negative_tasks.append(task)
     if not updates:

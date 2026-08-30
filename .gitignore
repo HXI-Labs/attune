@@ -39,3 +39,6 @@ model-cache/
 
 # Local demo audio; JSON/XML/HTML may be tracked.
 research/demo/*.wav
+
+# Generated WESR evaluation manifests retain third-party transcript markup.
+data/manifests/wesr-bench-*.jsonl

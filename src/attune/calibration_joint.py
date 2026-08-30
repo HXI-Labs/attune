@@ -29,9 +29,7 @@ def _binary_nll(logits: np.ndarray, targets: np.ndarray, temperature: float) -> 
 
 def _binary_temperature(logits: np.ndarray, targets: np.ndarray) -> float:
     candidates = np.geomspace(0.25, 10.0, 160)
-    return float(
-        min(candidates, key=lambda value: _binary_nll(logits, targets, float(value)))
-    )
+    return float(min(candidates, key=lambda value: _binary_nll(logits, targets, float(value))))
 
 
 def _affect_nll(
@@ -130,18 +128,17 @@ def _affect_threshold(probabilities: np.ndarray, targets: np.ndarray) -> float:
     return best[1]
 
 
-def _speech_controls(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [
-        row
-        for row in rows
-        if bool(row.get("auxiliary_negative_tasks"))
-        or (
-            "reference_transcript" in row
-            and "event_targets" not in row
-            and "event_presence_targets" not in row
-            and "style_targets" not in row
-        )
-    ]
+def _localized_event_controls(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    controls = []
+    for row in rows:
+        negative_tasks = row.get("auxiliary_negative_tasks")
+        if negative_tasks is not None:
+            if "localized_events" in negative_tasks:
+                controls.append(row)
+            continue
+        if "reference_transcript" in row and "event_targets" not in row:
+            controls.append(row)
+    return controls
 
 
 def _event_thresholds(
@@ -224,7 +221,7 @@ def fit_runtime_calibration(rows: list[dict[str, Any]]) -> RuntimeCalibration:
         event_thresholds=_event_thresholds(
             event_probabilities,
             event_targets,
-            _speech_controls(rows),
+            _localized_event_controls(rows),
             event_temperature,
         ),
         event_presence_temperature=presence_temperature,

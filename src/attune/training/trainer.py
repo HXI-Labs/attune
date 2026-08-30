@@ -36,6 +36,11 @@ _TRAINING_SOURCE_FILES = (
     "src/attune/training/losses.py",
     "src/attune/training/trainer.py",
 )
+_TARGET_PARAMETER_PREFIXES = {
+    "affect": ("affect_projection.", "affect_head."),
+    "events": ("event_head.",),
+    "styles": ("style_projection.", "style_head."),
+}
 
 
 @dataclass(frozen=True)
@@ -116,6 +121,15 @@ def _targets_for_loss(targets: JointTargets, *, include_ctc_loss: bool) -> Joint
         ctc_target_lengths=None,
         ctc_example_mask=None,
     )
+
+
+def _restrict_training_target(model: AttuneJointModel, target: str | None) -> None:
+    prefixes = _TARGET_PARAMETER_PREFIXES.get(target)
+    if prefixes is None:
+        return
+    for name, parameter in model.named_parameters():
+        if not name.startswith(prefixes):
+            parameter.requires_grad_(False)
 
 
 def _atomic_torch_save(value: Any, path: Path) -> None:
@@ -216,10 +230,7 @@ def train_joint_model(
     if config.encoder_learning_rate == 0:
         for parameter in model.sensevoice.parameters():
             parameter.requires_grad_(False)
-    if config.training_target == "styles":
-        for name, parameter in model.named_parameters():
-            if not name.startswith(("style_projection.", "style_head.")):
-                parameter.requires_grad_(False)
+    _restrict_training_target(model, config.training_target)
     model.to(device)
     parameter_summary = model.trainable_parameter_summary()
     if (

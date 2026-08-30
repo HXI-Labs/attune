@@ -11,7 +11,7 @@ from attune.training.controls import (
 from attune.training.data import JointManifestRow
 
 
-def _row(dataset: str, *, event_presence=None, styles=None) -> JointManifestRow:
+def _row(dataset: str, *, events=None, event_presence=None, styles=None) -> JointManifestRow:
     return JointManifestRow(
         clip_id="clip-1",
         dataset_id=dataset,
@@ -22,6 +22,7 @@ def _row(dataset: str, *, event_presence=None, styles=None) -> JointManifestRow:
         duration_ms=1000,
         frame_hop_ms=60,
         transcript="ordinary speech",
+        events=events,
         event_presence=event_presence,
         styles=styles,
     )
@@ -61,6 +62,52 @@ def test_control_policy_refuses_to_overwrite_positive_supervision() -> None:
         assert "already has positive" in str(error)
     else:
         raise AssertionError("positive supervision was silently overwritten")
+
+
+def test_control_policy_adds_empty_localized_event_targets() -> None:
+    policy = _policy().model_copy(
+        update={
+            "datasets": {
+                "speech": _policy()
+                .datasets["speech"]
+                .model_copy(update={"localized_events": "explicit_negative"})
+            }
+        }
+    )
+
+    controlled = apply_control_policy(_row("speech"), policy)
+
+    assert controlled.events == []
+    assert controlled.auxiliary_negative_tasks == [
+        "localized_events",
+        "event_presence",
+        "styles",
+    ]
+
+
+def test_control_policy_refuses_to_overwrite_localized_events() -> None:
+    policy = _policy().model_copy(
+        update={
+            "datasets": {
+                "speech": _policy()
+                .datasets["speech"]
+                .model_copy(update={"localized_events": "explicit_negative"})
+            }
+        }
+    )
+
+    try:
+        apply_control_policy(
+            _row(
+                "speech",
+                events=[{"label": "laugh", "start_ms": 100, "end_ms": 200}],
+            ),
+            policy,
+        )
+    except ValueError as error:
+        assert "positive localized_events" in str(error)
+    else:
+        raise AssertionError("localized event supervision was silently overwritten")
 
 
 def test_control_manifest_records_policy_and_counts(tmp_path: Path) -> None:

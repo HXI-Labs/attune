@@ -297,12 +297,16 @@ def evaluate_joint_scores(
     report: dict[str, Any] = {"schema_version": "1.0", "clips": len(rows)}
 
     def negative_controls(task: str, target_key: str) -> list[dict[str, Any]]:
-        return [
-            row
-            for row in rows
-            if task in (row.get("auxiliary_negative_tasks") or [])
-            or ("reference_transcript" in row and target_key not in row)
-        ]
+        controls = []
+        for row in rows:
+            negative_tasks = row.get("auxiliary_negative_tasks")
+            if negative_tasks is not None:
+                if task in negative_tasks:
+                    controls.append(row)
+                continue
+            if "reference_transcript" in row and target_key not in row:
+                controls.append(row)
+        return controls
 
     localized_controls = negative_controls("localized_events", "event_targets")
     presence_controls = negative_controls("event_presence", "event_presence_targets")
@@ -419,6 +423,53 @@ def evaluate_joint_scores(
         report["event_presence_f1"] = per_class
         report["event_presence_average_precision"] = average_precision
         report["event_presence_map"] = float(np.mean(list(average_precision.values())))
+
+        localized_predictions = np.zeros_like(targets, dtype=bool)
+        localized_confidence = np.zeros_like(targets, dtype=float)
+        for row_index, row in enumerate(presence_rows):
+            frame_probabilities = _sigmoid(
+                np.asarray(row["event_logits"]) / calibration.event_temperature
+            )
+            localized_confidence[row_index] = frame_probabilities.max(axis=0)
+            for label_index, label in enumerate(SUPPORTED_EVENTS):
+                if label.value not in calibration.localized_event_labels:
+                    continue
+                active = frame_probabilities[
+                    :, label_index
+                ] >= calibration.localized_event_threshold(label.value)
+                active = _bridge_short_gaps(active, calibration.bridge_event_frames)
+                localized_predictions[row_index, label_index] = bool(
+                    _runs(active, calibration.minimum_event_frames)
+                )
+        localized_f1 = {
+            label.value: _binary_f1(localized_predictions[:, index], targets[:, index] >= 0.5)
+            for index, label in enumerate(SUPPORTED_EVENTS)
+        }
+        localized_ap = {
+            label.value: _average_precision(localized_confidence[:, index], targets[:, index])
+            for index, label in enumerate(SUPPORTED_EVENTS)
+        }
+        report["localized_event_presence_f1"] = localized_f1
+        report["localized_event_presence_macro_f1"] = float(
+            np.mean([localized_f1[label] for label in calibration.localized_event_labels])
+        )
+        report["localized_event_presence_average_precision"] = localized_ap
+        report["localized_event_presence_map"] = float(
+            np.mean([localized_ap[label] for label in calibration.localized_event_labels])
+        )
+        localized_indices = [
+            index
+            for index, label in enumerate(SUPPORTED_EVENTS)
+            if label.value in calibration.localized_event_labels
+        ]
+        predicted_any = localized_predictions[:, localized_indices].any(axis=1)
+        target_any = (targets[:, localized_indices] >= 0.5).any(axis=1)
+        report["localized_event_presence_false_positive_rate"] = (
+            float(predicted_any[~target_any].mean()) if (~target_any).any() else None
+        )
+        report["localized_event_presence_recall"] = (
+            float(predicted_any[target_any].mean()) if target_any.any() else None
+        )
     style_rows = [row for row in rows if "style_targets" in row]
     if style_rows:
         logits = np.asarray([row["style_logits"] for row in style_rows])

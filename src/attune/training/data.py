@@ -54,7 +54,8 @@ class JointManifestRow(StrictModel):
     pair_id: int = -1
     is_ood: bool = False
     lexical_affect_label: str | None = None
-    auxiliary_negative_tasks: list[Literal["event_presence", "styles"]] = Field(
+    split_unit: Literal["speaker", "sentence"] = "speaker"
+    auxiliary_negative_tasks: list[Literal["localized_events", "event_presence", "styles"]] = Field(
         default_factory=list
     )
 
@@ -81,8 +82,12 @@ class JointManifestRow(StrictModel):
             label.value for label in AffectCategory
         }:
             raise ValueError("lexical_affect_label is outside the affect ontology")
+        if self.split_unit == "sentence" and self.pair_id < 0:
+            raise ValueError("sentence-disjoint rows require a non-negative pair_id")
         if "event_presence" in self.auxiliary_negative_tasks and self.event_presence != []:
             raise ValueError("event-presence controls require an explicit empty target list")
+        if "localized_events" in self.auxiliary_negative_tasks and self.events != []:
+            raise ValueError("localized-event controls require an explicit empty target list")
         if "styles" in self.auxiliary_negative_tasks and self.styles != []:
             raise ValueError("style controls require an explicit empty target list")
         if self.auxiliary_negative_tasks and self.transcript is None:

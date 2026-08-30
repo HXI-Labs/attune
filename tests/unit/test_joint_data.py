@@ -70,9 +70,14 @@ def test_explicit_speech_controls_supervise_all_negative_auxiliary_labels(
     row.update(
         {
             "transcript": "ordinary read speech",
+            "events": [],
             "event_presence": [],
             "styles": [],
-            "auxiliary_negative_tasks": ["event_presence", "styles"],
+            "auxiliary_negative_tasks": [
+                "localized_events",
+                "event_presence",
+                "styles",
+            ],
         }
     )
     manifest = tmp_path / "manifest.jsonl"
@@ -80,6 +85,8 @@ def test_explicit_speech_controls_supervise_all_negative_auxiliary_labels(
 
     batch = collate_joint_examples([JointFeatureDataset(manifest, split="train")[0]])
 
+    assert batch.targets.event_target_mask.all()
+    assert batch.targets.event_targets.sum() == 0
     assert batch.targets.event_presence_example_mask.all()
     assert batch.targets.event_presence_targets.sum() == 0
     assert batch.targets.style_example_mask.all()

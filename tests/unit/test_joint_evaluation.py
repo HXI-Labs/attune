@@ -185,6 +185,9 @@ def test_explicit_negative_targets_remain_speech_controls_in_evaluation() -> Non
     report = evaluate_joint_scores(rows, calibration)
 
     assert report["speech_controls"]["clips"] == 1
+    assert report["speech_controls"]["localized_event_controls"] == 0
+    assert report["speech_controls"]["event_presence_controls"] == 1
+    assert report["speech_controls"]["style_controls"] == 1
     assert report["speech_controls"]["aux_false_positive_rate"] == 0.0
 
 

@@ -29,3 +29,22 @@ styles on ordinary speech. Affect, event, and exact-ASR gates must remain at
 least as strong as the calibrated v0.6 candidate because their parameters are
 not intended to change in this run. Shouting remains disabled if the available
 speech supervision cannot support it.
+
+## Training result
+
+Early stopping selected epoch 3. Validation style loss fell from 0.00646 to
+0.00208 before rising to 0.00212, 0.00469, and 0.01735 in epochs 4 through 6.
+The run trained 295,810 parameters and left the shared encoder frozen.
+
+The selected delta has SHA-256 `c9b92caa6707ec49c34b2152419064eb4f31e651ff11d34be0f4ffbf6c04c467`.
+Tensor comparison with the v0.6 input checkpoint found eight changed tensors,
+all belonging to `style_projection` or `style_head`. The ONNX export has
+SHA-256 `914fd60c874cb0afa9d6263dd24b898d3f041765e9f35786d84e13da1f7b06a9`
+and maximum export parity error `6.64e-05` across ten outputs. CTC logits were
+bit-identical to v0.6 on three transcript-bearing CREMA-D clips.
+
+The frozen-threshold external WESR evaluation gives macro-F1 0.3795. Shouting
+recall is 0.8103 but precision is 0.3310; whispering recall is 1.0 but precision
+is 0.1689. Both labels therefore remain disabled. The isolated branch is kept
+as an architecture improvement, but its available positive training data does
+not support deployment.

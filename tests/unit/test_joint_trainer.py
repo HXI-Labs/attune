@@ -16,6 +16,7 @@ from attune.training.trainer import (
     DurationBucketBatchSampler,
     TrainerConfig,
     _corpus_balanced_sampler,
+    _restrict_training_target,
     _targets_for_loss,
     train_joint_model,
 )
@@ -129,6 +130,26 @@ def test_frozen_training_can_exclude_read_only_ctc_monitor() -> None:
     assert selected.ctc_example_mask is None
     assert selected.affect_distribution is targets.affect_distribution
     assert _targets_for_loss(targets, include_ctc_loss=True) is targets
+
+
+@pytest.mark.parametrize(
+    ("target", "prefixes"),
+    [
+        ("affect", ("affect_projection.", "affect_head.")),
+        ("events", ("event_head.",)),
+        ("styles", ("style_projection.", "style_head.")),
+    ],
+)
+def test_targeted_training_freezes_every_unrelated_parameter(
+    target: str, prefixes: tuple[str, ...]
+) -> None:
+    model = AttuneJointModel(TinySenseVoice(), hidden_size=8, affect_embedding_size=4)
+
+    _restrict_training_target(model, target)
+
+    trainable = [name for name, parameter in model.named_parameters() if parameter.requires_grad]
+    assert trainable
+    assert all(name.startswith(prefixes) for name in trainable)
 
 
 def test_trainer_writes_small_delta_checkpoint(tmp_path: Path) -> None:

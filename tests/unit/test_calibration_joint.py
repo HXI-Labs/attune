@@ -86,6 +86,7 @@ def test_localized_event_thresholds_reject_development_speech_controls() -> None
         {
             "reference_transcript": "ordinary speech",
             "event_logits": control_logits.tolist(),
+            "auxiliary_negative_tasks": ["localized_events"],
         }
     )
 
@@ -93,6 +94,44 @@ def test_localized_event_thresholds_reject_development_speech_controls() -> None
     control_probability = float(_sigmoid(4.0 / calibration.event_temperature))
 
     assert calibration.event_thresholds["laugh"] > control_probability
+
+
+def test_style_only_controls_do_not_raise_localized_event_thresholds() -> None:
+    rng = np.random.default_rng(18)
+    rows = []
+    for index in range(16):
+        event_target = np.zeros((5, 7), dtype=float)
+        event_target[:, index % 7] = 1.0
+        style_target = np.zeros(2, dtype=float)
+        style_target[index % 2] = 1.0
+        affect_target = np.zeros(8, dtype=float)
+        affect_target[index % 8] = 1.0
+        rows.append(
+            {
+                "event_logits": (event_target * 5 - 2.5).tolist(),
+                "event_targets": event_target.tolist(),
+                "event_presence_logits": (event_target[0] * 5 - 2.5).tolist(),
+                "event_presence_targets": event_target[0].tolist(),
+                "style_logits": (style_target * 5 - 2.5).tolist(),
+                "style_targets": style_target.tolist(),
+                "affect_logits": (affect_target * 5 - 2.5).tolist(),
+                "affect_distribution": affect_target.tolist(),
+                "ood_embedding": rng.normal(0, 0.1, 4).tolist(),
+                "ood_logit": float(-3 if index < 14 else 3),
+                "is_ood": index >= 14,
+            }
+        )
+    rows.append(
+        {
+            "reference_transcript": "style control without event annotation",
+            "event_logits": np.full((5, 7), 8.0).tolist(),
+            "auxiliary_negative_tasks": ["styles"],
+        }
+    )
+
+    calibration = fit_runtime_calibration(rows)
+
+    assert calibration.event_thresholds["laugh"] < 0.99
 
 
 def test_affect_calibration_corrects_class_prior_bias() -> None:
