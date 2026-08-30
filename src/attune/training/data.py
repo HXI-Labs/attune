@@ -101,7 +101,18 @@ def file_sha256(path: Path) -> str:
 class JointFeatureDataset(Dataset[tuple[JointManifestRow, Tensor]]):
     """Load checksum-verified frontend features without arbitrary pickle objects."""
 
-    def __init__(self, manifest: Path, *, split: str) -> None:
+    _TARGET_FIELDS = {
+        "affect": "affect_distribution",
+        "ctc": "token_ids",
+        "event_presence": "event_presence",
+        "events": "events",
+        "styles": "styles",
+        "vad": "vad",
+    }
+
+    def __init__(self, manifest: Path, *, split: str, training_target: str | None = None) -> None:
+        if training_target is not None and training_target not in self._TARGET_FIELDS:
+            raise ValueError(f"unsupported training target: {training_target}")
         self.manifest = manifest.resolve()
         base = self.manifest.parent
         rows = []
@@ -114,11 +125,16 @@ class JointFeatureDataset(Dataset[tuple[JointManifestRow, Tensor]]):
                 raise ValueError(f"{manifest}:{line_number}: {error}") from error
             if row.split != split:
                 continue
+            if training_target is not None:
+                target_field = self._TARGET_FIELDS[training_target]
+                if getattr(row, target_field) is None:
+                    continue
             if not row.feature_path.is_absolute():
                 row.feature_path = (base / row.feature_path).resolve()
             rows.append(row)
         if not rows:
-            raise ValueError(f"manifest contains no {split!r} rows")
+            target = f" with {training_target!r} targets" if training_target else ""
+            raise ValueError(f"manifest contains no {split!r} rows{target}")
         identifiers = [row.clip_id for row in rows]
         if len(identifiers) != len(set(identifiers)):
             raise ValueError(f"duplicate clip IDs in {split!r} partition")

@@ -49,6 +49,7 @@ class RuntimeCalibration(BaseModel):
     style_thresholds: dict[str, float]
     style_enabled_labels: list[str] = Field(default_factory=list)
     affect_temperature: float = Field(default=1.0, gt=0)
+    affect_bias: list[float] = Field(default_factory=lambda: [0.0] * len(AffectCategory))
     affect_threshold: float = Field(default=0.55, ge=0, le=1)
     vad_available: bool = False
     ood_centroid: list[float] | None = None
@@ -75,6 +76,8 @@ class RuntimeCalibration(BaseModel):
             raise ValueError("style_thresholds must contain the supported style inventory")
         if not set(self.style_enabled_labels) <= expected_styles:
             raise ValueError("style_enabled_labels contains an unsupported style")
+        if len(self.affect_bias) != len(AffectCategory):
+            raise ValueError("affect_bias must contain the complete affect inventory")
         if any(value < 0 or value > 1 for value in self.event_thresholds.values()):
             raise ValueError("event thresholds must be probabilities")
         if any(value < 0 or value > 1 for value in self.event_presence_thresholds.values()):
@@ -87,6 +90,11 @@ class RuntimeCalibration(BaseModel):
 
     def localized_event_threshold(self, label: str) -> float:
         return max(self.event_thresholds[label], self.localized_event_min_confidence)
+
+
+def _affect_probabilities(logits: np.ndarray, calibration: RuntimeCalibration) -> np.ndarray:
+    bias = np.asarray(calibration.affect_bias, dtype=np.float32)
+    return _softmax(logits / calibration.affect_temperature + bias)
 
 
 @dataclass(frozen=True)
@@ -445,7 +453,7 @@ class OnnxAttuneBackend:
     def _affect(
         self, outputs: dict[str, np.ndarray], duration_ms: int
     ) -> tuple[dict[str, Any], float]:
-        probabilities = _softmax(outputs["affect_logits"][0] / self.calibration.affect_temperature)
+        probabilities = _affect_probabilities(outputs["affect_logits"][0], self.calibration)
         labels = tuple(AffectCategory)
         top_index = int(probabilities.argmax())
         top_confidence = float(probabilities[top_index])

@@ -86,6 +86,7 @@ def test_corpus_sampler_honours_fixed_epoch_size() -> None:
     [
         (TrainerConfig(samples_per_epoch=0), "samples_per_epoch"),
         (TrainerConfig(validation_batch_size=0), "validation_batch_size"),
+        (TrainerConfig(training_target="unknown"), "training target"),
     ],
 )
 def test_trainer_config_rejects_non_positive_optional_batch_limits(

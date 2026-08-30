@@ -109,3 +109,40 @@ The replacement British confirmation manifest is
 contains 100 CC0 Common Voice speakers and has zero speaker overlap with the
 100-speaker set already used during development. Its labels remain uninspected
 until a candidate has passed the regression gates.
+
+## Result
+
+macOS did not reliably return validation memory to the following training
+epoch on the 8 GB host. Epochs three through six were therefore run as exact
+one-epoch resumes. Each resume restored model, optimizer, scaler, sampler RNG,
+history, and early-stopping state from `trainer-state.pt`; it did not restart
+or resample an earlier epoch. Validation losses for epochs one through six
+were 1.0351, 0.9483, 0.9557, 0.9525, 0.9463, and 0.9660. Epoch five was selected.
+
+The selected checkpoint contains 7,609,931 trainable parameters, including
+6,318,080 upper-encoder parameters, within a 241,609,098-parameter runtime
+model. Its FP ONNX export has SHA-256
+`b8e35b0b87323573d4ccd0bacb4b52ca78aad1f6a7b1d58a1ab6fbb68ba018a3`.
+Ten exported outputs had maximum absolute parity error `6.64e-05`. CTC logits
+matched a fresh base-ASR route exactly on three real clips: identical shapes,
+zero maximum error, and `torch.equal == true`.
+
+Scalar temperature calibration exposed a systematic class-prior error: it
+could alter confidence but never the predicted category. Development-only
+regularized class-bias calibration was therefore added. Five-fold development
+cross-validation selected the adapted logits without a frozen-logit blend. The
+fitted temperature is 0.8393 and the L2 bias penalty is 0.001.
+
+| Evaluation | Affect macro-F1 | Brier | ECE | APS | Auxiliary FPR |
+|---|---:|---:|---:|---:|---:|
+| Development (1,458) | 0.6458 | 0.4857 | 0.0255 | +0.4400 | 0/542 |
+| Opened regression (2,161) | 0.6224 | 0.5109 | 0.0124 | +0.5091 | 2/549 |
+| Opened RAVDESS (480) | 0.3379 | 0.8047 | 0.2567 | +0.4141 | 2/480 |
+
+The affect regression gate now passes and ASR is exactly preserved. The model
+is still not releasable: RAVDESS remains below the 0.40 cross-corpus floor, and
+four speech-only clips across the two opened external sets contain a localized
+event false positive. Style outputs also remain disabled pending the separate
+style-branch experiment because the shared affect/style embedding is not
+specific enough on ordinary speech. The fresh British confirmation set remains
+sealed.

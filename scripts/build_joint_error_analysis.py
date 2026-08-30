@@ -12,7 +12,7 @@ from typing import Any
 
 import numpy as np
 
-from attune.inference.onnx_backend import RuntimeCalibration, _sigmoid, _softmax
+from attune.inference.onnx_backend import RuntimeCalibration, _affect_probabilities, _sigmoid
 from attune.schema.output import AffectCategory
 
 
@@ -69,8 +69,8 @@ def analyse(
     conflict_counts = Counter()
     categories = tuple(AffectCategory)
     for row in affect_rows:
-        probabilities = _softmax(
-            np.asarray(row["affect_logits"], dtype=np.float64) / calibration.affect_temperature
+        probabilities = _affect_probabilities(
+            np.asarray(row["affect_logits"], dtype=np.float64), calibration
         )
         target_index = int(np.argmax(row["affect_distribution"]))
         prediction_index = int(probabilities.argmax())

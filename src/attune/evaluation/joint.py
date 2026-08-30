@@ -13,10 +13,10 @@ from attune.evaluation.metrics import corpus_word_error_rate
 from attune.inference.export import OUTPUT_NAMES
 from attune.inference.onnx_backend import (
     RuntimeCalibration,
+    _affect_probabilities,
     _bridge_short_gaps,
     _runs,
     _sigmoid,
-    _softmax,
 )
 from attune.models.joint import SUPPORTED_EVENTS, SUPPORTED_STYLES
 from attune.schema.output import AffectCategory
@@ -295,40 +295,51 @@ def evaluate_joint_scores(
     include_dataset_slices: bool = True,
 ) -> dict[str, Any]:
     report: dict[str, Any] = {"schema_version": "1.0", "clips": len(rows)}
-    speech_controls = [
-        row
-        for row in rows
-        if bool(row.get("auxiliary_negative_tasks"))
-        or (
-            "reference_transcript" in row
-            and (
-                "event_targets" not in row
-                and "event_presence_targets" not in row
-                and "style_targets" not in row
-            )
-        )
-    ]
-    if speech_controls:
-        localized_false_clips = presence_false_clips = style_false_clips = 0
+
+    def negative_controls(task: str, target_key: str) -> list[dict[str, Any]]:
+        return [
+            row
+            for row in rows
+            if task in (row.get("auxiliary_negative_tasks") or [])
+            or ("reference_transcript" in row and target_key not in row)
+        ]
+
+    localized_controls = negative_controls("localized_events", "event_targets")
+    presence_controls = negative_controls("event_presence", "event_presence_targets")
+    style_controls = negative_controls("styles", "style_targets")
+    control_ids = {
+        row["clip_id"]
+        for controls in (localized_controls, presence_controls, style_controls)
+        for row in controls
+    }
+    if control_ids:
+        localized_false_ids: set[str] = set()
+        presence_false_ids: set[str] = set()
+        style_false_ids: set[str] = set()
         localized_false_events = 0
-        any_false_clips = 0
         duration_minutes = 0.0
-        for row in speech_controls:
+        for row in localized_controls:
             duration_minutes += len(row["event_logits"]) * float(row["frame_hop_ms"]) / 60_000
             localized = _localized_event_count(row, calibration)
-            presence = _event_presence_count(row, calibration)
-            styles = _style_count(row, calibration)
             localized_false_events += localized
-            localized_false_clips += localized > 0
-            presence_false_clips += presence > 0
-            style_false_clips += styles > 0
-            any_false_clips += localized + presence + styles > 0
+            if localized:
+                localized_false_ids.add(row["clip_id"])
+        for row in presence_controls:
+            if _event_presence_count(row, calibration):
+                presence_false_ids.add(row["clip_id"])
+        for row in style_controls:
+            if _style_count(row, calibration):
+                style_false_ids.add(row["clip_id"])
+        any_false_ids = localized_false_ids | presence_false_ids | style_false_ids
         report["speech_controls"] = {
-            "clips": len(speech_controls),
-            "localized_event_false_positive_clips": localized_false_clips,
-            "event_presence_false_positive_clips": presence_false_clips,
-            "style_false_positive_clips": style_false_clips,
-            "aux_false_positive_rate": any_false_clips / len(speech_controls),
+            "clips": len(control_ids),
+            "localized_event_controls": len(localized_controls),
+            "event_presence_controls": len(presence_controls),
+            "style_controls": len(style_controls),
+            "localized_event_false_positive_clips": len(localized_false_ids),
+            "event_presence_false_positive_clips": len(presence_false_ids),
+            "style_false_positive_clips": len(style_false_ids),
+            "aux_false_positive_rate": len(any_false_ids) / len(control_ids),
             "localized_false_events_per_minute": (
                 localized_false_events / duration_minutes if duration_minutes else 0.0
             ),
@@ -432,7 +443,7 @@ def evaluate_joint_scores(
     if affect_rows:
         logits = np.asarray([row["affect_logits"] for row in affect_rows])
         targets = np.asarray([row["affect_distribution"] for row in affect_rows])
-        probabilities = _softmax(logits / calibration.affect_temperature)
+        probabilities = _affect_probabilities(logits, calibration)
         hard_targets = targets.argmax(axis=-1)
         predictions = probabilities.argmax(axis=-1)
         report["affect_macro_f1_ontology"] = _multiclass_macro_f1(

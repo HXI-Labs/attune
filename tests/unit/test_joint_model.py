@@ -132,6 +132,16 @@ def test_joint_model_can_skip_unused_ctc_projection_during_frozen_training() -> 
     assert output.event_logits.shape == (2, 12, len(SUPPORTED_EVENTS))
 
 
+def test_style_loss_uses_a_projection_separate_from_affect() -> None:
+    model = AttuneJointModel(FakeSenseVoice())
+
+    output = model(torch.randn(2, 12, 80), torch.tensor([12, 9]))
+    output.style_logits.sum().backward()
+
+    assert model.style_projection[0].weight.grad is not None
+    assert model.affect_projection[0].weight.grad is None
+
+
 def test_upper_two_policy_unfreezes_only_two_encoder_blocks() -> None:
     model = AttuneJointModel(FakeSenseVoice(), adaptation_policy=AdaptationPolicy.UPPER_TWO)
     assert all(
@@ -154,6 +164,31 @@ def test_delta_checkpoint_contains_only_trainable_parameters() -> None:
     assert checkpoint["state_dict"]
     assert all(not name.startswith("sensevoice.") for name in checkpoint["state_dict"])
     assert torch.equal(restored.affect_head.weight, source.affect_head.weight)
+
+
+def test_adapted_delta_retains_encoder_weights_after_training_freeze() -> None:
+    model = AttuneJointModel(FakeSenseVoice(), adaptation_policy=AdaptationPolicy.UPPER_TWO)
+    for parameter in model.sensevoice.parameters():
+        parameter.requires_grad_(False)
+
+    checkpoint = attune_delta_checkpoint(model)
+
+    assert any(name.startswith("sensevoice.") for name in checkpoint["state_dict"])
+
+
+def test_legacy_checkpoint_initializes_style_projection_from_affect_projection() -> None:
+    source = AttuneJointModel(FakeSenseVoice())
+    checkpoint = attune_delta_checkpoint(source)
+    checkpoint["state_dict"] = {
+        name: value
+        for name, value in checkpoint["state_dict"].items()
+        if not name.startswith("style_projection.")
+    }
+    restored = AttuneJointModel(FakeSenseVoice())
+
+    load_attune_checkpoint(restored, checkpoint)
+
+    assert torch.equal(restored.style_projection[0].weight, source.affect_projection[0].weight)
 
 
 def test_frozen_heads_warm_start_upper_two_without_overwriting_encoder() -> None:

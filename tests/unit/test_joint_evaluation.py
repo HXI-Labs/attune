@@ -88,6 +88,34 @@ def test_joint_report_includes_aps_and_all_task_metrics() -> None:
     assert "by_dataset" not in report["by_dataset"]["unknown"]
 
 
+def test_affect_metrics_apply_calibrated_class_bias() -> None:
+    calibration = RuntimeCalibration(
+        event_thresholds={
+            label: 0.5
+            for label in ("laugh", "sob", "scream", "sigh", "cough", "throat_clear", "sneeze")
+        },
+        event_presence_thresholds={
+            label: 0.5
+            for label in ("laugh", "sob", "scream", "sigh", "cough", "throat_clear", "sneeze")
+        },
+        style_thresholds={"shouting": 0.5, "whispering": 0.5},
+        affect_bias=[0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    )
+    target = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    report = evaluate_joint_scores(
+        [
+            {
+                "affect_logits": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                "affect_distribution": target,
+            }
+        ],
+        calibration,
+    )
+
+    assert report["affect_prediction_share"]["joy"] == 1.0
+    assert report["affect_macro_f1"] == 1.0
+
+
 def test_speech_control_metrics_match_runtime_suppression_and_span_rules() -> None:
     calibration = RuntimeCalibration(
         event_thresholds={
@@ -104,6 +132,7 @@ def test_speech_control_metrics_match_runtime_suppression_and_span_rules() -> No
     event_logits[1, 0] = 5.0  # One frame is below the minimum two-frame span.
     rows = [
         {
+            "clip_id": "read-speech",
             "reference_transcript": "ordinary speech",
             "predicted_transcript": "ordinary speech",
             "event_logits": event_logits.tolist(),
@@ -117,6 +146,9 @@ def test_speech_control_metrics_match_runtime_suppression_and_span_rules() -> No
 
     assert report["speech_controls"] == {
         "clips": 1,
+        "localized_event_controls": 1,
+        "event_presence_controls": 1,
+        "style_controls": 1,
         "localized_event_false_positive_clips": 0,
         "event_presence_false_positive_clips": 0,
         "style_false_positive_clips": 0,
@@ -139,6 +171,7 @@ def test_explicit_negative_targets_remain_speech_controls_in_evaluation() -> Non
     )
     rows = [
         {
+            "clip_id": "ordinary-speech",
             "event_logits": np.full((4, 7), -8.0).tolist(),
             "event_presence_logits": [-8.0] * 7,
             "event_presence_targets": [0.0] * 7,
@@ -153,3 +186,36 @@ def test_explicit_negative_targets_remain_speech_controls_in_evaluation() -> Non
 
     assert report["speech_controls"]["clips"] == 1
     assert report["speech_controls"]["aux_false_positive_rate"] == 0.0
+
+
+def test_task_specific_controls_do_not_treat_positive_style_as_negative() -> None:
+    calibration = RuntimeCalibration(
+        event_thresholds={
+            label: 0.5
+            for label in ("laugh", "sob", "scream", "sigh", "cough", "throat_clear", "sneeze")
+        },
+        event_presence_thresholds={
+            label: 0.5
+            for label in ("laugh", "sob", "scream", "sigh", "cough", "throat_clear", "sneeze")
+        },
+        event_presence_enabled_labels=["laugh"],
+        style_thresholds={"shouting": 0.5, "whispering": 0.5},
+        style_enabled_labels=["whispering"],
+    )
+    rows = [
+        {
+            "clip_id": "whisper-positive",
+            "event_logits": np.full((4, 7), -8.0).tolist(),
+            "event_presence_logits": [8.0] + [-8.0] * 6,
+            "style_logits": [-8.0, 8.0],
+            "style_targets": [0.0, 1.0],
+            "auxiliary_negative_tasks": ["event_presence"],
+            "frame_hop_ms": 60.0,
+        }
+    ]
+
+    report = evaluate_joint_scores(rows, calibration)
+
+    assert report["speech_controls"]["event_presence_false_positive_clips"] == 1
+    assert report["speech_controls"]["style_controls"] == 0
+    assert report["speech_controls"]["style_false_positive_clips"] == 0

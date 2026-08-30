@@ -118,6 +118,7 @@ class AttuneJointModel(nn.Module):
             nn.Linear(hidden_size, affect_embedding_size),
             nn.LayerNorm(affect_embedding_size),
         )
+        self.style_projection = copy.deepcopy(self.affect_projection)
         self.style_head = nn.Linear(affect_embedding_size, len(SUPPORTED_STYLES))
         self.event_presence_head = nn.Linear(affect_embedding_size, len(SUPPORTED_EVENTS))
         self.affect_head = nn.Linear(affect_embedding_size, len(AffectCategory))
@@ -191,6 +192,11 @@ class AttuneJointModel(nn.Module):
         elif policy != AdaptationPolicy.FROZEN:
             raise ValueError(f"unsupported adaptation policy: {policy}")
         self.adaptation_policy = policy
+        self._adapted_parameter_names = {
+            f"sensevoice.{name}"
+            for name, parameter in self.sensevoice.named_parameters()
+            if parameter.requires_grad
+        }
 
     def trainable_parameter_summary(self) -> dict[str, int]:
         encoder = sum(
@@ -239,6 +245,7 @@ class AttuneJointModel(nn.Module):
         event_logits, start_logits, end_logits = self.event_head(acoustic)
         pooled = self.pooling(acoustic, frame_mask)
         affect_embedding = self.affect_projection(pooled)
+        style_embedding = self.style_projection(pooled)
         return JointOutput(
             ctc_logits=ctc_logits,
             acoustic_lengths=acoustic_lengths,
@@ -247,7 +254,7 @@ class AttuneJointModel(nn.Module):
             event_start_logits=start_logits,
             event_end_logits=end_logits,
             event_presence_logits=self.event_presence_head(affect_embedding),
-            style_logits=self.style_head(affect_embedding),
+            style_logits=self.style_head(style_embedding),
             affect_logits=self.affect_head(affect_embedding),
             vad=self.vad_head(affect_embedding),
             ood_logit=self.ood_head(affect_embedding).squeeze(-1),
@@ -341,16 +348,17 @@ class AttuneJointModel(nn.Module):
 
 
 def attune_delta_checkpoint(model: AttuneJointModel) -> dict[str, Any]:
-    """Serialize only trainable Attune/encoder deltas, never base-model copies."""
-    trainable = {
+    """Serialize task heads and adapted encoder deltas, never base-model copies."""
+    parameter_names = _delta_parameter_names(model)
+    delta = {
         name: parameter.detach().cpu()
         for name, parameter in model.named_parameters()
-        if parameter.requires_grad
+        if name in parameter_names
     }
     return {
         "format": "attune_delta_v1",
         "adaptation_policy": model.adaptation_policy.value,
-        "state_dict": trainable,
+        "state_dict": delta,
     }
 
 
@@ -366,7 +374,8 @@ def load_attune_checkpoint(model: AttuneJointModel, checkpoint: dict[str, Any]) 
         state = checkpoint.get("state_dict")
         if not isinstance(state, dict) or not state:
             raise ValueError("Attune delta checkpoint contains no state_dict")
-        expected = {name for name, parameter in model.named_parameters() if parameter.requires_grad}
+        state = _with_style_projection(state)
+        expected = _delta_parameter_names(model)
         if set(state) != expected:
             missing = sorted(expected - set(state))
             unexpected = sorted(set(state) - expected)
@@ -376,6 +385,25 @@ def load_attune_checkpoint(model: AttuneJointModel, checkpoint: dict[str, Any]) 
         model.load_state_dict(state, strict=False)
         return
     model.load_state_dict(checkpoint)
+
+
+def _with_style_projection(state: dict[str, Tensor]) -> dict[str, Tensor]:
+    if any(name.startswith("style_projection.") for name in state):
+        return state
+    upgraded = dict(state)
+    for name, value in state.items():
+        if name.startswith("affect_projection."):
+            upgraded[name.replace("affect_projection.", "style_projection.", 1)] = value
+    return upgraded
+
+
+def _delta_parameter_names(model: AttuneJointModel) -> set[str]:
+    task_parameters = {
+        name
+        for name, _parameter in model.named_parameters()
+        if not name.startswith(("sensevoice.", "base_asr_"))
+    }
+    return task_parameters | model._adapted_parameter_names
 
 
 def warm_start_attune_heads(model: AttuneJointModel, checkpoint: dict[str, Any]) -> None:
@@ -394,6 +422,7 @@ def warm_start_attune_heads(model: AttuneJointModel, checkpoint: dict[str, Any])
     state = checkpoint.get("state_dict")
     if not isinstance(state, dict) or not state:
         raise ValueError("Attune delta checkpoint contains no state_dict")
+    state = _with_style_projection(state)
     if any(name.startswith("sensevoice.") for name in state):
         raise ValueError("frozen warm-start checkpoint unexpectedly contains encoder tensors")
     expected = {

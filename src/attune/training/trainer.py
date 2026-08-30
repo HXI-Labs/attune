@@ -59,6 +59,7 @@ class TrainerConfig:
     log_interval_steps: int = 25
     duration_bucket_multiplier: int = 20
     include_ctc_loss: bool = True
+    training_target: str | None = None
 
     def validate(self) -> None:
         if self.epochs < 1 or self.batch_size < 1 or self.gradient_accumulation < 1:
@@ -73,6 +74,11 @@ class TrainerConfig:
             raise ValueError("duration_bucket_multiplier must be positive")
         if self.maximum_cost_gbp <= 0 or self.gpu_hour_cost_gbp < 0:
             raise ValueError("compute budget values must be non-negative")
+        if (
+            self.training_target is not None
+            and self.training_target not in JointFeatureDataset._TARGET_FIELDS
+        ):
+            raise ValueError(f"unsupported training target: {self.training_target}")
 
 
 def _parameter_groups(model: AttuneJointModel, config: TrainerConfig) -> list[dict[str, Any]]:
@@ -207,6 +213,13 @@ def train_joint_model(
     if config.device.startswith("cuda") and not torch.cuda.is_available():
         raise RuntimeError("CUDA training was requested but CUDA is unavailable")
     device = torch.device(config.device)
+    if config.encoder_learning_rate == 0:
+        for parameter in model.sensevoice.parameters():
+            parameter.requires_grad_(False)
+    if config.training_target == "styles":
+        for name, parameter in model.named_parameters():
+            if not name.startswith(("style_projection.", "style_head.")):
+                parameter.requires_grad_(False)
     model.to(device)
     parameter_summary = model.trainable_parameter_summary()
     if (
@@ -217,8 +230,12 @@ def train_joint_model(
         raise ValueError(
             "CTC loss may be excluded only when the encoder is frozen or the ASR tail is isolated"
         )
-    train_data = JointFeatureDataset(manifest, split="train")
-    validation_data = JointFeatureDataset(manifest, split="development")
+    train_data = JointFeatureDataset(
+        manifest, split="train", training_target=config.training_target
+    )
+    validation_data = JointFeatureDataset(
+        manifest, split="development", training_target=config.training_target
+    )
     generator = torch.Generator().manual_seed(config.seed)
     if config.corpus_balancing:
         sampler = _corpus_balanced_sampler(

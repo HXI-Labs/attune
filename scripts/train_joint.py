@@ -15,6 +15,7 @@ from attune.models.joint import (
     initialize_attune_candidate,
     load_local_sensevoice,
 )
+from attune.training.losses import LossWeights
 from attune.training.trainer import TrainerConfig, train_joint_model
 
 
@@ -27,6 +28,11 @@ def main() -> None:
         "--adaptation-policy", choices=[item.value for item in AdaptationPolicy], default="frozen"
     )
     parser.add_argument("--config", type=Path)
+    parser.add_argument(
+        "--loss-weights",
+        type=Path,
+        help="JSON or YAML overrides for the joint loss weights",
+    )
     parser.add_argument(
         "--initial-checkpoint",
         type=Path,
@@ -51,6 +57,13 @@ def main() -> None:
     if arguments.maximum_cost_gbp is not None:
         values["maximum_cost_gbp"] = arguments.maximum_cost_gbp
     config = TrainerConfig(**values)
+    loss_weights = LossWeights()
+    if arguments.loss_weights:
+        text = arguments.loss_weights.read_text()
+        loss_values = (
+            json.loads(text) if arguments.loss_weights.suffix == ".json" else yaml.safe_load(text)
+        )
+        loss_weights = LossWeights(**loss_values)
     backbone = load_local_sensevoice(arguments.sensevoice_path, device=config.device)
     model = AttuneJointModel(
         backbone,
@@ -73,6 +86,7 @@ def main() -> None:
         manifest=arguments.manifest,
         output_dir=arguments.output_dir,
         config=config,
+        weights=loss_weights,
         initial_checkpoint_sha256=initial_checkpoint_sha256,
     )
     print(json.dumps(report, indent=2))
