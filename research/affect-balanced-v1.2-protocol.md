@@ -47,3 +47,25 @@ The candidate is retained only if all of the following hold:
 Development alone selects the epoch and calibration. Opened regression and
 RAVDESS only accept or reject the completed candidate. The fresh British
 confirmation set remains sealed.
+
+## Result
+
+Epoch 5 was selected at validation loss 1.1126. All six epochs achieved an
+active paired-batch fraction of 1.0. The selected checkpoint has SHA-256
+`83bcb2e90a5e258675f6bc8ef4e023661a7c2641394533c73c770be39cecd0cc`;
+its ONNX export has SHA-256
+`6d00b49f205bf4cd5f7e6bf689664ce6f8123a71051549a6d93e7c00fd404e0a`
+and maximum parity error `6.64e-05`. The scope audit found exactly eight
+changed affect tensors and no violations.
+
+APS-constrained development calibration selected bias scale 0.25. The complete
+2,157-row development evaluation reached macro-F1 0.6282, APS +0.0572, Brier
+score 0.3009, and ECE 0.0959. Temperature-only calibration reached macro-F1
+0.6277 with APS +0.1178. Selective risk improved and all 1,241 speech controls
+had zero auxiliary false positives.
+
+The candidate is rejected because neither calibration reaches the fixed 0.64
+development macro-F1 floor. Opened regression, RAVDESS, and fresh British data
+were not evaluated. Retained v0.9 remains unchanged. The result supports class
+balancing but shows that sampling alone does not fully convert same-text
+delivery contrasts into the required class decision changes.

@@ -6,6 +6,7 @@ from attune.models.joint import JointOutput
 from attune.training.losses import (
     JointTargets,
     compute_joint_loss,
+    counterfactual_affect_loss,
     focal_binary_loss,
     soft_dice_loss,
 )
@@ -63,6 +64,7 @@ def test_masked_multicorpus_loss_ignores_missing_targets() -> None:
         "vad",
         "ood",
         "paired",
+        "counterfactual",
         "total",
     } <= set(metrics)
     assert output.affect_logits.grad is not None
@@ -97,3 +99,36 @@ def test_dice_loss_is_not_diluted_by_unannotated_examples() -> None:
     annotated_only = soft_dice_loss(logits[:1], targets[:1], mask[:1])
 
     assert torch.isclose(with_unannotated, annotated_only)
+
+
+def test_counterfactual_affect_loss_rewards_target_aligned_logit_changes() -> None:
+    pair_ids = torch.tensor([4, 4])
+    targets = torch.tensor(
+        [
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
+    aligned = torch.tensor(
+        [
+            [0.0, 2.0, 0.0, -1.0],
+            [0.0, -1.0, 0.0, 2.0],
+        ]
+    )
+    reversed_logits = aligned.flip(0)
+
+    aligned_loss = counterfactual_affect_loss(aligned, pair_ids, targets)
+    reversed_loss = counterfactual_affect_loss(reversed_logits, pair_ids, targets)
+
+    assert aligned_loss < reversed_loss
+
+
+def test_counterfactual_affect_loss_ignores_unpaired_examples() -> None:
+    logits = torch.randn(3, 4, requires_grad=True)
+    targets = torch.softmax(torch.randn(3, 4), dim=-1)
+    loss = counterfactual_affect_loss(logits, torch.tensor([1, 2, -1]), targets)
+
+    loss.backward()
+
+    assert loss.item() == 0.0
+    assert torch.equal(logits.grad, torch.zeros_like(logits))

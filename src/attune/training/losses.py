@@ -42,6 +42,7 @@ class LossWeights:
     vad: float = 1.0
     ood: float = 0.5
     paired: float = 0.2
+    counterfactual: float = 0.0
 
 
 def _masked_mean(values: Tensor, mask: Tensor) -> Tensor:
@@ -121,6 +122,36 @@ def paired_delivery_loss(
     return nn.functional.relu(similarity[selected] - 0.25).mean()
 
 
+def counterfactual_affect_loss(
+    logits: Tensor,
+    pair_ids: Tensor,
+    affect_distribution: Tensor,
+    affect_mask: Tensor | None = None,
+    *,
+    margin: float = 0.25,
+) -> Tensor:
+    """Align same-text logit changes with listener-distribution changes."""
+
+    valid = pair_ids.ge(0)
+    if affect_mask is not None:
+        valid = valid & affect_mask.bool()
+    same_pair = pair_ids.unsqueeze(0).eq(pair_ids.unsqueeze(1))
+    upper_triangle = torch.triu(torch.ones_like(same_pair, dtype=torch.bool), diagonal=1)
+    selected = same_pair & upper_triangle & valid.unsqueeze(0) & valid.unsqueeze(1)
+    if not selected.any():
+        return logits.sum() * 0.0
+
+    predicted_change = logits.unsqueeze(1) - logits.unsqueeze(0)
+    target_change = affect_distribution.unsqueeze(1) - affect_distribution.unsqueeze(0)
+    predicted_change = predicted_change[selected]
+    target_change = target_change[selected]
+    importance = target_change.abs()
+    if not importance.any():
+        return logits.sum() * 0.0
+    ranking_loss = nn.functional.softplus(margin - target_change.sign() * predicted_change)
+    return (ranking_loss * importance).sum() / importance.sum()
+
+
 def compute_joint_loss(
     output: JointOutput,
     targets: JointTargets,
@@ -192,6 +223,13 @@ def compute_joint_loss(
             targets.pair_ids,
             targets.affect_distribution,
         )
+        if targets.affect_distribution is not None:
+            losses["counterfactual"] = counterfactual_affect_loss(
+                output.affect_logits,
+                targets.pair_ids,
+                targets.affect_distribution,
+                targets.affect_example_mask,
+            )
     weighted = {name: loss * getattr(weights, name) for name, loss in losses.items()}
     total = sum(weighted.values(), start=zero)
     return total, {**losses, "total": total}
