@@ -1,0 +1,61 @@
+{
+  "algorithm": "deterministic PCM16 concatenation/overlay with active-event trimming",
+  "counts": {
+    "development:cough": 62,
+    "development:laugh": 62,
+    "development:sigh": 62,
+    "development:sneeze": 62,
+    "development:throat_clear": 62,
+    "train:cough": 481,
+    "train:laugh": 481,
+    "train:sigh": 481,
+    "train:sneeze": 481,
+    "train:throat_clear": 481
+  },
+  "dataset_id": "attune_inline_event_mixtures_v0.1",
+  "excluded_silent_event_clips": [
+    "vocalsound-joint-f0116_0_cough",
+    "vocalsound-joint-f0116_0_laughter",
+    "vocalsound-joint-f0116_0_sigh",
+    "vocalsound-joint-f0116_0_throatclearing",
+    "vocalsound-joint-f2725_0_cough",
+    "vocalsound-joint-f2725_0_sneeze",
+    "vocalsound-joint-f2725_0_throatclearing",
+    "vocalsound-joint-m2069_0_sigh",
+    "vocalsound-joint-m2069_1_sigh",
+    "vocalsound-joint-m2669_0_laughter"
+  ],
+  "rows": 2715,
+  "sample_rate_hz": 16000,
+  "schema_version": "1.0",
+  "source_manifests": {
+    "common_voice": {
+      "path": "data/manifests/common-voice-replay-v0.1.jsonl",
+      "sha256": "0273da5910af8a9d61494538b90adf4888f6c0fda12581c1bde9f99822ebedfd"
+    },
+    "vocalsound": {
+      "path": "data/manifests/vocalsound-joint-source-v0.1.jsonl",
+      "sha256": "74e35f497d747b39d1b9e9d7a50842ba912f08f16bbddfb8347577dbafaf894f"
+    }
+  },
+  "synthesis": {
+    "event_levels_db": [
+      -6.0,
+      -3.0,
+      0.0,
+      3.0,
+      6.0
+    ],
+    "per_clip_parameters_reproducible_from": [
+      "source manifests",
+      "output source manifest",
+      "generation script"
+    ],
+    "placements": [
+      "before",
+      "overlay",
+      "after"
+    ],
+    "selection": "SHA-256 of Common Voice clip ID and event label"
+  }
+}

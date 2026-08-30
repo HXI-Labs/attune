@@ -1,0 +1,39 @@
+# Inline-event mixture v1.1 protocol
+
+The v0.8 temporal event head eliminated false positives on opened speech controls,
+but its external WESR recall remained 22.9%. The training data contained synthetic
+office scenes and isolated utterance-level event labels, not speech turns with
+strongly located vocal events.
+
+Version 1.1 adds deterministic mixtures of reviewed Common Voice speech and the five
+supported VocalSound classes: laugh, sigh, cough, throat clear, and sneeze. Each
+Common Voice clip is paired once with each class. Events are placed before speech,
+overlaid within speech, or appended after speech. Event level and final waveform peak
+vary independently to reduce reliance on raw amplitude. Only train and development
+source partitions are used; the existing sealed rows remain untouched.
+
+The generated source manifest has SHA-256
+`f1688b7c11b542dff2d2a5189524f8121d45976a76ac1cfe4c8f3f77685723a3`.
+It contains 2,715 mixtures: 2,405 train and 310 development examples, with
+exactly 481/62 examples per event class. Placement is also balanced: 926
+before, 869 overlay, and 920 after. Ten silent VocalSound files were rejected
+and recorded in the generation audit. Exact source pairings and synthesis
+parameters are deterministic from the pinned manifests and generation script.
+
+The spans are exact synthesis envelopes after deterministic active-region trimming.
+They are stronger supervision than whole-clip labels but are not human-reviewed event
+boundaries or natural-conversation evidence. The generated audio inherits
+VocalSound's CC-BY-SA-4.0 terms and remains outside git.
+
+Training will begin from the best accepted affect checkpoint and update only the
+857,877-parameter temporal event head. Acceptance requires:
+
+- WESR temporal presence macro-F1 of at least 0.34, up from 0.2882.
+- WESR temporal recall of at least 0.30, up from 0.2288.
+- WESR false-positive rate no higher than 0.06.
+- Opened regression segment macro-F1 of at least 0.60.
+- No more than two localized false-positive clips across the 549 opened speech controls.
+- All non-event-head tensors byte-identical to the initial checkpoint.
+
+Synthetic development results are diagnostic only. The candidate is rejected if it
+passes synthetic validation while missing these opened external gates.
