@@ -12,7 +12,7 @@ licence:
   name: FunASR Model Open Source License Agreement v1.1
   source_text_url: https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE
   licence_review_status: reviewed_internal_research_ok
-  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_by: Jerry Buaba / HXI Labs
   reviewed_at: "2026-08-26"
   clarification_urls:
     - https://github.com/QwenAudio/SenseVoice/issues/334

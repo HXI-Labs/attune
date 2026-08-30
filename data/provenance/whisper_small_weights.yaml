@@ -15,7 +15,7 @@ licence:
   hugging_face_card_licence: Apache-2.0
   licence_basis: Prefer the upstream MIT licence for the original project code and weights.
   licence_review_status: reviewed_ok
-  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_by: Jerry Buaba / HXI Labs
   reviewed_at: "2026-08-26"
 redistribution_status: not_authorised_by_this_review
 downloaded_at: "2026-08-27"
