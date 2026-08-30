@@ -49,9 +49,12 @@ the existing heads or changing the label ontology.
   Six epochs therefore provide 24,576 balanced draws, roughly three passes over
   the 8,165-row training partition, while producing enough validation points
   for useful model selection during the local run.
-- Evaluate every one of the 1,458 development rows after each epoch. Use a
-  validation batch size of 24 because validation does not retain gradients; the
-  larger batch changes throughput, not the evaluation population.
+- Evaluate every one of the 1,458 development rows after each epoch. The first
+  epoch used a validation batch size of 24 and completed with a loss of 1.0351,
+  but the 8 GB host then spent several minutes in an OS-level memory wait while
+  entering epoch two. Resume from the completed epoch-one state with a
+  validation batch size of 6. This changes throughput and peak memory, not the
+  evaluation population or predictions.
 - Use physical batches of 6 with four-step accumulation for an effective batch
   size of 24 on Apple MPS. The first attempt needlessly evaluated the frozen
   ASR copy even though CTC output was disabled and exceeded the 9.07 GiB MPS
