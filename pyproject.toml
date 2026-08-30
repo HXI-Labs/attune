@@ -37,7 +37,7 @@ model-runners = [
   "transformers>=5.16.1",
 ]
 dataset-tools = [
-    "datasets>=5.0.1",
+  "datasets>=5.0.1",
 ]
 deployment = [
   "onnx>=1.17,<2",
