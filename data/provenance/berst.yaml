@@ -29,7 +29,10 @@ source:
     train-00001-of-00002.parquet: b67800f5dfb54c067184d8dc8567c22c99c0dc4c13ecec21f39892ba2c8eac3a
     validation-00000-of-00001.parquet: 733e61551eaffc648bfb86c0d46d129bc0676548534496052efa6072303179d2
 prepared_contract:
-  clip_count: 4523
+  source_clip_count: 4523
+  clip_count: 4441
+  excluded_duplicate_waveform_rows: 82
+  duplicate_waveform_groups: 31
   speaker_count: 98
   split_unit: speaker
   speaker_counts:
@@ -37,9 +40,9 @@ prepared_contract:
     development: 10
     sealed_test: 10
   clip_counts:
-    train: 3503
-    development: 488
-    sealed_test: 532
+    train: 3429
+    development: 487
+    sealed_test: 525
   affect_labels: [anger, disgust, fear, joy, neutral, sadness, surprise]
   style_labels: [shouting]
   sample_rate_hz: 16000
@@ -47,6 +50,7 @@ prepared_contract:
   sample_width_bits: 16
 notes:
   - The official actor-disjoint train, validation, and test splits map to Attune train, development, and sealed_test without repartitioning.
+  - The pinned processed source contains 31 repeated-waveform groups covering 82 rows. Every row in those groups is excluded; one group crosses development and sealed_test, and some groups have conflicting labels or speakers.
   - Affect labels are actor prompts and have not been validated by listeners. They are weak intended-delivery targets, not verified perceived affect.
   - Source shout/no-shout labels supervise only the shouting style. Three n/a intensity rows remain style-unsupervised.
   - Nonsense phrases and paired intensity takes help test acoustic reliance without emotionally suggestive text.

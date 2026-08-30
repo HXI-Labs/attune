@@ -15,6 +15,15 @@ contain 3,503 train, 488 validation, and 532 test clips. The official partitions
 contain 78, 10, and 10 speakers respectively, with no speaker overlap. Attune
 maps them to `train`, `development`, and `sealed_test` without repartitioning.
 
+An embedded-audio audit found only 4,472 distinct waveforms in the 4,523 source
+rows. Thirty-one repeated-waveform groups cover 82 rows; five groups conflict
+on affect, two on intensity, three on transcript, five on speaker, and one
+crosses development and sealed test. Cadence excludes every row belonging to a
+repeated-waveform group rather than choosing among conflicting annotations.
+The prepared corpus therefore contains 4,441 unique clips: 3,429 train, 487
+development, and 525 sealed test. All 98 source speakers remain represented and
+the prepared partitions remain speaker-disjoint.
+
 The source affect fields are actor prompts, not listener judgements. They are
 weak intended-delivery targets and must not be described as perceived-affect
 ground truth. `shout` maps only to the `shouting` style, `no-shout` is an
@@ -24,10 +33,11 @@ style-unsupervised. BERSt does not supervise vocal events or whispering.
 ## Preparation
 
 `scripts/prepare_berst.py` verifies the pinned README and Parquet hashes,
-validates the speaker-disjoint partition, and normalizes embedded audio to mono
-PCM16 at 16 kHz. Each source `audio_id` becomes an intensity-pair group. The
-verified nonsense transcript is retained for ASR replay and given a neutral
-lexical-affect control label.
+validates the speaker-disjoint partition, hashes every embedded waveform,
+excludes every repeated-waveform group, and normalizes the retained audio to
+mono PCM16 at 16 kHz. Each source `audio_id` becomes an intensity-pair group.
+The verified nonsense transcript is retained for ASR replay and given a
+neutral lexical-affect control label.
 
 The BERSt test split remains unopened for model inference until a candidate is
 selected using development data and the already-opened external controls. Test

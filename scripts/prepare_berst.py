@@ -63,6 +63,16 @@ SHARDS = {
 }
 EXPECTED_SPLIT_ROWS = {"train": 3_503, "development": 488, "sealed_test": 532}
 EXPECTED_SPLIT_SPEAKERS = {"train": 78, "development": 10, "sealed_test": 10}
+EXPECTED_PREPARED_SPLIT_ROWS = {"train": 3_429, "development": 487, "sealed_test": 525}
+EXPECTED_DUPLICATE_AUDIT = {
+    "duplicate_audio_groups": 31,
+    "duplicate_audio_rows": 82,
+    "conflicting_affect_groups": 5,
+    "conflicting_style_groups": 2,
+    "conflicting_transcript_groups": 3,
+    "cross_speaker_groups": 5,
+    "cross_split_groups": 1,
+}
 EXPECTED_AFFECTS = {"anger", "disgust", "fear", "joy", "neutral", "sadness", "surprise"}
 EXPECTED_SHOUT_LEVELS = {"shout", "no-shout", "n/a"}
 AFFECT_MAP = {
@@ -138,6 +148,64 @@ def _metadata_rows(cache_dir: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _source_audio_hashes(cache_dir: Path) -> dict[tuple[str, int], str]:
+    parquet = _pyarrow_parquet()
+    hashes: dict[tuple[str, int], str] = {}
+    for relative_path, expected in SHARDS.items():
+        parquet_file = parquet.ParquetFile(cache_dir / relative_path)
+        source_row_index = 0
+        for batch in parquet_file.iter_batches(batch_size=64, columns=["audio"]):
+            for raw_row in batch.to_pylist():
+                audio = raw_row.get("audio")
+                if not isinstance(audio, dict) or not isinstance(audio.get("bytes"), bytes):
+                    raise BerstPreparationError("BERSt row is missing embedded audio bytes")
+                hashes[(relative_path, source_row_index)] = hashlib.sha256(
+                    audio["bytes"]
+                ).hexdigest()
+                source_row_index += 1
+        if source_row_index != expected["rows"]:
+            raise BerstPreparationError(f"unexpected audio row count in {relative_path}")
+    return hashes
+
+
+def exclude_duplicate_audio(
+    rows: list[dict[str, Any]],
+    audio_hashes: dict[tuple[str, int], str],
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    identities = {(str(row["source_shard"]), int(row["source_row_index"])) for row in rows}
+    if identities != set(audio_hashes):
+        raise BerstPreparationError("BERSt metadata and embedded audio rows do not match")
+
+    hash_counts = Counter(audio_hashes.values())
+    duplicate_hashes = {audio_hash for audio_hash, count in hash_counts.items() if count > 1}
+    groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    retained_rows: list[dict[str, Any]] = []
+    for row in rows:
+        identity = (str(row["source_shard"]), int(row["source_row_index"]))
+        audio_hash = audio_hashes[identity]
+        enriched_row = {**row, "source_audio_sha256": audio_hash}
+        if audio_hash in duplicate_hashes:
+            groups[audio_hash].append(enriched_row)
+        else:
+            retained_rows.append(enriched_row)
+
+    def conflicting_groups(field: str) -> int:
+        return sum(len({str(row[field]) for row in group}) > 1 for group in groups.values())
+
+    report = {
+        "source_unique_audio": len(hash_counts),
+        "duplicate_audio_groups": len(groups),
+        "duplicate_audio_rows": sum(len(group) for group in groups.values()),
+        "conflicting_affect_groups": conflicting_groups("affect"),
+        "conflicting_style_groups": conflicting_groups("shout_level"),
+        "conflicting_transcript_groups": conflicting_groups("script"),
+        "cross_speaker_groups": conflicting_groups("user_id"),
+        "cross_split_groups": conflicting_groups("split"),
+        "retained_unique_audio": len(retained_rows),
+    }
+    return retained_rows, report
+
+
 def validate_metadata(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if len(rows) != sum(EXPECTED_SPLIT_ROWS.values()):
         raise BerstPreparationError(f"expected 4,523 rows, found {len(rows)}")
@@ -185,6 +253,32 @@ def validate_metadata(rows: list[dict[str, Any]]) -> dict[str, Any]:
             sorted(Counter(str(row["shout_level"]) for row in rows).items())
         ),
         "intensity_pair_count": len(pair_splits),
+    }
+
+
+def validate_prepared_metadata(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    split_rows = Counter(str(row["split"]) for row in rows)
+    if dict(split_rows) != EXPECTED_PREPARED_SPLIT_ROWS:
+        raise BerstPreparationError(f"unexpected prepared BERSt split counts: {dict(split_rows)}")
+    audio_hashes = [str(row["source_audio_sha256"]) for row in rows]
+    if len(audio_hashes) != len(set(audio_hashes)):
+        raise BerstPreparationError("prepared BERSt rows contain duplicate source audio")
+
+    split_speakers: dict[str, set[str]] = defaultdict(set)
+    for row in rows:
+        split_speakers[str(row["split"])].add(str(row["user_id"]))
+    speaker_counts = {split: len(speakers) for split, speakers in split_speakers.items()}
+    if speaker_counts != EXPECTED_SPLIT_SPEAKERS:
+        raise BerstPreparationError(f"unexpected prepared BERSt speaker counts: {speaker_counts}")
+
+    return {
+        "rows": len(rows),
+        "split_rows": dict(split_rows),
+        "split_speakers": speaker_counts,
+        "affect_counts": dict(sorted(Counter(str(row["affect"]) for row in rows).items())),
+        "shout_level_counts": dict(
+            sorted(Counter(str(row["shout_level"]) for row in rows).items())
+        ),
     }
 
 
@@ -298,11 +392,18 @@ def prepare_rows(
         source_row_index = 0
         for batch in parquet_file.iter_batches(batch_size=32):
             for raw_row in batch.to_pylist():
-                metadata = metadata_by_identity[(relative_path, source_row_index)]
+                identity = (relative_path, source_row_index)
                 source_row_index += 1
+                metadata = metadata_by_identity.get(identity)
+                if metadata is None:
+                    continue
                 audio = raw_row.get("audio")
                 if not isinstance(audio, dict) or not isinstance(audio.get("bytes"), bytes):
                     raise BerstPreparationError("BERSt row is missing embedded audio bytes")
+                source_audio_sha256 = hashlib.sha256(audio["bytes"]).hexdigest()
+                if source_audio_sha256 != metadata["source_audio_sha256"]:
+                    location = f"{relative_path}:{identity[1]}"
+                    raise BerstPreparationError(f"BERSt audio changed at {location}")
                 identifier = clip_id(str(metadata["audio_id"]), str(audio.get("path")))
                 if identifier in seen_clip_ids:
                     raise BerstPreparationError(f"duplicate BERSt clip ID: {identifier}")
@@ -344,7 +445,7 @@ def prepare_rows(
                         "hf_repository": HF_REPOSITORY,
                         "hf_revision": HF_REVISION,
                         "embedded_audio_path": str(audio["path"]),
-                        "source_audio_sha256": hashlib.sha256(audio["bytes"]).hexdigest(),
+                        "source_audio_sha256": source_audio_sha256,
                         "audio_sha256": audio_sha256,
                         **audio_metadata,
                         "pair_id": pair_ids[str(metadata["audio_id"])],
@@ -414,13 +515,25 @@ def main() -> None:
 
     verify_download(arguments.cache_dir)
     metadata_rows = _metadata_rows(arguments.cache_dir)
+    source_report = validate_metadata(metadata_rows)
+    metadata_rows, duplicate_report = exclude_duplicate_audio(
+        metadata_rows, _source_audio_hashes(arguments.cache_dir)
+    )
+    observed_duplicate_audit = {key: duplicate_report[key] for key in EXPECTED_DUPLICATE_AUDIT}
+    if observed_duplicate_audit != EXPECTED_DUPLICATE_AUDIT:
+        raise BerstPreparationError(
+            f"unexpected BERSt duplicate-audio audit: {observed_duplicate_audit}"
+        )
+    prepared_report = validate_prepared_metadata(metadata_rows)
     report = {
         "schema_version": "1.0",
         "dataset_id": DATASET_ID,
         "hf_repository": HF_REPOSITORY,
         "hf_revision": HF_REVISION,
         "licence": LICENCE,
-        **validate_metadata(metadata_rows),
+        "source_contract": source_report,
+        "duplicate_audio_exclusions": duplicate_report,
+        "prepared_contract": prepared_report,
     }
     arguments.inspection_output.parent.mkdir(parents=True, exist_ok=True)
     arguments.inspection_output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
@@ -440,7 +553,7 @@ def main() -> None:
     )
     print(
         f"Verified and prepared {len(source_rows)} CC BY clips from "
-        f"{report['split_speakers']} speakers",
+        f"{prepared_report['split_speakers']} speakers",
         flush=True,
     )
 
