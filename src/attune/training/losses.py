@@ -37,6 +37,7 @@ class LossWeights:
     event: float = 1.0
     boundary: float = 0.5
     event_presence: float = 1.0
+    weak_event_presence: float = 0.0
     style: float = 1.0
     affect: float = 1.0
     vad: float = 1.0
@@ -78,6 +79,31 @@ def soft_dice_loss(logits: Tensor, targets: Tensor, mask: Tensor) -> Tensor:
     if not annotated.any():
         return logits.sum() * 0.0
     return per_example_class[annotated].mean()
+
+
+def weak_temporal_presence_logits(
+    frame_logits: Tensor,
+    frame_mask: Tensor,
+    *,
+    temperature: float = 0.5,
+) -> Tensor:
+    """Pool frame logits for weak utterance-level event supervision.
+
+    Log-mean-exp is a smooth multiple-instance objective: positive labels push
+    the most plausible frames up, while negative labels suppress spurious
+    peaks across the utterance. Padding never contributes to the pool.
+    """
+
+    if temperature <= 0:
+        raise ValueError("temperature must be positive")
+    if frame_logits.ndim != 3 or frame_mask.shape != frame_logits.shape[:2]:
+        raise ValueError("frame logits and mask have incompatible shapes")
+    valid_frames = frame_mask.sum(dim=1)
+    if (valid_frames == 0).any():
+        raise ValueError("each example must contain at least one valid frame")
+    masked_logits = frame_logits.masked_fill(~frame_mask.unsqueeze(-1), -torch.inf)
+    pooled = torch.logsumexp(masked_logits / temperature, dim=1)
+    return temperature * (pooled - valid_frames.log().unsqueeze(-1))
 
 
 def concordance_loss(prediction: Tensor, target: Tensor, mask: Tensor) -> Tensor:
@@ -193,6 +219,11 @@ def compute_joint_loss(
             presence_mask = torch.ones_like(targets.event_presence_targets, dtype=torch.bool)
         losses["event_presence"] = focal_binary_loss(
             output.event_presence_logits,
+            targets.event_presence_targets,
+            presence_mask,
+        )
+        losses["weak_event_presence"] = focal_binary_loss(
+            weak_temporal_presence_logits(output.event_logits, output.frame_mask),
             targets.event_presence_targets,
             presence_mask,
         )

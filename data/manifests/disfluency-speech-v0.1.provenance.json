@@ -1,0 +1,59 @@
+{
+  "attribution": "Kyra Wang and Dorien Herremans (2024), DisfluencySpeech -- Single-Speaker Conversational Speech Dataset with Paralanguage, arXiv:2406.08820.",
+  "audio_committed": false,
+  "dataset_id": "disfluency_speech_v0.1",
+  "duplicate_audio_rows_excluded": 0,
+  "event_counts": {
+    "cough": 4,
+    "laugh": 665,
+    "sigh": 18,
+    "throat_clear": 53
+  },
+  "licence": "Apache-2.0",
+  "manifest": "data/manifests/disfluency-speech-v0.1.jsonl",
+  "manifest_sha256": "109b3b097fef67fd4dbfe1745883f175d3e324b650c7a006d0d36ad29e8a1a65",
+  "retained_unique_audio": 5000,
+  "schema_version": "1.0",
+  "source_repository": "amaai-lab/DisfluencySpeech",
+  "source_revision": "b7da294fe3a70dd96df6640893f2a5dfc2c87638",
+  "source_rows": 5000,
+  "source_shards": {
+    "data/test-00000-of-00001.parquet": {
+      "rows": 250,
+      "sha256": "e78837be393206fc0ae6a0cefb4ec8c942c3e26401640eb8af67cf0dac21b4b0",
+      "size": 70868626,
+      "split": "sealed_test"
+    },
+    "data/train-00000-of-00003.parquet": {
+      "rows": 1500,
+      "sha256": "6285da585435e76adefe43c3142852fd92a6be0c8c820486d941421a8638b4ae",
+      "size": 438310456,
+      "split": "train"
+    },
+    "data/train-00001-of-00003.parquet": {
+      "rows": 1500,
+      "sha256": "bfb907061b59e14fe9f9c2f6e9a00e13fe1cf531e50e6987c7cd34aecad81887",
+      "size": 448788413,
+      "split": "train"
+    },
+    "data/train-00002-of-00003.parquet": {
+      "rows": 1500,
+      "sha256": "16bc5a61a9ff54923b78ca86d17c7028e5f36d9b3655637f3ffd64e73cf37426",
+      "size": 450679315,
+      "split": "train"
+    },
+    "data/validation-00000-of-00001.parquet": {
+      "rows": 250,
+      "sha256": "693ba2a06301d9cbafea52eae0664f8c776467e9b559ad9e25b6756f236f6a9c",
+      "size": 74193762,
+      "split": "development"
+    }
+  },
+  "split_counts": {
+    "development": 250,
+    "sealed_test": 250,
+    "train": 4500
+  },
+  "split_policy": "The official clip partitions are retained. The corpus has one speaker, so it is declared sentence-disjoint and is never used as the final external evaluation.",
+  "supervision": "Human-recorded utterances with word-position event tags are converted to weak utterance-presence targets; no timestamp is invented."
+}

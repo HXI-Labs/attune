@@ -39,6 +39,7 @@ _TRAINING_SOURCE_FILES = (
 _TARGET_PARAMETER_PREFIXES = {
     "affect": ("affect_projection.", "affect_head."),
     "events": ("event_head.",),
+    "weak_events": ("event_head.",),
     "styles": ("style_projection.", "style_head."),
 }
 

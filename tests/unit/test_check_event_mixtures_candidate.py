@@ -51,3 +51,42 @@ def test_event_mixtures_candidate_rejects_control_false_positives() -> None:
     assert not next(
         gate for gate in gates if gate["name"] == "opened_speech_control_false_positive_clips"
     )["passed"]
+
+
+def test_weak_event_candidate_requires_presence_generalization() -> None:
+    wesr, regression = reports()
+    weak_development = {
+        "localized_event_presence_f1": {"laugh": 0.65},
+        "localized_event_presence_recall": 0.65,
+        "localized_event_presence_false_positive_rate": 0.10,
+    }
+
+    gates = CHECK.check_candidate(
+        wesr,
+        regression,
+        {"passed": True},
+        weak_development,
+    )
+
+    assert all(gate["passed"] for gate in gates)
+
+
+def test_weak_event_candidate_rejects_excess_false_positives() -> None:
+    wesr, regression = reports()
+    weak_development = {
+        "localized_event_presence_f1": {"laugh": 0.80},
+        "localized_event_presence_recall": 0.80,
+        "localized_event_presence_false_positive_rate": 0.101,
+    }
+
+    gates = CHECK.check_candidate(
+        wesr,
+        regression,
+        {"passed": True},
+        weak_development,
+    )
+
+    false_positive_gate = next(
+        gate for gate in gates if gate["name"] == "disfluency_temporal_presence_false_positive_rate"
+    )
+    assert not false_positive_gate["passed"]

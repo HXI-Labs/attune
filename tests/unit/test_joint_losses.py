@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import torch
 
 from attune.models.joint import JointOutput
@@ -9,6 +10,7 @@ from attune.training.losses import (
     counterfactual_affect_loss,
     focal_binary_loss,
     soft_dice_loss,
+    weak_temporal_presence_logits,
 )
 
 
@@ -59,6 +61,7 @@ def test_masked_multicorpus_loss_ignores_missing_targets() -> None:
     assert {
         "event",
         "event_presence",
+        "weak_event_presence",
         "style",
         "affect",
         "vad",
@@ -99,6 +102,32 @@ def test_dice_loss_is_not_diluted_by_unannotated_examples() -> None:
     annotated_only = soft_dice_loss(logits[:1], targets[:1], mask[:1])
 
     assert torch.isclose(with_unannotated, annotated_only)
+
+
+def test_weak_temporal_presence_pool_ignores_padding_and_tracks_peaks() -> None:
+    logits = torch.tensor(
+        [
+            [[-2.0], [4.0], [100.0]],
+            [[-2.0], [-1.0], [0.0]],
+        ],
+        requires_grad=True,
+    )
+    mask = torch.tensor([[True, True, False], [True, True, True]])
+
+    pooled = weak_temporal_presence_logits(logits, mask)
+    pooled.sum().backward()
+
+    assert pooled[0, 0] > pooled[1, 0]
+    assert logits.grad is not None
+    assert logits.grad[0, 2, 0] == 0
+
+
+def test_weak_temporal_presence_pool_rejects_empty_examples() -> None:
+    logits = torch.zeros(1, 2, 1)
+    mask = torch.zeros(1, 2, dtype=torch.bool)
+
+    with pytest.raises(ValueError, match="at least one valid frame"):
+        weak_temporal_presence_logits(logits, mask)
 
 
 def test_counterfactual_affect_loss_rewards_target_aligned_logit_changes() -> None:

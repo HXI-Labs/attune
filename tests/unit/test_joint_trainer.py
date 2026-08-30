@@ -243,6 +243,7 @@ def test_frozen_training_can_exclude_read_only_ctc_monitor() -> None:
     [
         ("affect", ("affect_projection.", "affect_head.")),
         ("events", ("event_head.",)),
+        ("weak_events", ("event_head.",)),
         ("styles", ("style_projection.", "style_head.")),
     ],
 )

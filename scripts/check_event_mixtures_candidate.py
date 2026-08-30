@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the event-mixture v1.1 candidate against its declared external gates."""
+"""Check an event-mixture candidate against its predeclared acceptance gates."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ def check_candidate(
     wesr_report: dict[str, Any],
     regression_report: dict[str, Any],
     scope_report: dict[str, Any],
+    weak_development_report: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     controls = regression_report["speech_controls"]
     requirements = (
@@ -50,6 +51,27 @@ def check_candidate(
         ),
         ("checkpoint_scope", bool(scope_report.get("passed", False)), "==", True),
     )
+    if weak_development_report is not None:
+        requirements += (
+            (
+                "disfluency_laugh_temporal_presence_f1",
+                weak_development_report["localized_event_presence_f1"]["laugh"],
+                ">=",
+                0.65,
+            ),
+            (
+                "disfluency_temporal_presence_recall",
+                weak_development_report["localized_event_presence_recall"],
+                ">=",
+                0.65,
+            ),
+            (
+                "disfluency_temporal_presence_false_positive_rate",
+                weak_development_report["localized_event_presence_false_positive_rate"],
+                "<=",
+                0.10,
+            ),
+        )
     gates = []
     for name, value, comparison, threshold in requirements:
         if comparison == ">=":
@@ -75,6 +97,8 @@ def main() -> None:
     parser.add_argument("--wesr-report", type=Path, required=True)
     parser.add_argument("--regression-report", type=Path, required=True)
     parser.add_argument("--scope-report", type=Path, required=True)
+    parser.add_argument("--weak-development-report", type=Path)
+    parser.add_argument("--candidate", default="event-mixtures-v1.1")
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     paths = {
@@ -82,14 +106,19 @@ def main() -> None:
         "opened_regression": arguments.regression_report,
         "checkpoint_scope": arguments.scope_report,
     }
+    if arguments.weak_development_report is not None:
+        paths["weak_development"] = arguments.weak_development_report
     reports = {name: json.loads(path.read_text()) for name, path in paths.items()}
     gates = check_candidate(
-        reports["wesr"], reports["opened_regression"], reports["checkpoint_scope"]
+        reports["wesr"],
+        reports["opened_regression"],
+        reports["checkpoint_scope"],
+        reports.get("weak_development"),
     )
     passed = all(gate["passed"] for gate in gates)
     output = {
         "schema_version": "1.0",
-        "candidate": "event-mixtures-v1.1",
+        "candidate": arguments.candidate,
         "inputs": {
             name: {"path": str(path), "sha256": file_digest(path)} for name, path in paths.items()
         },

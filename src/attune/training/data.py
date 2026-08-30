@@ -111,6 +111,7 @@ class JointFeatureDataset(Dataset[tuple[JointManifestRow, Tensor]]):
         "ctc": "token_ids",
         "event_presence": "event_presence",
         "events": "events",
+        "weak_events": "event_presence",
         "styles": "styles",
         "vad": "vad",
     }

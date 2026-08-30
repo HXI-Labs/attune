@@ -254,6 +254,29 @@ operating point. The chosen method and threshold (when applicable) are written
 only to the gitignored head checkpoint and metrics artifact; inspection/test
 clips do not choose the operating point.
 
+## DisfluencySpeech weak event supervision
+
+`disfluency-speech-v0.1.jsonl` contains the 5,000 unique clips from the pinned
+Apache-2.0 `amaai-lab/DisfluencySpeech` revision. It preserves the official
+4,500/250/250 train, development, and test partitions. Because all clips use
+one speaker, the partitions are described as sentence-disjoint and are not
+used as proof of speaker generalization.
+
+The preparation script verifies the README and all five Parquet shard hashes,
+extracts their embedded mono PCM16 audio, and maps explicit transcript tags to
+weak event-presence labels. It does not create frame or boundary targets from
+word-position tags.
+
+```bash
+uv sync --extra dataset-tools
+uv run python scripts/prepare_disfluency_speech.py
+```
+
+The committed manifest and provenance record contain source hashes, licence,
+attribution, partition policy, and label counts. Source and extracted audio
+remain under `data/raw/` and are not committed. WESR-Bench remains the external
+event-localization test.
+
 ## STARSS23 first-60s gold-review pack — not gold
 
 `starss23-gold-review-pack.jsonl` copies the 49 `source_window_start_ms == 0`

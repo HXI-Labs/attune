@@ -1,0 +1,25 @@
+dataset_id: disfluency_speech_v0.1
+dataset_name: DisfluencySpeech
+source_url: https://huggingface.co/datasets/amaai-lab/DisfluencySpeech
+paper_url: https://arxiv.org/abs/2406.08820
+source_revision: b7da294fe3a70dd96df6640893f2a5dfc2c87638
+acquired_at: "2026-08-30"
+licence_review_status: approved
+licence:
+  identifier: Apache-2.0
+  source_text_url: https://huggingface.co/datasets/amaai-lab/DisfluencySpeech/blob/b7da294fe3a70dd96df6640893f2a5dfc2c87638/README.md
+redistribution_allowed: true
+commercial_use_status: allowed
+speaker_consent_basis: source_dataset_terms
+contains_synthetic_audio: false
+contains_personal_data: true
+approved_uses:
+  - internal_research
+  - model_training
+  - derivative_weight_release
+prohibited_uses:
+  - speaker_identification
+notes:
+  - The corpus is a new studio recording by one consenting speaker; its text prompts were adapted from Switchboard annotations.
+  - Official train, validation, and test clips share the same speaker, so they are clip-disjoint rather than speaker-disjoint.
+  - Attune uses the corpus for weak event training only and retains WESR-Bench as independent external evaluation.
