@@ -7,10 +7,13 @@ artifacts/models/attune-cadence-v0.11-int8.quantization.json
 # Accepted branch checkpoints and composition evidence
 artifacts/training/local-event-weak-v1.2/model.pt
 artifacts/training/local-event-weak-v1.2/training-report.json
+artifacts/training/local-event-weak-v1.2/lineage.json
 artifacts/training/local-berst-style-v0.1/model.pt
 artifacts/training/local-berst-style-v0.1/training-report.json
+artifacts/training/local-berst-style-v0.1/lineage.json
 artifacts/training/local-berst-affect-v0.1/model.pt
 artifacts/training/local-berst-affect-v0.1/training-report.json
+artifacts/training/local-berst-affect-v0.1/lineage.json
 artifacts/training/cadence-release-candidate-v0.11/model.pt
 artifacts/training/cadence-release-candidate-v0.11/composition.json
 artifacts/evaluation/event-weak-v1.2/acceptance.json

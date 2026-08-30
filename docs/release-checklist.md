@@ -7,7 +7,9 @@ internally good score is not sufficient.
 
 1. Record the Git commit, dataset-manifest hashes, training configuration,
    seed, checkpoint hash, hardware, duration, and parameter scope for every
-   branch candidate.
+   branch candidate. Generate `lineage.json` with
+   `scripts/build_training_lineage.py`; if source files changed during a run,
+   bind the record to the start revision and state the reason explicitly.
 2. Require the event branch to pass its external WESR, strong-label
    regression, weak human-speech development, and speech-control gates.
 3. Require the style branch to pass BERSt development/confirmation, WESR,
