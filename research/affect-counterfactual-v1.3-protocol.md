@@ -49,3 +49,26 @@ is retained only if all of the following hold:
 
 No margin, loss weight, epoch, checkpoint, or calibration parameter will be
 selected using the opened external sets.
+
+## Result
+
+Epoch 5 was selected at validation loss 1.1361. All six epochs achieved an
+active paired-batch fraction of 1.0. The selected checkpoint has SHA-256
+`a62699df05597b85d3d08320720794337b15dae23f4624de2102d517ece3b6c0`;
+its ONNX export has SHA-256
+`c6f505f9fea25678a2a384b7b01db98d8fd854d7e172cc3395b435711aa359ab`
+and maximum parity error `6.64e-05`. The scope audit found exactly eight
+changed affect tensors and no violations.
+
+APS-constrained development calibration selected bias scale 0.25. The complete
+2,157-row development evaluation reached macro-F1 0.6267, APS +0.0303, Brier
+score 0.3005, and ECE 0.0951. Temperature-only calibration reached macro-F1
+0.6249 with APS +0.1077. Selective risk improved and all 1,241 speech controls
+had zero auxiliary false positives.
+
+The candidate is rejected because it misses the 0.64 development macro-F1
+floor and underperforms v1.2. Opened regression, RAVDESS, and fresh British data
+were not evaluated. Retained v0.9 remains unchanged. Direct logit ranking did
+not improve the quality-acoustic-reliance trade-off at the predeclared weight;
+further affect work should add better natural perceptual coverage rather than
+tune this objective against the same development set.
