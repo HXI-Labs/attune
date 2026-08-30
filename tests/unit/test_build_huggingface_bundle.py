@@ -60,3 +60,15 @@ def test_bundle_manifest_rejects_duplicate_destinations(tmp_path: Path) -> None:
             gate_report="first",
             mappings=[("first", "same"), ("second", "same")],
         )
+
+
+def test_mapping_file_ignores_comments_and_blank_lines(tmp_path: Path) -> None:
+    mapping_file = tmp_path / "files.txt"
+    mapping_file.write_text(
+        "# Model\n\nrelease/model.onnx=cadence.onnx\nrelease/gates.json=release-gates.json\n"
+    )
+
+    assert MODULE.load_mapping_file(mapping_file) == [
+        ("release/model.onnx", "cadence.onnx"),
+        ("release/gates.json", "release-gates.json"),
+    ]

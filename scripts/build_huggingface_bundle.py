@@ -17,6 +17,14 @@ def parse_mapping(value: str) -> tuple[str, str]:
     return source, destination
 
 
+def load_mapping_file(path: Path) -> list[tuple[str, str]]:
+    return [
+        parse_mapping(line.strip())
+        for line in path.read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+
+
 def build_bundle_manifest(
     *,
     root: Path,
@@ -69,13 +77,21 @@ def main() -> None:
     parser.add_argument("--release-name", required=True)
     parser.add_argument("--gate-report", required=True)
     parser.add_argument("--file", type=parse_mapping, action="append", default=[])
+    parser.add_argument(
+        "--file-list",
+        type=Path,
+        help="UTF-8 file containing one SOURCE=DESTINATION mapping per line",
+    )
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
+    mappings = list(arguments.file)
+    if arguments.file_list:
+        mappings.extend(load_mapping_file(arguments.file_list))
     manifest = build_bundle_manifest(
         root=arguments.root,
         release_name=arguments.release_name,
         gate_report=arguments.gate_report,
-        mappings=arguments.file,
+        mappings=mappings,
     )
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     arguments.output.write_text(json.dumps(manifest, indent=2) + "\n")

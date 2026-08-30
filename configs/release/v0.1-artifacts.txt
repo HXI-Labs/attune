@@ -1,59 +1,67 @@
-# Models and exact conversion reports
-artifacts/models/attune-split-tail-v0.1-fp.onnx
-artifacts/models/attune-split-tail-v0.1-fp.export.json
-artifacts/models/attune-split-tail-v0.1-int8.onnx
-artifacts/models/attune-split-tail-v0.1-int8.quantization.json
+# Release models and conversion evidence
+artifacts/models/attune-cadence-v0.11-fp.onnx
+artifacts/models/attune-cadence-v0.11-fp.export.json
+artifacts/models/attune-cadence-v0.11-int8.onnx
+artifacts/models/attune-cadence-v0.11-int8.quantization.json
 
-# Training provenance
-artifacts/training/local-upper-two-v0.1/model.pt
-artifacts/training/local-upper-two-v0.1/training-report.json
-artifacts/training/local-upper-two-v0.1/training-source.tar.gz
-data/manifests/joint-v0.1.jsonl
-data/manifests/joint-v0.1-source.jsonl
-research/joint-v0.1-manifest-audit.json
+# Accepted branch checkpoints and composition evidence
+artifacts/training/local-event-weak-v1.2/model.pt
+artifacts/training/local-event-weak-v1.2/training-report.json
+artifacts/training/local-berst-style-v0.1/model.pt
+artifacts/training/local-berst-style-v0.1/training-report.json
+artifacts/training/local-berst-affect-v0.1/model.pt
+artifacts/training/local-berst-affect-v0.1/training-report.json
+artifacts/training/cadence-release-candidate-v0.11/model.pt
+artifacts/training/cadence-release-candidate-v0.11/composition.json
+artifacts/evaluation/event-weak-v1.2/acceptance.json
+artifacts/evaluation/berst-style-v0.1/gain-acceptance.json
+artifacts/evaluation/berst-affect-v0.1/sealed-acceptance.json
 
-# Calibration and evaluation
-artifacts/evaluation/split-tail-v0.1/fp-calibration.json
-artifacts/evaluation/split-tail-v0.1/int8-calibration.json
-artifacts/evaluation/split-tail-v0.1/fp-development-report.json
-artifacts/evaluation/split-tail-v0.1/int8-development-report.json
-artifacts/evaluation/split-tail-v0.1/fp-sealed-report.json
-artifacts/evaluation/split-tail-v0.1/int8-sealed-report.json
-artifacts/deployment/split-tail-v0.1/int8-macos-cpu.json
-artifacts/deployment/split-tail-v0.1/int8-service-smoke.json
-artifacts/release/v0.1/release-metrics.json
-artifacts/release/v0.1/release-gates.json
-research/error-analysis/v0.1-fp-sealed.json
-research/error-analysis/v0.1-fp-sealed.md
+# Release manifests and calibration
+artifacts/manifests/joint-release-v0.11.jsonl
+artifacts/manifests/joint-release-evaluation-v0.11.jsonl
+artifacts/evaluation/cadence-release-v0.11-fp/calibration.json
+artifacts/evaluation/cadence-release-v0.11-int8/calibration.json
 
-# Contracts, source, and documentation needed to interpret the artifacts
-configs/release/v0.1-artifacts.txt
+# Full-precision and INT8 external evidence
+artifacts/evaluation/cadence-release-v0.11-fp/overall-report.json
+artifacts/evaluation/cadence-release-v0.11-fp/event-acceptance.json
+artifacts/evaluation/cadence-release-v0.11-fp/style-acceptance.json
+artifacts/evaluation/cadence-release-v0.11-fp/affect-acceptance.json
+artifacts/evaluation/cadence-release-v0.11-int8/overall-report.json
+artifacts/evaluation/cadence-release-v0.11-int8/event-acceptance.json
+artifacts/evaluation/cadence-release-v0.11-int8/style-acceptance.json
+artifacts/evaluation/cadence-release-v0.11-int8/affect-acceptance.json
+artifacts/deployment/cadence-v0.11/int8-macos-cpu.json
+artifacts/deployment/cadence-v0.11/int8-service-smoke.json
+artifacts/release/cadence-v0.1/hostile-speech-regression.json
+artifacts/release/cadence-v0.1/release-metrics.json
+artifacts/release/cadence-v0.1/release-gates.json
+
+# Output contracts, provenance, and release documentation
 data/schemas/attune-output-v2.0.schema.json
-pyproject.toml
-uv.lock
+data/provenance/sensevoice_small_weights.yaml
+data/provenance/common_voice_17_english.yaml
+data/provenance/vocalsound.yaml
+data/provenance/inline_event_mixtures_v0.1.yaml
+data/provenance/dcase2016_task2.yaml
+data/provenance/fsd50k.yaml
+data/provenance/crema_d.yaml
+data/provenance/subesco.yaml
+data/provenance/thorsten_voice_emotional.yaml
+data/provenance/berst.yaml
+data/provenance/disfluency_speech.yaml
+data/provenance/public_weight_redistribution.json
 README.md
 docs/model-card.md
-docs/dataset-card-v0.1.md
-docs/cloud-training.md
+docs/dataset-card.md
+docs/ethics.md
+docs/release-checklist.md
 huggingface/README.md
 huggingface/THIRD_PARTY_NOTICE.md
-research/v0.1-implementation-status.md
 research/experiment-registry.md
 research/project-attune-completion-report.md
 research/paper/attune-v0.1-technical-report.md
-src/attune/models/joint.py
-src/attune/calibration_joint.py
-src/attune/evaluation/joint.py
-src/attune/evaluation/release_gates.py
-src/attune/inference/onnx_backend.py
-src/attune/service/app.py
-src/attune/service/auth.py
-src/attune/service/ui.py
-scripts/export_onnx.py
-scripts/quantize.py
-scripts/build_joint_error_analysis.py
-scripts/build_release_manifest.py
-scripts/assemble_release_metrics.py
-scripts/publish_huggingface.py
-scripts/smoke_deployment.py
+pyproject.toml
+uv.lock
 configs/evaluation/release-metrics-template.json

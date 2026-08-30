@@ -1,0 +1,18 @@
+# Model card, notices, and contracts
+huggingface/README.md=README.md
+huggingface/THIRD_PARTY_NOTICE.md=THIRD_PARTY_NOTICE.md
+data/schemas/attune-output-v2.0.schema.json=attune-output-v2.0.schema.json
+
+# Full-precision and quantized models
+artifacts/models/attune-cadence-v0.11-fp.onnx=attune-cadence-241m-fp.onnx
+artifacts/models/attune-cadence-v0.11-fp.export.json=export.json
+artifacts/models/attune-cadence-v0.11-int8.onnx=attune-cadence-241m-int8.onnx
+artifacts/models/attune-cadence-v0.11-int8.quantization.json=quantization.json
+artifacts/evaluation/cadence-release-v0.11-int8/calibration.json=calibration.json
+
+# Reproducibility and release decisions
+artifacts/training/cadence-release-candidate-v0.11/composition.json=composition.json
+artifacts/release/cadence-v0.1/artifact-manifest.json=artifact-manifest.json
+artifacts/release/cadence-v0.1/release-metrics.json=metrics.json
+artifacts/release/cadence-v0.1/release-gates.json=release-gates.json
+artifacts/release/cadence-v0.1/hostile-speech-regression.json=hostile-speech-regression.json

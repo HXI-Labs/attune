@@ -69,9 +69,10 @@ internally good score is not sufficient.
    licence terms.
 3. Run `make check` and inspect the final Git diff. Keep the pull request in
    draft until the model artifacts and documentation agree.
-4. Build the release checksum ledger and the Hugging Face bundle manifest.
-   `scripts/build_huggingface_bundle.py` must hash each explicit
-   `SOURCE=DESTINATION` mapping.
+4. Build the release checksum ledger from
+   `configs/release/v0.1-artifacts.txt`, then build the Hugging Face bundle from
+   `configs/release/v0.1-huggingface-files.txt`. Both builders must hash every
+   listed source and fail on missing files.
 5. Run `scripts/publish_huggingface.py --dry-run`. It must verify all file
    hashes, required destinations, release-gate schema, and gate results.
 6. Upload privately first. Compare the remote file list and hashes with the

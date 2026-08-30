@@ -281,12 +281,23 @@ uv run python scripts/publish_huggingface.py \
   --dry-run
 ```
 
-Create `huggingface-bundle.json` with
-`scripts/build_huggingface_bundle.py`, passing one
-`--file SOURCE=DESTINATION` mapping for each required artifact. The builder
-hashes every source and requires the selected release-gate report to be one of
-the mapped files; the publisher recalculates those hashes immediately before
-upload.
+Create the checksum ledger and `huggingface-bundle.json` from the committed
+release inventories:
+
+```bash
+uv run python scripts/build_release_manifest.py \
+  --artifact-list configs/release/v0.1-artifacts.txt \
+  --output artifacts/release/cadence-v0.1/artifact-manifest.json
+
+uv run python scripts/build_huggingface_bundle.py \
+  --release-name "Attune Cadence v0.1" \
+  --gate-report artifacts/release/cadence-v0.1/release-gates.json \
+  --file-list configs/release/v0.1-huggingface-files.txt \
+  --output artifacts/release/cadence-v0.1/huggingface-bundle.json
+```
+
+Both builders fail if a listed artifact is absent. They hash every source, and
+the publisher recalculates those hashes immediately before upload.
 
 The hostile-speech gate cannot be enabled with a bare Boolean flag. Analyse a
 fresh, consented, event-free human recording of the regression sentence with
