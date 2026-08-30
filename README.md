@@ -259,6 +259,28 @@ Important repository areas are:
 - `scripts/`: reproducible data, training, evaluation, and deployment commands;
 - `research/`: experiment registry, results, and error analysis.
 
+## Release publishing
+
+Hugging Face publication is manifest-driven. A release bundle manifest names
+the gate report and every local source-to-repository file mapping with its
+SHA-256 digest. The publisher rejects missing or changed files, incomplete or
+unsafe destinations, stale gate schemas, failed external event/style/affect
+validation, and a missing or failed human hostile-speech regression.
+
+After a candidate passes the full-precision and INT8 release suite, inspect the
+upload plan before publishing:
+
+```bash
+uv run python scripts/publish_huggingface.py \
+  --repo-id buabaj/attune-cadence-241m \
+  --bundle-manifest artifacts/release/cadence-v0.1/huggingface-bundle.json \
+  --dry-run
+```
+
+Omit `--dry-run` to upload privately. Public repository creation additionally
+requires `--public` and should happen only after the model-weight and training-
+data redistribution review is recorded.
+
 ## Licence and use restrictions
 
 Project code is MIT licensed. Dataset and model licences remain independent.

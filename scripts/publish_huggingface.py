@@ -1,56 +1,14 @@
 #!/usr/bin/env python3
-"""Publish the Attune Cadence release bundle to a private Hugging Face model repo."""
+"""Publish a gated Attune Cadence bundle to a Hugging Face model repository."""
 
 from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-
-@dataclass(frozen=True)
-class ReleaseFile:
-    source: str
-    destination: str
-    optional: bool = False
-
-
-RELEASE_FILES = (
-    ReleaseFile("huggingface/README.md", "README.md"),
-    ReleaseFile("huggingface/THIRD_PARTY_NOTICE.md", "THIRD_PARTY_NOTICE.md"),
-    ReleaseFile(
-        "artifacts/models/attune-split-tail-v0.1-int8.onnx",
-        "attune-cadence-241m-int8.onnx",
-    ),
-    ReleaseFile(
-        "artifacts/models/attune-split-tail-v0.1-int8.quantization.json",
-        "quantization.json",
-    ),
-    ReleaseFile(
-        "artifacts/evaluation/split-tail-v0.1/int8-calibration.json",
-        "int8-calibration.json",
-    ),
-    ReleaseFile(
-        "data/schemas/attune-output-v2.0.schema.json",
-        "attune-output-v2.0.schema.json",
-    ),
-    ReleaseFile("artifacts/release/v0.1/release-gates.json", "release-gates.json"),
-    ReleaseFile(
-        "artifacts/release/v0.1/artifact-manifest.json",
-        "artifact-manifest.json",
-    ),
-    ReleaseFile(
-        "artifacts/models/attune-split-tail-v0.1-fp.onnx",
-        "attune-cadence-241m-fp.onnx",
-        optional=True,
-    ),
-    ReleaseFile(
-        "artifacts/models/attune-split-tail-v0.1-fp.export.json",
-        "fp-export.json",
-        optional=True,
-    ),
-)
+from attune.integrity import file_digest
 
 REQUIRED_PUBLICATION_GATES = {
     "event_external_validation",
@@ -58,19 +16,84 @@ REQUIRED_PUBLICATION_GATES = {
     "affect_external_validation",
     "hostile_speech_regression",
 }
+REQUIRED_BUNDLE_DESTINATIONS = {
+    "README.md",
+    "THIRD_PARTY_NOTICE.md",
+    "calibration.json",
+    "attune-output-v2.0.schema.json",
+    "quantization.json",
+    "release-gates.json",
+    "artifact-manifest.json",
+}
 
 
-def release_files(root: Path, *, include_fp: bool) -> list[tuple[Path, str]]:
-    selected = [item for item in RELEASE_FILES if include_fp or not item.optional]
-    files = [(root / item.source, item.destination) for item in selected]
+def load_bundle_manifest(path: Path) -> dict[str, Any]:
+    try:
+        manifest = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"cannot read release bundle manifest {path}: {error}") from error
+    if manifest.get("schema_version") != "1.0":
+        raise RuntimeError("unsupported Hugging Face bundle-manifest schema")
+    if not isinstance(manifest.get("release_name"), str) or not manifest["release_name"].strip():
+        raise RuntimeError("bundle manifest requires release_name")
+    if not isinstance(manifest.get("gate_report"), str) or not manifest["gate_report"]:
+        raise RuntimeError("bundle manifest requires gate_report")
+    files = manifest.get("files")
+    if not isinstance(files, list) or not files:
+        raise RuntimeError("bundle manifest requires a non-empty files list")
+    return manifest
+
+
+def release_files(root: Path, manifest: dict[str, Any]) -> list[tuple[Path, str]]:
+    files: list[tuple[Path, str]] = []
+    destinations: set[str] = set()
+    for record in manifest["files"]:
+        if not isinstance(record, dict):
+            raise RuntimeError("bundle file entries must be objects")
+        source_name = record.get("source")
+        destination = record.get("destination")
+        expected_sha256 = record.get("sha256")
+        if not isinstance(source_name, str) or not source_name:
+            raise RuntimeError("bundle file entries require source")
+        if not isinstance(destination, str) or not destination:
+            raise RuntimeError("bundle file entries require destination")
+        if not isinstance(expected_sha256, str) or len(expected_sha256) != 64:
+            raise RuntimeError("bundle file entries require a SHA-256 digest")
+        if destination.startswith("/") or ".." in Path(destination).parts:
+            raise RuntimeError(f"unsafe Hugging Face destination: {destination}")
+        if destination in destinations:
+            raise RuntimeError(f"duplicate Hugging Face destination: {destination}")
+        destinations.add(destination)
+        source = (root / source_name).resolve()
+        try:
+            source.relative_to(root)
+        except ValueError as error:
+            raise RuntimeError(f"bundle source is outside repository: {source_name}") from error
+        files.append((source, destination))
     missing = [str(source) for source, _ in files if not source.is_file()]
     if missing:
         raise FileNotFoundError("missing release files: " + ", ".join(missing))
+    mismatched = [
+        str(source)
+        for (source, _), record in zip(files, manifest["files"], strict=True)
+        if file_digest(source) != record["sha256"]
+    ]
+    if mismatched:
+        raise RuntimeError("release file checksum mismatch: " + ", ".join(mismatched))
+    missing_destinations = sorted(REQUIRED_BUNDLE_DESTINATIONS - destinations)
+    if missing_destinations:
+        raise RuntimeError(
+            "bundle is missing required destinations: " + ", ".join(missing_destinations)
+        )
+    if not any(destination.endswith(".onnx") for destination in destinations):
+        raise RuntimeError("bundle requires an ONNX model")
+    gate_source = (root / manifest["gate_report"]).resolve()
+    if gate_source not in {source for source, _ in files}:
+        raise RuntimeError("bundle gate_report must be included in files")
     return files
 
 
-def require_release_ready(root: Path) -> None:
-    gate_path = root / "artifacts/release/v0.1/release-gates.json"
+def require_release_ready(gate_path: Path) -> None:
     try:
         report = json.loads(gate_path.read_text())
     except (OSError, json.JSONDecodeError) as error:
@@ -99,7 +122,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-id", required=True, help="Hugging Face model repo, e.g. org/name")
     parser.add_argument("--root", type=Path, default=Path.cwd())
-    parser.add_argument("--include-fp", action="store_true")
+    parser.add_argument("--bundle-manifest", type=Path, required=True)
     parser.add_argument(
         "--public",
         action="store_true",
@@ -109,9 +132,19 @@ def main() -> None:
     arguments = parser.parse_args()
 
     root = arguments.root.resolve()
-    files = release_files(root, include_fp=arguments.include_fp)
-    require_release_ready(root)
+    manifest_path = arguments.bundle_manifest
+    if not manifest_path.is_absolute():
+        manifest_path = root / manifest_path
+    manifest = load_bundle_manifest(manifest_path)
+    files = release_files(root, manifest)
+    gate_path = (root / manifest["gate_report"]).resolve()
+    try:
+        gate_path.relative_to(root)
+    except ValueError as error:
+        raise RuntimeError("gate report is outside repository") from error
+    require_release_ready(gate_path)
     plan = {
+        "release_name": manifest["release_name"],
         "repo_id": arguments.repo_id,
         "private": not arguments.public,
         "files": [
@@ -142,7 +175,7 @@ def main() -> None:
             path_in_repo=destination,
             repo_id=arguments.repo_id,
             repo_type="model",
-            commit_message=f"Upload Attune Cadence v0.1: {destination}",
+            commit_message=f"Upload {manifest['release_name']}: {destination}",
         )
     print(json.dumps(plan, indent=2))
 
