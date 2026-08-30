@@ -22,6 +22,14 @@ confidence. Utterance-level event and style allowlists are empty. The original
 uploaded clip was processed in memory and was not retained, so a recording of
 that case must be tested again before release.
 
+As a lexical-leakage control, four neutral system voices subsequently read the
+exact hostile sentence. Cadence transcribed all four correctly, returned no
+events or styles, and abstained on affect; anger probability ranged from 8.1%
+to 19.9%. This establishes that the words alone do not reproduce the failure,
+but synthetic neutral speech cannot validate expressive human delivery. The
+protocol and checksums are recorded in
+[`research/hostile-lexical-control-v0.1.md`](research/hostile-lexical-control-v0.1.md).
+
 ASR is not the current failure. Cadence v0.9 keeps a frozen base-ASR tail; its
 CTC logits are bit-identical to the preceding candidate on real speech clips.
 The 241,904,650-parameter model adapts the upper acoustic encoder for perception

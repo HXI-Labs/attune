@@ -8,7 +8,7 @@ licence:
   identifier: MIT
   source_text_url: https://huggingface.co/datasets/yfish/WESR-Bench/blob/main/README.md
   licence_review_status: dataset_card_reviewed_evaluation_only
-  reviewed_by: Codex on behalf of Jerry Buaba / HXI Labs
+  reviewed_by: Jerry Buaba / HXI Labs
   reviewed_at: "2026-08-30"
 redistribution:
   original_audio: not_authorised_by_this_review
