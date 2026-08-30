@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import wave
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -210,7 +211,9 @@ def create_mixtures(
                     "dataset_id": "attune_inline_event_mixtures_v0.1",
                     "split": split,
                     "speaker_id": f"mixture:{speech_row['client_id']}:{event_row['speaker_id']}",
-                    "audio_path": str(output_path.resolve()),
+                    "audio_path": os.path.relpath(
+                        output_path.resolve(), output_manifest.parent.resolve()
+                    ),
                     "audio_sha256": file_sha256(output_path),
                     "duration_ms": round(len(mixed) / SAMPLE_RATE * 1000),
                     "transcript": speech_row["transcript"],

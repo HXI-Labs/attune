@@ -13,7 +13,7 @@ vary independently to reduce reliance on raw amplitude. Only train and developme
 source partitions are used; the existing sealed rows remain untouched.
 
 The generated source manifest has SHA-256
-`f1688b7c11b542dff2d2a5189524f8121d45976a76ac1cfe4c8f3f77685723a3`.
+`337a08b15e72304b3440994239ef589a9508e58262c2f39f99040fc432e4a602`.
 It contains 2,715 mixtures: 2,405 train and 310 development examples, with
 exactly 481/62 examples per event class. Placement is also balanced: 926
 before, 869 overlay, and 920 after. Ten silent VocalSound files were rejected
