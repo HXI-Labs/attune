@@ -276,9 +276,23 @@ def collate_joint_examples(examples: list[tuple[JointManifestRow, Tensor]]) -> J
             vad_targets=vad,
             vad_target_mask=vad_mask,
             ood_targets=torch.tensor([row.is_ood for row in rows], dtype=torch.float32),
-            pair_ids=torch.tensor([row.pair_id for row in rows]),
+            pair_ids=_batch_pair_ids(rows),
         ),
     )
+
+
+def _batch_pair_ids(rows: tuple[JointManifestRow, ...]) -> Tensor:
+    """Assign batch-local IDs to dataset-scoped text pairs."""
+
+    pair_keys: dict[tuple[str, int], int] = {}
+    identifiers = []
+    for row in rows:
+        if row.pair_id < 0:
+            identifiers.append(-1)
+            continue
+        key = (row.dataset_id, row.pair_id)
+        identifiers.append(pair_keys.setdefault(key, len(pair_keys)))
+    return torch.tensor(identifiers, dtype=torch.long)
 
 
 def manifest_sha256(path: Path) -> str:

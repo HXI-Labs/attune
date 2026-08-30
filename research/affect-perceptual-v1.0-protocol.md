@@ -43,3 +43,27 @@ The merged 15,389-row training manifest has SHA-256
 Its feature audit found 15,389 unique paths, no known-speaker overlap among
 partitions, and 12,597 affect-supervised clips. The audit was completed before
 training began.
+
+## Result
+
+Epoch 5 was selected at validation loss 1.0943. The checkpoint changed eight
+tensors under `affect_projection` and `affect_head`, with no scope violations.
+Its SHA-256 is
+`e59e972bde1ebf89a1c3a935877f23c95aac5fc567b29b5222a045b90d49995d`.
+The ONNX export has SHA-256
+`63bf7026319d7875a25d77df8029dfc9343ed79d99569dbb472ca66acf450218`
+and maximum parity error `6.64e-05`.
+
+| Evaluation | Macro-F1 | Brier | ECE | APS |
+|---|---:|---:|---:|---:|
+| Development | 0.6345 | 0.2880 | 0.0930 | -0.1246 |
+| Opened regression | 0.6397 | 0.4777 | 0.0248 | -0.0727 |
+| Opened RAVDESS | 0.4165 | 0.6562 | 0.1052 | +0.2839 |
+
+The candidate is rejected. Listener distributions improved the external
+RAVDESS result beyond the fixed 0.40 floor, but development missed its floor
+and APS became negative on both internal evaluations. A post-run audit found
+that only 374 of 1,366 sampled batches contained a valid same-text,
+different-delivery pair. Seventeen batches also reused an integer pair ID
+across datasets. Version 1.0 therefore remains an archived experiment rather
+than replacing v0.9.

@@ -63,6 +63,7 @@ class TrainerConfig:
     resume: bool = True
     log_interval_steps: int = 25
     duration_bucket_multiplier: int = 20
+    paired_batch_fraction: float = 0.0
     include_ctc_loss: bool = True
     training_target: str | None = None
 
@@ -77,6 +78,8 @@ class TrainerConfig:
             raise ValueError("log_interval_steps must be positive")
         if self.duration_bucket_multiplier < 1:
             raise ValueError("duration_bucket_multiplier must be positive")
+        if not 0.0 <= self.paired_batch_fraction <= 1.0:
+            raise ValueError("paired_batch_fraction must be between zero and one")
         if self.maximum_cost_gbp <= 0 or self.gpu_hour_cost_gbp < 0:
             raise ValueError("compute budget values must be non-negative")
         if (
@@ -213,6 +216,88 @@ class DurationBucketBatchSampler(Sampler[list[int]]):
         return math.ceil(len(self.sampler) / self.batch_size)
 
 
+class PairedDurationBucketBatchSampler(DurationBucketBatchSampler):
+    """Inject same-text, different-delivery pairs into a declared share of batches."""
+
+    def __init__(
+        self,
+        sampler: Sampler[int],
+        rows: list[Any],
+        *,
+        batch_size: int,
+        bucket_multiplier: int,
+        paired_batch_fraction: float,
+    ) -> None:
+        super().__init__(
+            sampler,
+            [row.duration_ms for row in rows],
+            batch_size=batch_size,
+            bucket_multiplier=bucket_multiplier,
+        )
+        self.rows = rows
+        self.paired_batch_fraction = paired_batch_fraction
+        self.partners = self._contrast_partners(rows)
+        self.pair_batches = 0
+        self.total_batches = 0
+
+    @staticmethod
+    def _contrast_partners(rows: list[Any]) -> dict[int, tuple[int, ...]]:
+        groups: dict[tuple[str, int], list[int]] = {}
+        labels: dict[int, str] = {}
+        for index, row in enumerate(rows):
+            if row.pair_id < 0 or row.affect_distribution is None:
+                continue
+            groups.setdefault((row.dataset_id, row.pair_id), []).append(index)
+            labels[index] = max(row.affect_distribution, key=row.affect_distribution.get)
+        return {
+            index: tuple(candidate for candidate in group if labels[candidate] != labels[index])
+            for group in groups.values()
+            for index in group
+            if any(labels[candidate] != labels[index] for candidate in group)
+        }
+
+    def __iter__(self):
+        self.pair_batches = 0
+        self.total_batches = 0
+        pair_budget = 0.0
+        for batch in super().__iter__():
+            pair_budget += self.paired_batch_fraction
+            if pair_budget >= 1.0:
+                batch = self._with_contrast_pair(batch)
+                pair_budget -= 1.0
+            self.total_batches += 1
+            self.pair_batches += int(self._has_contrast_pair(batch))
+            yield batch
+
+    def _has_contrast_pair(self, batch: list[int]) -> bool:
+        selected = set(batch)
+        return any(selected.intersection(self.partners.get(index, ())) for index in batch)
+
+    def _with_contrast_pair(self, batch: list[int]) -> list[int]:
+        if len(batch) < 2 or self._has_contrast_pair(batch):
+            return batch
+        options: list[tuple[int, int, int]] = []
+        for anchor_position, anchor in enumerate(batch):
+            for partner in self.partners.get(anchor, ()):
+                for replace_position in range(len(batch)):
+                    if replace_position == anchor_position:
+                        continue
+                    candidate = batch.copy()
+                    candidate[replace_position] = partner
+                    durations = [self.durations_ms[index] for index in candidate]
+                    options.append((max(durations) - min(durations), replace_position, partner))
+        if not options:
+            return batch
+        _, replace_position, partner = min(options)
+        paired = batch.copy()
+        paired[replace_position] = partner
+        return paired
+
+    @property
+    def active_pair_fraction(self) -> float:
+        return self.pair_batches / self.total_batches if self.total_batches else 0.0
+
+
 def train_joint_model(
     model: AttuneJointModel,
     *,
@@ -261,11 +346,12 @@ def train_joint_model(
             num_samples=config.samples_per_epoch,
             generator=generator,
         )
-    train_batches = DurationBucketBatchSampler(
+    train_batches = PairedDurationBucketBatchSampler(
         sampler,
-        [row.duration_ms for row in train_data.rows],
+        train_data.rows,
         batch_size=config.batch_size,
         bucket_multiplier=config.duration_bucket_multiplier,
+        paired_batch_fraction=config.paired_batch_fraction,
     )
     train_loader = DataLoader(
         train_data,
@@ -376,7 +462,12 @@ def train_joint_model(
         train_mean = training_total / len(train_loader)
         validation_mean = validation_total / len(validation_loader)
         history.append(
-            {"epoch": epoch, "training_loss": train_mean, "validation_loss": validation_mean}
+            {
+                "epoch": epoch,
+                "training_loss": train_mean,
+                "validation_loss": validation_mean,
+                "active_pair_batch_fraction": train_batches.active_pair_fraction,
+            }
         )
         if validation_mean < best_validation:
             best_validation = validation_mean

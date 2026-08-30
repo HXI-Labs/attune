@@ -6,7 +6,7 @@ from pathlib import Path
 
 import torch
 
-from attune.training.data import JointFeatureDataset, collate_joint_examples
+from attune.training.data import JointFeatureDataset, JointManifestRow, collate_joint_examples
 
 
 def _row(path: Path, digest: str, clip_id: str, split: str) -> dict:
@@ -91,3 +91,28 @@ def test_explicit_speech_controls_supervise_all_negative_auxiliary_labels(
     assert batch.targets.event_presence_targets.sum() == 0
     assert batch.targets.style_example_mask.all()
     assert batch.targets.style_targets.sum() == 0
+
+
+def test_pair_ids_are_scoped_to_the_source_dataset(tmp_path: Path) -> None:
+    feature = torch.randn(10, 80)
+    rows = []
+    for dataset_id in ("first", "second"):
+        values = _row(tmp_path / "feature.pt", "unused", dataset_id, "train")
+        values["dataset_id"] = dataset_id
+        rows.append(JointManifestRow.model_validate(values))
+
+    batch = collate_joint_examples([(row, feature) for row in rows])
+
+    assert batch.targets.pair_ids.tolist() == [0, 1]
+
+
+def test_matching_dataset_pair_ids_remain_linked(tmp_path: Path) -> None:
+    feature = torch.randn(10, 80)
+    rows = []
+    for clip_id in ("first", "second"):
+        values = _row(tmp_path / "feature.pt", "unused", clip_id, "train")
+        rows.append(JointManifestRow.model_validate(values))
+
+    batch = collate_joint_examples([(row, feature) for row in rows])
+
+    assert batch.targets.pair_ids.tolist() == [0, 0]

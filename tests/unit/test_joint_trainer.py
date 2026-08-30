@@ -14,6 +14,7 @@ from attune.models.joint import AttuneJointModel
 from attune.training.losses import JointTargets
 from attune.training.trainer import (
     DurationBucketBatchSampler,
+    PairedDurationBucketBatchSampler,
     TrainerConfig,
     _corpus_balanced_sampler,
     _restrict_training_target,
@@ -87,6 +88,7 @@ def test_corpus_sampler_honours_fixed_epoch_size() -> None:
     [
         (TrainerConfig(samples_per_epoch=0), "samples_per_epoch"),
         (TrainerConfig(validation_batch_size=0), "validation_batch_size"),
+        (TrainerConfig(paired_batch_fraction=1.1), "paired_batch_fraction"),
         (TrainerConfig(training_target="unknown"), "training target"),
     ],
 )
@@ -113,6 +115,75 @@ def test_duration_bucket_sampler_limits_padding_within_batches() -> None:
         max(durations[index] for index in batch) - min(durations[index] for index in batch) <= 200
         for batch in batches
     )
+
+
+def test_pair_sampler_constructs_dataset_scoped_contrast_batches() -> None:
+    rows = [
+        SimpleNamespace(
+            dataset_id="paired",
+            pair_id=0,
+            duration_ms=100,
+            affect_distribution={"neutral": 1.0, "anger": 0.0},
+        ),
+        SimpleNamespace(
+            dataset_id="unpaired",
+            pair_id=-1,
+            duration_ms=110,
+            affect_distribution={"neutral": 1.0, "anger": 0.0},
+        ),
+        SimpleNamespace(
+            dataset_id="paired",
+            pair_id=0,
+            duration_ms=500,
+            affect_distribution={"neutral": 0.0, "anger": 1.0},
+        ),
+        SimpleNamespace(
+            dataset_id="unpaired",
+            pair_id=-1,
+            duration_ms=510,
+            affect_distribution={"neutral": 1.0, "anger": 0.0},
+        ),
+    ]
+    sampler = PairedDurationBucketBatchSampler(
+        SequentialSampler(rows),
+        rows,
+        batch_size=2,
+        bucket_multiplier=2,
+        paired_batch_fraction=1.0,
+    )
+
+    batches = list(sampler)
+
+    assert sampler.active_pair_fraction == 1.0
+    assert all({0, 2}.issubset(batch) for batch in batches)
+
+
+def test_pair_sampler_does_not_link_equal_ids_from_different_datasets() -> None:
+    rows = [
+        SimpleNamespace(
+            dataset_id="first",
+            pair_id=0,
+            duration_ms=100,
+            affect_distribution={"neutral": 1.0, "anger": 0.0},
+        ),
+        SimpleNamespace(
+            dataset_id="second",
+            pair_id=0,
+            duration_ms=110,
+            affect_distribution={"neutral": 0.0, "anger": 1.0},
+        ),
+    ]
+    sampler = PairedDurationBucketBatchSampler(
+        SequentialSampler(rows),
+        rows,
+        batch_size=2,
+        bucket_multiplier=1,
+        paired_batch_fraction=1.0,
+    )
+
+    list(sampler)
+
+    assert sampler.active_pair_fraction == 0.0
 
 
 def test_frozen_training_can_exclude_read_only_ctc_monitor() -> None:
