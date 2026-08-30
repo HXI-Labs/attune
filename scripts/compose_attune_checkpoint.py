@@ -38,6 +38,16 @@ def load_delta(path: Path) -> dict[str, Any]:
     return checkpoint
 
 
+def load_acceptance(path: Path, branch: str) -> dict[str, Any]:
+    try:
+        report = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"{branch} acceptance report cannot be read: {error}") from error
+    if report.get("candidate_passes") is not True:
+        raise ValueError(f"{branch} acceptance report does not pass")
+    return report
+
+
 def compose(
     base: dict[str, Any],
     overlays: list[tuple[str, dict[str, Any]]],
@@ -91,25 +101,36 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--event", type=Path)
+    parser.add_argument("--event-acceptance", type=Path)
     parser.add_argument("--style", type=Path)
+    parser.add_argument("--style-acceptance", type=Path)
     parser.add_argument("--affect", type=Path)
+    parser.add_argument("--affect-acceptance", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--provenance", type=Path, required=True)
     arguments = parser.parse_args()
-    overlay_paths = [
-        (branch, path)
-        for branch, path in (
-            ("event", arguments.event),
-            ("style", arguments.style),
-            ("affect", arguments.affect),
+    overlay_specs = [
+        (branch, checkpoint_path, acceptance_path)
+        for branch, checkpoint_path, acceptance_path in (
+            ("event", arguments.event, arguments.event_acceptance),
+            ("style", arguments.style, arguments.style_acceptance),
+            ("affect", arguments.affect, arguments.affect_acceptance),
         )
-        if path is not None
+        if checkpoint_path is not None or acceptance_path is not None
     ]
-    if not overlay_paths:
+    if not overlay_specs:
         parser.error("at least one overlay checkpoint is required")
+    for branch, checkpoint_path, acceptance_path in overlay_specs:
+        if checkpoint_path is None or acceptance_path is None:
+            parser.error(f"{branch} overlay requires both checkpoint and acceptance report")
 
     base = load_delta(arguments.base)
-    loaded_overlays = [(branch, load_delta(path)) for branch, path in overlay_paths]
+    loaded_overlays = [
+        (branch, load_delta(checkpoint_path))
+        for branch, checkpoint_path, _acceptance_path in overlay_specs
+    ]
+    for branch, _checkpoint_path, acceptance_path in overlay_specs:
+        load_acceptance(acceptance_path, branch)
     checkpoint, overlay_reports = compose(base, loaded_overlays)
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = arguments.output.with_suffix(arguments.output.suffix + ".tmp")
@@ -123,8 +144,14 @@ def main() -> None:
                 **report,
                 "path": str(path),
                 "sha256": digest(path),
+                "acceptance": {
+                    "path": str(acceptance_path),
+                    "sha256": digest(acceptance_path),
+                },
             }
-            for report, (_branch, path) in zip(overlay_reports, overlay_paths, strict=True)
+            for report, (_branch, path, acceptance_path) in zip(
+                overlay_reports, overlay_specs, strict=True
+            )
         ],
         "output": {"path": str(arguments.output), "sha256": digest(arguments.output)},
     }

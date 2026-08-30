@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -60,3 +61,20 @@ def test_composition_rejects_overlay_with_different_keys() -> None:
 def test_composition_rejects_unchanged_branch() -> None:
     with pytest.raises(ValueError, match="changes no tensors"):
         COMPOSE.compose(checkpoint(), [("affect", checkpoint())])
+
+
+def test_acceptance_report_must_explicitly_pass(tmp_path: Path) -> None:
+    report = tmp_path / "acceptance.json"
+    report.write_text(json.dumps({"candidate_passes": False}))
+
+    with pytest.raises(ValueError, match="does not pass"):
+        COMPOSE.load_acceptance(report, "event")
+
+
+def test_acceptance_report_returns_passing_evidence(tmp_path: Path) -> None:
+    report = tmp_path / "acceptance.json"
+    report.write_text(json.dumps({"candidate_passes": True, "candidate": "style-v1"}))
+
+    loaded = COMPOSE.load_acceptance(report, "style")
+
+    assert loaded["candidate"] == "style-v1"
