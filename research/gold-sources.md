@@ -78,6 +78,29 @@ that Attune has not independently reviewed.
 Assume **not licence-clean** unless a later review proves otherwise. Do not
 fetch.
 
+## Style-corpus candidates reviewed on 2026-08-30
+
+The [wSpire corpus](https://spiredatasets.ee.iisc.ac.in/wspirecorpus) is the
+strongest current whisper candidate. Its official page describes roughly 36
+hours of paired neutral and whispered speech from 92 speakers and five devices
+under CC BY 4.0. Access requires a request form. Do not ingest it until the
+download terms, consent basis, archive checksum, speaker metadata, and
+train/test policy have been captured in a provenance record.
+
+The [SNE-Speech corpus](https://github.com/shikhabaghel/SNE-Speech-Corpus)
+contains paired normal and shouted Indian English, but its official README
+limits use to research or academic purposes. It is unsuitable for the intended
+release candidate unless separate permission is obtained.
+
+The [RItsumeikan Shout Corpus](https://t-fukumori.net/t-fukumori-web/corpus/RISC/en.html)
+contains paired normal and shouted speech with listener intensity ratings, but
+it is Japanese and its terms limit use to academic, noncommercial research, or
+personal use. It is not a release-training source.
+
+BERSt is scientifically relevant English shouted speech, but no authoritative
+dataset licence was verified during this review. Do not ingest it on the basis
+of a paper or third-party index alone.
+
 ## What this memo does not do
 
 No encoder unfreeze, no Phase 3, no new MLP/GRU/Conv, no decoder grid, no
