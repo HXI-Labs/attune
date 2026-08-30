@@ -247,6 +247,8 @@ The wider reproduction guide is
 [`docs/cloud-training.md`](docs/cloud-training.md). Dataset and weight terms are
 recorded under [`data/provenance/`](data/provenance/); third-party audio and
 weights are not redistributed.
+The complete model-weight release sequence is
+[`docs/release-checklist.md`](docs/release-checklist.md).
 
 Important repository areas are:
 
