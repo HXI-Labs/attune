@@ -57,5 +57,9 @@ def test_onnx_export_parity_and_int8_structure(tmp_path: Path) -> None:
 
     assert parity.outputs_checked == 10
     assert report["method"] == "onnxruntime_dynamic_qint8_per_channel"
+    assert report["materialized_aliased_gemm_weights"] == [
+        "/model/style_projection/style_projection.0/Gemm",
+        "/model/style_projection/style_projection.3/Gemm",
+    ]
     assert report["nodes_excluded_from_int8"] == ["/model/style_head/Gemm"]
     assert int8_model.is_file()
