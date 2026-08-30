@@ -29,10 +29,13 @@ internally good score is not sufficient.
    acceptance-report SHA-256, the exact changed tensors, and the output hash.
 3. Export ONNX and retain its parity report. Refit calibration on development
    data after composition.
-4. Rerun overall ASR/event/style/affect/OOD metrics and all external branch
+4. Collect calibration and release-quality scores with batch size one. The
+   temporal event head is not padding-invariant for mixed-length ONNX batches;
+   see `research/onnx-batch-padding-audit.md`.
+5. Rerun overall ASR/event/style/affect/OOD metrics and all external branch
    gates on the composed graph. Do not infer full-model acceptance from the
    isolated branches alone.
-5. Keep DisfluencySpeech test clips unopened; its one shared speaker prevents
+6. Keep DisfluencySpeech test clips unopened; its one shared speaker prevents
    that split from serving as final external evidence.
 
 ## INT8 and deployment
