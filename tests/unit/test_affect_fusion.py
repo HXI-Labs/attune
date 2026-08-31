@@ -27,6 +27,7 @@ class FakeCadenceBackend:
 class FakeAffectStudent:
     labels = tuple(category.value for category in AffectCategory)
     parameter_count = 57_937_364
+    quantization = "fp32"
 
     def predict_probabilities(self, payloads):
         assert all(payload[:4] == b"RIFF" for payload in payloads)
@@ -91,6 +92,7 @@ def test_backend_replaces_affect_but_preserves_transcript(example_payload: dict)
     assert output.affect.abstain is False
     assert output.affect_spans[0].top_label == AffectCategory.JOY
     assert output.model.name == "attune-cadence-300m-affect-fusion"
+    assert output.model.quantization.endswith("+fp32-affect")
     assert output.uncertainty.out_of_distribution_available is False
     assert output.uncertainty.out_of_distribution_probability is None
 

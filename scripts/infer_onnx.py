@@ -40,6 +40,7 @@ def main() -> None:
         default=DEFAULT_AFFECT_CONFIDENCE_THRESHOLD,
     )
     parser.add_argument("--affect-device", default="auto")
+    parser.add_argument("--affect-quantization", choices=("fp32", "int8"), default="fp32")
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--xml", action="store_true")
     arguments = parser.parse_args()
@@ -57,6 +58,7 @@ def main() -> None:
             arguments.emotion2vec_path,
             arguments.affect_student,
             device=arguments.affect_device,
+            quantization=arguments.affect_quantization,
         )
         backend = FusedAffectBackend(
             backend,

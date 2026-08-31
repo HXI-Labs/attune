@@ -40,6 +40,7 @@ def main() -> None:
         default=DEFAULT_AFFECT_CONFIDENCE_THRESHOLD,
     )
     parser.add_argument("--affect-device", default="auto")
+    parser.add_argument("--affect-quantization", choices=("fp32", "int8"), default="fp32")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument(
@@ -69,6 +70,7 @@ def main() -> None:
             arguments.emotion2vec_path,
             arguments.affect_student,
             device=arguments.affect_device,
+            quantization=arguments.affect_quantization,
         )
         backend = FusedAffectBackend(
             backend,

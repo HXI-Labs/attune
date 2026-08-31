@@ -54,6 +54,19 @@ backbone contains 57,731,852 parameters, is 230,990,010 bytes, and has SHA-256
 The reproducibly selected head checkpoint has SHA-256
 `baf32e3a5d9ae2e74a0e263cb0c5fae9ee197d5da8c3edcb9d6918e640f208e3`.
 
+Dynamic INT8 was evaluated with PyTorch QNNPACK over the compact branch's
+linear layers. Fused RAVDESS macro-F1 is 0.8304, an absolute loss of 0.0019
+from FP32 and within the two-point gate. Branch inference real-time factor is
+0.0586 on the development Mac. On the external British controls, named top
+labels change from 3 to 2 and one label clears 0.40 in both modes. Integrated
+INT8 inference retains separate joy and distress spans, the mixed-utterance
+abstention, exact hostile-control transcripts, and zero hostile-control events
+or styles. The API reports this composition as `int8+int8-affect`.
+
+This is runtime dynamic quantization, not a compressed standalone acoustic
+checkpoint. The packaged backbone remains FP32 on disk, so a portable
+quantized export and post-export parity check are still required for release.
+
 The reproducible training entry point is
 `scripts/fine_tune_truncated_affect_controls.py`. The selected checkpoint is
 `artifacts/training/truncated-emotion2vec-affect-control-finetune-v0.13/head.pt`,
@@ -62,6 +75,6 @@ the report is
 and the compact package is `artifacts/models/cadence-affect-student-v0.13/`.
 
 v0.13 is the retained accuracy candidate. It is not yet a public replacement
-for v0.1. A fresh consented human hostile-speech recording, quantization of the
-new acoustic branch, post-quantization calibration, and broader natural
+for v0.1. A fresh consented human hostile-speech recording, a portable
+quantized branch artifact, post-export calibration, and broader natural
 listener-labeled evaluation remain release blockers.

@@ -118,7 +118,10 @@ class FusedAffectBackend:
         serialized["model"] = {
             "name": self.name,
             "version": "0.2.0-dev",
-            "quantization": f"{cadence_output.model.quantization}+fp32-affect",
+            "quantization": (
+                f"{cadence_output.model.quantization}"
+                f"+{getattr(self.acoustic_student, 'quantization', 'fp32')}-affect"
+            ),
         }
         serialized["uncertainty"]["out_of_distribution_probability"] = None
         serialized["uncertainty"]["out_of_distribution_available"] = False

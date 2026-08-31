@@ -226,8 +226,13 @@ threshold unless explicitly overridden:
 
 ```bash
   --emotion2vec-path data/raw/model-cache/emotion2vec-plus \
-  --affect-student artifacts/training/truncated-emotion2vec-affect-control-finetune-v0.13/head.pt
+  --affect-student artifacts/training/truncated-emotion2vec-affect-control-finetune-v0.13/head.pt \
+  --affect-quantization int8
 ```
+
+The affect INT8 mode dynamically quantizes supported linear layers on CPU. The
+current compact backbone file remains FP32 on disk; this mode reduces runtime
+precision but is not yet a compressed standalone checkpoint.
 
 Run the same backend behind FastAPI:
 

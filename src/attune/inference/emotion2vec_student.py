@@ -64,6 +64,15 @@ def _device(name: str) -> torch.device:
     return torch.device("cpu")
 
 
+def _dynamic_quantization_engine() -> str:
+    supported = set(torch.backends.quantized.supported_engines)
+    for engine in ("x86", "fbgemm", "qnnpack", "onednn"):
+        if engine in supported:
+            torch.backends.quantized.engine = engine
+            return engine
+    raise RuntimeError("this PyTorch build has no dynamic INT8 quantization engine")
+
+
 class TruncatedEmotion2VecPredictor:
     """Run a frozen emotion2vec+ frontend, early blocks, and the trained affect head."""
 
@@ -74,9 +83,12 @@ class TruncatedEmotion2VecPredictor:
         *,
         device: str = "auto",
         batch_size: int = 1,
+        quantization: str = "fp32",
     ) -> None:
         if batch_size < 1:
             raise ValueError("emotion2vec batch size must be positive")
+        if quantization not in {"fp32", "int8"}:
+            raise ValueError("emotion2vec quantization must be fp32 or int8")
         checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
         if not isinstance(checkpoint, dict) or checkpoint.get("schema_version") != "1.0":
             raise ValueError("invalid truncated emotion2vec checkpoint")
@@ -101,7 +113,9 @@ class TruncatedEmotion2VecPredictor:
         model.blocks = nn.ModuleList(list(model.blocks)[:depth])
         model.modality_encoders["AUDIO"].decoder = nn.Identity()
         model.proj = nn.Identity()
-        self.device = _device(device)
+        self.device = _device("cpu" if quantization == "int8" and device == "auto" else device)
+        if quantization == "int8" and self.device.type != "cpu":
+            raise ValueError("dynamic INT8 emotion2vec inference requires a CPU device")
         self.model = model.to(self.device)
         feature_mean = checkpoint["feature_mean"].float()
         self.feature_mean = feature_mean.to(self.device)
@@ -113,11 +127,26 @@ class TruncatedEmotion2VecPredictor:
         )
         head.load_state_dict(checkpoint["state_dict"])
         self.head = head.eval().to(self.device)
+        if quantization == "int8":
+            _dynamic_quantization_engine()
+            self.model = torch.ao.quantization.quantize_dynamic(
+                self.model,
+                {nn.Linear},
+                dtype=torch.qint8,
+                inplace=False,
+            )
+            self.head = torch.ao.quantization.quantize_dynamic(
+                self.head,
+                {nn.Linear},
+                dtype=torch.qint8,
+                inplace=False,
+            )
         self.depth = depth
         self.temperature = float(checkpoint["temperature"])
         self.labels = labels
         self.parameter_count = int(checkpoint["truncated_emotion2vec_parameters"])
         self.batch_size = batch_size
+        self.quantization = quantization
 
     def predict_probabilities(self, payloads: Sequence[bytes]) -> np.ndarray:
         if not payloads:
