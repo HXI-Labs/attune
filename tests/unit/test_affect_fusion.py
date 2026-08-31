@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import io
+import json
 import wave
 
 import numpy as np
 
 from attune.inference.affect_fusion import (
     DEFAULT_AFFECT_CONFIDENCE_THRESHOLD,
+    AffectProbabilityCalibration,
     FusedAffectBackend,
     fuse_probabilities,
 )
@@ -67,6 +69,51 @@ def test_probability_fusion_preserves_normalization() -> None:
     assert np.isclose(fused.sum(), 1.0)
 
 
+def test_affect_calibration_loads_for_matching_artifact(tmp_path) -> None:
+    calibration_path = tmp_path / "calibration.json"
+    calibration_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "labels": FakeAffectStudent.labels,
+                "model_sha256": "model-hash",
+                "temperature": 0.5,
+                "bias": [0] * len(FakeAffectStudent.labels),
+            }
+        )
+    )
+
+    calibration = AffectProbabilityCalibration.from_file(
+        calibration_path,
+        model_sha256="model-hash",
+    )
+
+    probabilities = calibration.apply(np.array([0.6, 0.4, 0, 0, 0, 0, 0, 0]))
+    assert probabilities[0] > 0.6
+    assert np.isclose(probabilities.sum(), 1.0)
+
+
+def test_affect_calibration_rejects_wrong_artifact(tmp_path) -> None:
+    calibration_path = tmp_path / "calibration.json"
+    calibration_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "labels": FakeAffectStudent.labels,
+                "model_sha256": "different-model",
+                "temperature": 1.0,
+                "bias": [0] * len(FakeAffectStudent.labels),
+            }
+        )
+    )
+
+    with np.testing.assert_raises_regex(ValueError, "model hash mismatch"):
+        AffectProbabilityCalibration.from_file(
+            calibration_path,
+            model_sha256="model-hash",
+        )
+
+
 def test_backend_uses_selective_default_threshold(example_payload: dict) -> None:
     backend = FusedAffectBackend(
         FakeCadenceBackend(example_payload),
@@ -95,6 +142,28 @@ def test_backend_replaces_affect_but_preserves_transcript(example_payload: dict)
     assert output.model.quantization.endswith("+fp32-affect")
     assert output.uncertainty.out_of_distribution_available is False
     assert output.uncertainty.out_of_distribution_probability is None
+
+
+def test_backend_applies_post_quantization_calibration(example_payload: dict) -> None:
+    bias = [0.0] * len(FakeAffectStudent.labels)
+    bias[FakeAffectStudent.labels.index("anger")] = 5.0
+    backend = FusedAffectBackend(
+        FakeCadenceBackend(example_payload),
+        FakeAffectStudent(),
+        acoustic_weight=1.0,
+        confidence_threshold=0.25,
+        probability_calibration=AffectProbabilityCalibration(
+            labels=FakeAffectStudent.labels,
+            model_sha256="model-hash",
+            temperature=1.0,
+            bias=tuple(bias),
+        ),
+    )
+
+    output = backend.analyse_wav(_wav())
+
+    assert output.affect.top_label == AffectCategory.ANGER
+    assert output.affect_spans[0].top_label == AffectCategory.ANGER
 
 
 def test_backend_abstains_when_confident_spans_disagree(example_payload: dict) -> None:

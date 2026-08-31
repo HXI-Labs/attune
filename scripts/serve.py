@@ -10,9 +10,14 @@ from pathlib import Path
 from attune.inference.affect_fusion import (
     DEFAULT_ACOUSTIC_WEIGHT,
     DEFAULT_AFFECT_CONFIDENCE_THRESHOLD,
+    AffectProbabilityCalibration,
     FusedAffectBackend,
 )
-from attune.inference.emotion2vec_student import TruncatedEmotion2VecPredictor
+from attune.inference.emotion2vec_student import (
+    OnnxTruncatedEmotion2VecPredictor,
+    TorchScriptTruncatedEmotion2VecPredictor,
+    TruncatedEmotion2VecPredictor,
+)
 from attune.inference.onnx_backend import OnnxAttuneBackend
 from attune.service.app import create_app
 from attune.service.auth import BasicAuthCredentials
@@ -33,6 +38,13 @@ def main() -> None:
     parser.add_argument("--quantization", choices=("fp32", "fp16", "int8"), default="int8")
     parser.add_argument("--emotion2vec-path", type=Path)
     parser.add_argument("--affect-student", type=Path)
+    parser.add_argument("--affect-onnx", type=Path)
+    parser.add_argument("--affect-torchscript", type=Path)
+    parser.add_argument(
+        "--affect-calibration",
+        type=Path,
+        help="Post-quantization calibration for a portable affect artifact",
+    )
     parser.add_argument("--affect-weight", type=float, default=DEFAULT_ACOUSTIC_WEIGHT)
     parser.add_argument(
         "--affect-confidence-threshold",
@@ -58,6 +70,17 @@ def main() -> None:
         parser.error("demo username and password must be configured together")
     if bool(arguments.emotion2vec_path) != bool(arguments.affect_student):
         parser.error("--emotion2vec-path and --affect-student must be supplied together")
+    affect_artifacts = [
+        arguments.affect_student,
+        arguments.affect_onnx,
+        arguments.affect_torchscript,
+    ]
+    if sum(artifact is not None for artifact in affect_artifacts) > 1:
+        parser.error("affect student, ONNX, and TorchScript artifacts are mutually exclusive")
+    if arguments.affect_calibration is not None and not (
+        arguments.affect_onnx or arguments.affect_torchscript
+    ):
+        parser.error("--affect-calibration requires --affect-onnx or --affect-torchscript")
     backend = OnnxAttuneBackend.from_local_assets(
         arguments.model,
         arguments.sensevoice_path,
@@ -65,7 +88,41 @@ def main() -> None:
         quantization=arguments.quantization,
         probe_artifacts=tuple(arguments.probe_head),
     )
-    if arguments.affect_student is not None:
+    if arguments.affect_torchscript is not None:
+        predictor = TorchScriptTruncatedEmotion2VecPredictor(arguments.affect_torchscript)
+        probability_calibration = (
+            AffectProbabilityCalibration.from_file(
+                arguments.affect_calibration,
+                model_sha256=predictor.artifact_sha256,
+            )
+            if arguments.affect_calibration is not None
+            else None
+        )
+        backend = FusedAffectBackend(
+            backend,
+            predictor,
+            acoustic_weight=arguments.affect_weight,
+            confidence_threshold=arguments.affect_confidence_threshold,
+            probability_calibration=probability_calibration,
+        )
+    elif arguments.affect_onnx is not None:
+        predictor = OnnxTruncatedEmotion2VecPredictor(arguments.affect_onnx)
+        probability_calibration = (
+            AffectProbabilityCalibration.from_file(
+                arguments.affect_calibration,
+                model_sha256=predictor.artifact_sha256,
+            )
+            if arguments.affect_calibration is not None
+            else None
+        )
+        backend = FusedAffectBackend(
+            backend,
+            predictor,
+            acoustic_weight=arguments.affect_weight,
+            confidence_threshold=arguments.affect_confidence_threshold,
+            probability_calibration=probability_calibration,
+        )
+    elif arguments.affect_student is not None:
         predictor = TruncatedEmotion2VecPredictor(
             arguments.emotion2vec_path,
             arguments.affect_student,

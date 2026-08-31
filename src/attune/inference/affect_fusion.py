@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import io
+import json
 import wave
 from collections.abc import Sequence
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 import numpy as np
@@ -24,6 +27,60 @@ class AffectPredictor(Protocol):
     parameter_count: int
 
     def predict_probabilities(self, payloads: Sequence[bytes]) -> np.ndarray: ...
+
+
+@dataclass(frozen=True)
+class AffectProbabilityCalibration:
+    """Post-quantization calibration bound to one portable affect artifact."""
+
+    labels: tuple[str, ...]
+    model_sha256: str
+    temperature: float
+    bias: tuple[float, ...]
+
+    def __post_init__(self) -> None:
+        expected_labels = tuple(category.value for category in AffectCategory)
+        if self.labels != expected_labels:
+            raise ValueError("affect calibration does not match the Attune ontology")
+        if (
+            not np.isfinite(self.temperature)
+            or self.temperature <= 0.0
+            or len(self.bias) != len(self.labels)
+            or not np.isfinite(self.bias).all()
+        ):
+            raise ValueError("affect calibration has invalid parameters")
+
+    @classmethod
+    def from_file(
+        cls,
+        path: Path,
+        *,
+        model_sha256: str,
+    ) -> AffectProbabilityCalibration:
+        try:
+            serialized = json.loads(path.read_text())
+            calibration = cls(
+                labels=tuple(serialized["labels"]),
+                model_sha256=str(serialized["model_sha256"]),
+                temperature=float(serialized["temperature"]),
+                bias=tuple(float(value) for value in serialized["bias"]),
+            )
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            raise ValueError(f"invalid affect calibration: {path}") from error
+        if serialized.get("schema_version") != "1.0":
+            raise ValueError("affect calibration does not match the Attune ontology")
+        if calibration.model_sha256 != model_sha256:
+            raise ValueError("affect calibration model hash mismatch")
+        return calibration
+
+    def apply(self, probabilities: np.ndarray) -> np.ndarray:
+        if probabilities.shape != (len(self.labels),) or not np.isfinite(probabilities).all():
+            raise ValueError("affect probabilities have an invalid shape or value")
+        logits = np.log(np.clip(probabilities, 1e-8, 1.0)) / self.temperature
+        logits += np.asarray(self.bias, dtype=np.float64)
+        logits -= logits.max()
+        exponent = np.exp(logits)
+        return exponent / exponent.sum()
 
 
 def fuse_probabilities(
@@ -66,6 +123,7 @@ class FusedAffectBackend:
         *,
         acoustic_weight: float = DEFAULT_ACOUSTIC_WEIGHT,
         confidence_threshold: float = DEFAULT_AFFECT_CONFIDENCE_THRESHOLD,
+        probability_calibration: AffectProbabilityCalibration | None = None,
     ) -> None:
         expected_labels = tuple(category.value for category in AffectCategory)
         if acoustic_student.labels != expected_labels:
@@ -78,6 +136,7 @@ class FusedAffectBackend:
         self.acoustic_student = acoustic_student
         self.acoustic_weight = acoustic_weight
         self.confidence_threshold = confidence_threshold
+        self.probability_calibration = probability_calibration
         self.name = "attune-cadence-300m-affect-fusion"
 
     def analyse_wav(self, audio: bytes) -> AttuneOutputV2:
@@ -141,6 +200,8 @@ class FusedAffectBackend:
             student_probabilities,
             acoustic_weight=self.acoustic_weight,
         )
+        if self.probability_calibration is not None:
+            probabilities = self.probability_calibration.apply(probabilities)
         top_index = int(probabilities.argmax())
         confidence = float(probabilities[top_index])
         abstain = confidence < self.confidence_threshold

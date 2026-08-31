@@ -54,23 +54,55 @@ backbone contains 57,731,852 parameters, is 230,990,010 bytes, and has SHA-256
 The reproducibly selected head checkpoint has SHA-256
 `baf32e3a5d9ae2e74a0e263cb0c5fae9ee197d5da8c3edcb9d6918e640f208e3`.
 
-Dynamic INT8 was evaluated with PyTorch QNNPACK over the compact branch's
+Dynamic INT8 was first evaluated with PyTorch QNNPACK over the compact branch's
 linear layers. Fused RAVDESS macro-F1 is 0.8304, an absolute loss of 0.0019
 from FP32 and within the two-point gate. Branch inference real-time factor is
 0.0586 on the development Mac. On the external British controls, named top
-labels change from 3 to 2 and one label clears 0.40 in both modes. Integrated
-INT8 inference retains separate joy and distress spans, the mixed-utterance
-abstention, exact hostile-control transcripts, and zero hostile-control events
-or styles. The API reports this composition as `int8+int8-affect`.
+labels change from 3 to 2 and one label clears 0.40 in both modes.
 
-This is runtime dynamic quantization, not a compressed standalone acoustic
-checkpoint. The packaged backbone remains FP32 on disk, so a portable
-quantized export and post-export parity check are still required for release.
-One direct ONNX trace was evaluated and rejected. On 24 RAVDESS clips, the
-FP32 graph agreed with PyTorch on 23 labels but had mean L1 probability drift
-of 0.0551; the quantized graph agreed on only 20 labels and drift rose to
-0.2250. The trace also dropped the padding-mask input. Neither graph is retained
-as a candidate.
+The retained portable artifact is a standalone QNNPACK TorchScript graph. It
+contains the truncated frontend, three transformer blocks, pooling, and affect
+head without requiring the FunASR model loader. It is 81,796,647 bytes and has
+SHA-256
+`9be218fa538caad36b397fe25230d55b2b2904a5624850a6ab1b09a508e9a506`.
+Fresh-process validation is bit-identical to runtime dynamic INT8 on mixed
+lengths. Before post-quantization calibration it reaches 0.8114 student and
+0.8311 fused macro-F1 on all 480 external RAVDESS clips, an absolute fused loss
+of 0.0011 from FP32, at real-time factor 0.0727.
+
+The post-quantization transform was fitted on soft listener targets with
+corpus-balanced loss. Five-fold evaluation groups clips by speaker. Across 607
+development clips it raises portable INT8 macro-F1 from 0.3544 to 0.3702,
+compared with 0.3766 for FP32. Cross-validated Brier score is 0.6724 versus
+0.6722 for FP32, and negative log-likelihood is 1.6656 versus 1.6715. The final
+2,818-byte calibration has SHA-256
+`a9ff1e51feeb706170c6aa8ab75b2fa05d6734dd731b4428c4354880cb72500d`
+and records the model hash; runtime loading fails if the two artifacts do not
+match.
+
+The calibrated artifact reaches 0.8694 fused macro-F1 on the separate RAVDESS
+set at real-time factor 0.0720. Both predeclared transition controls pass.
+Integrated inference emits joy from 0 to 4,000 ms at 0.490 and distress from
+4,000 to 8,075 ms at 0.557, then abstains at utterance level with
+`mixed_affect_spans`.
+
+The four regenerated neutral voices reading the exact hostile sentence are
+transcribed correctly through the final portable composition. All four emit no
+events or styles. Daniel, Moira, and Samantha return neutral at 0.581, 0.448,
+and 0.622; Tessa abstains below the 0.40 threshold. None invents anger,
+whispering, coughing, or sneezing. These clips remain lexical controls rather
+than human affect ground truth.
+
+The first direct ONNX trace was rejected because it dropped the padding mask
+and drifted from PyTorch. A corrected trace retains explicit `samples` and
+`padding_mask` inputs and matches FP32 within 0.000001. Selective MatMul/GEMM
+quantization produces an 82,060,030-byte graph with SHA-256
+`682123a730186981e336bcd797b2311bee22cb234148638f1b0591a56f638bd8`.
+It reaches 0.8314 fused RAVDESS macro-F1, but stricter evaluation over the 607
+development clips yields 0.3493 versus 0.3766 for FP32, missing the two-point
+parity gate. It is retained as a research export rather than the deployment
+default. Quantizing the convolutional frontend was also tested and rejected
+because it caused substantial probability drift.
 
 The reproducible training entry point is
 `scripts/fine_tune_truncated_affect_controls.py`. The selected checkpoint is
@@ -78,8 +110,15 @@ The reproducible training entry point is
 the report is
 `artifacts/evaluation/truncated-emotion2vec-affect-control-finetune-v0.13/report.json`,
 and the compact package is `artifacts/models/cadence-affect-student-v0.13/`.
+Portable export and evaluation reports are stored in the v0.13 evaluation
+directory. The retained reports are
+`portable-torchscript-int8-calibration-fitted.json` and
+`portable-torchscript-int8-calibrated-ravdess.json`. Export and evaluation use
+`scripts/export_truncated_affect_torchscript.py`,
+`scripts/evaluate_portable_affect_calibration.py`, and
+`scripts/evaluate_portable_affect.py`.
 
 v0.13 is the retained accuracy candidate. It is not yet a public replacement
-for v0.1. A fresh consented human hostile-speech recording, a portable
-quantized branch artifact, post-export calibration, and broader natural
-listener-labeled evaluation remain release blockers.
+for v0.1. A fresh consented human hostile-speech recording and broader natural
+listener-labeled evaluation remain release blockers. The post-export
+calibration gate is complete.

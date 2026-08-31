@@ -5,7 +5,9 @@ from __future__ import annotations
 import array
 import hashlib
 import io
+import json
 import wave
+import zipfile
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -52,6 +54,11 @@ def _waveform(payload: bytes) -> torch.Tensor:
         raise ValueError("audio payload contains no samples")
     waveform = torch.tensor(samples, dtype=torch.float32) / 32_768
     return functional.layer_norm(waveform, waveform.shape)
+
+
+def _onnx_waveform(payload: bytes) -> np.ndarray:
+    waveform = _waveform(payload).numpy()
+    return np.asarray(waveform, dtype=np.float32)
 
 
 def _device(name: str) -> torch.device:
@@ -175,4 +182,124 @@ class TruncatedEmotion2VecPredictor:
                 normalized = (features - self.feature_mean) / self.feature_scale
                 logits = self.head(normalized)
                 predictions.append((logits / self.temperature).softmax(dim=-1).cpu().numpy())
+        return np.concatenate(predictions, axis=0)
+
+
+class OnnxTruncatedEmotion2VecPredictor:
+    """Run a self-describing portable affect branch with ONNX Runtime."""
+
+    def __init__(self, model_path: Path, *, batch_size: int = 1) -> None:
+        if batch_size < 1:
+            raise ValueError("emotion2vec batch size must be positive")
+        try:
+            import onnxruntime as ort
+        except ImportError as error:
+            raise RuntimeError("ONNX affect inference requires onnxruntime") from error
+
+        self.session = ort.InferenceSession(
+            str(model_path),
+            providers=["CPUExecutionProvider"],
+        )
+        metadata = self.session.get_modelmeta().custom_metadata_map
+        if metadata.get("attune.schema_version") != "1.0":
+            raise ValueError("invalid Attune affect ONNX metadata")
+        try:
+            labels = tuple(json.loads(metadata["attune.labels"]))
+            parameter_count = int(metadata["attune.parameter_count"])
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            raise ValueError("incomplete Attune affect ONNX metadata") from error
+        expected_labels = tuple(category.value for category in AffectCategory)
+        if labels != expected_labels:
+            raise ValueError("ONNX affect labels do not match the Attune ontology")
+        if parameter_count < 1:
+            raise ValueError("ONNX affect parameter count must be positive")
+        quantization = metadata.get("attune.quantization")
+        if quantization not in {"fp32", "int8"}:
+            raise ValueError("ONNX affect quantization metadata must be fp32 or int8")
+
+        inputs = {model_input.name: model_input for model_input in self.session.get_inputs()}
+        if set(inputs) != {"samples", "padding_mask"}:
+            raise ValueError("ONNX affect model must accept samples and padding_mask")
+        self.labels = labels
+        self.parameter_count = parameter_count
+        self.quantization = quantization
+        self.batch_size = batch_size
+        self.artifact_sha256 = _sha256(model_path)
+
+    def predict_probabilities(self, payloads: Sequence[bytes]) -> np.ndarray:
+        if not payloads:
+            return np.empty((0, len(self.labels)), dtype=np.float32)
+        predictions = []
+        for start in range(0, len(payloads), self.batch_size):
+            waveforms = [
+                _onnx_waveform(payload) for payload in payloads[start : start + self.batch_size]
+            ]
+            lengths = np.asarray([waveform.size for waveform in waveforms])
+            sample_count = int(lengths.max())
+            samples = np.zeros((len(waveforms), sample_count), dtype=np.float32)
+            for row, waveform in enumerate(waveforms):
+                samples[row, : waveform.size] = waveform
+            padding_mask = np.arange(sample_count)[None, :] >= lengths[:, None]
+            probabilities = self.session.run(
+                None,
+                {"samples": samples, "padding_mask": padding_mask},
+            )[0]
+            predictions.append(np.asarray(probabilities, dtype=np.float32))
+        return np.concatenate(predictions, axis=0)
+
+
+class TorchScriptTruncatedEmotion2VecPredictor:
+    """Run a self-contained dynamic INT8 affect branch without FunASR."""
+
+    def __init__(self, model_path: Path, *, batch_size: int = 1) -> None:
+        if batch_size < 1:
+            raise ValueError("emotion2vec batch size must be positive")
+        try:
+            with zipfile.ZipFile(model_path) as archive:
+                metadata_files = [
+                    name for name in archive.namelist() if name.endswith("/extra/attune.json")
+                ]
+                if len(metadata_files) != 1:
+                    raise ValueError("TorchScript artifact has no unique Attune metadata file")
+                metadata = json.loads(archive.read(metadata_files[0]))
+        except (OSError, zipfile.BadZipFile, json.JSONDecodeError) as error:
+            raise ValueError("invalid Attune affect TorchScript archive") from error
+        engine = metadata.get("quantization_engine")
+        if engine not in torch.backends.quantized.supported_engines:
+            raise RuntimeError(f"TorchScript affect artifact requires unavailable {engine!r}")
+        torch.backends.quantized.engine = engine
+        self.model = torch.jit.load(
+            str(model_path),
+            map_location="cpu",
+        ).eval()
+        try:
+            labels = tuple(metadata["labels"])
+            parameter_count = int(metadata["parameter_count"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError("invalid Attune affect TorchScript metadata") from error
+        expected_labels = tuple(category.value for category in AffectCategory)
+        if metadata.get("schema_version") != "1.0" or labels != expected_labels:
+            raise ValueError("TorchScript affect metadata does not match the Attune ontology")
+        if metadata.get("quantization") != "int8" or parameter_count < 1:
+            raise ValueError("TorchScript affect artifact must contain valid INT8 metadata")
+        self.labels = labels
+        self.parameter_count = parameter_count
+        self.quantization = "int8"
+        self.batch_size = batch_size
+        self.artifact_sha256 = _sha256(model_path)
+
+    def predict_probabilities(self, payloads: Sequence[bytes]) -> np.ndarray:
+        if not payloads:
+            return np.empty((0, len(self.labels)), dtype=np.float32)
+        predictions = []
+        for start in range(0, len(payloads), self.batch_size):
+            waveforms = [
+                _waveform(payload) for payload in payloads[start : start + self.batch_size]
+            ]
+            lengths = torch.tensor([waveform.numel() for waveform in waveforms])
+            samples = nn.utils.rnn.pad_sequence(waveforms, batch_first=True)
+            padding_mask = torch.arange(samples.shape[1]).unsqueeze(0) >= lengths.unsqueeze(1)
+            with torch.inference_mode():
+                probabilities = self.model(samples, padding_mask)
+            predictions.append(probabilities.cpu().numpy())
         return np.concatenate(predictions, axis=0)

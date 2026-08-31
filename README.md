@@ -220,9 +220,33 @@ ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/infer_onnx.py \
   --xml input.wav
 ```
 
-To run the unreleased v0.13 affect candidate, add the compact acoustic branch.
-The runner then uses the fixed 0.86 acoustic fusion weight and 0.40 confidence
-threshold unless explicitly overridden:
+To run the unreleased v0.13 affect candidate, add its portable INT8 acoustic
+branch. The runner then uses the fixed 0.86 acoustic fusion weight and 0.40
+confidence threshold unless explicitly overridden:
+
+```bash
+  --affect-torchscript artifacts/models/cadence-affect-student-v0.13/affect-int8.pt \
+  --affect-calibration artifacts/models/cadence-affect-student-v0.13/fused-calibration.json
+```
+
+The 81.8 MB TorchScript artifact contains the truncated emotion2vec+ branch and
+its dynamic INT8 linear layers. It accepts both waveform and padding-mask
+inputs, so single clips and mixed-length batches use the same graph. The
+calibration file is bound to the model SHA-256 and is rejected if paired with a
+different artifact.
+
+Speaker-grouped five-fold evaluation on 607 development clips improved INT8
+macro-F1 from 0.3544 to 0.3702 after calibration, compared with 0.3766 for the
+FP32 reference. On the separate 480-clip RAVDESS evaluation, the calibrated
+artifact reaches 0.8694 fused macro-F1 and a 0.072 affect-branch real-time
+factor on the development Mac. The uncalibrated artifact reaches 0.8311, and
+the FP32 reference reaches 0.8322.
+
+A padding-aware ONNX export is retained for research comparisons. Its 0.3493
+development macro-F1 misses the two-point FP32 parity gate, so it is not the
+default portable path.
+
+The PyTorch runner remains available for training comparisons:
 
 ```bash
   --emotion2vec-path data/raw/model-cache/emotion2vec-plus \
@@ -230,9 +254,8 @@ threshold unless explicitly overridden:
   --affect-quantization int8
 ```
 
-The affect INT8 mode dynamically quantizes supported linear layers on CPU. The
-current compact backbone file remains FP32 on disk; this mode reduces runtime
-precision but is not yet a compressed standalone checkpoint.
+This mode dynamically quantizes supported linear layers at load time and is not
+the portable release path.
 
 Run the same backend behind FastAPI:
 
