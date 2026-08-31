@@ -1,70 +1,54 @@
 # Attune Cadence
 
-Attune Cadence is an English speech model developed by Project Attune. It
-combines a transcript with word timing, localized vocal events, perceived
-affect probabilities, uncertainty, and abstention information. JSON schema v2
-is the authoritative output; XML is rendered deterministically from validated
-JSON.
+Attune Cadence is a compact English speech-perception system that preserves
+both what was said and how it sounded. For a 0.5–30 second voice recording, it
+returns a transcript, word timing, localized vocal events, phrase-level
+perceived affect, confidence, and abstention in one time-aligned JSON result.
 
-The project describes audible expression, not a speaker's true emotional
-state. Its output is not suitable for diagnosis, deception detection,
-protected-trait inference, surveillance, or automated high-stakes decisions.
+Cadence reports observable vocal evidence and uncertain listener perception;
+it does not claim to determine a speaker's internal emotional state. The JSON
+schema is authoritative. XML and bracketed transcripts are deterministic views
+generated from the validated result.
 
 ## Current status
 
-Cadence v0.1 is an experimental research preview implemented in full precision
-and INT8. The source code is suitable for publication and review. The model
-weights are uploaded privately first because the recorded SenseVoice
-redistribution review does not yet approve a public derivative-weight release.
+The latest model is the **v0.13 private accuracy candidate**.
 
-The preview contains the 241,904,650-parameter Cadence graph and a 30,726-parameter
-calibrated event head. The combined deployment remains below 242 million
-parameters. The INT8 graph is 500 MB, 48.4% smaller than the 970 MB
-full-precision graph.
+| | v0.13 candidate |
+|---|---|
+| Active parameters | 299,842,014 |
+| Cadence ASR/event base | 241,904,650 parameters |
+| Affect branch | 57,937,364 parameters |
+| Composition | Cadence INT8 ASR/event graph + truncated emotion2vec+ INT8 affect branch |
+| Output | Schema-v2 JSON, deterministic XML and readable bracketed transcript |
+| Enabled | ASR, word timing, conservative vocal events, affect spans, abstention |
+| Disabled | Vocal styles and V/A/D |
+| Model package | [Private Hugging Face candidate](https://huggingface.co/jbuaba/attune-cadence-242m/tree/main/candidate-v0.13) |
 
-The release candidate supports ASR, word timing, affect distributions,
-abstention, and conservative vocal-event output. Vocal styles are disabled.
-A four-way sound-event style head hallucinated `whispering` on ordinary speech,
-and a replacement BERSt shouting head missed its fixed recall and F1 gates.
-Both experiments were rejected rather than hidden behind a higher runtime
-threshold.
-
-The event head reaches macro-F1 0.814 through the full-precision ONNX graph and
-0.826 through INT8 on the 80-clip opened VocalSound inspection set. Both graphs
-produce two false event emissions across 160 external OOD speech and sound
-controls, a 1.25% false-positive clip rate. These are source-labelled opened
-benchmarks, not a claim of natural inline-event accuracy.
+The v0.13 branch was selected without using its external RAVDESS evaluation.
+Speaker-grouped five-fold evaluation on 607 development clips gives calibrated
+INT8 affect macro-F1 0.3702, compared with 0.3766 for FP32. On the separate
+480-clip RAVDESS evaluation, calibrated INT8 reaches 0.8694 at an affect-branch
+real-time factor of 0.072 on the development Mac.
 
 Four neutral system voices reading `I hate you, I hate you so much, never call
-me again` are the exact regression for the failure that prompted this release.
-Both FP32 and INT8 transcribe all four correctly, return no events or styles,
-and abstain on affect. The INT8 FastAPI and pseudo-streaming smoke test commits
-the same transcript at real-time factor 0.055 on the development Mac.
+me again` produce the exact transcript, no events, and no styles; three return
+neutral and one abstains. A joy-to-distress composite produces separate 0–4.0
+second joy and 4.0–8.075 second distress spans, then abstains globally because
+the spans disagree. These are regression controls, not human affect ground
+truth.
 
-The retained affect model reaches macro-F1 0.6643 on development, 0.6336 on the
-opened regression set, and 0.3853 on external RAVDESS. INT8 reaches 0.3803 on
-the same RAVDESS set, a 0.51-point absolute loss. Both external results remain
-below the project's 0.40 public-release target. A fresh consented human
-recording of the hostile-speech regression and the derivative-weight licensing
-review also remain required before public model publication. The current
-artifact is therefore a research preview, not a validated public emotion
-model. An internal joy-to-distress transition regression also exposed a
-specific compact-head failure: both source clips were classified as fear even
-though the emotion2vec+ teacher distinguished them correctly. The locked
-composition and acceptance checks are in
-[`research/release-cascade-v0.1-protocol.md`](research/release-cascade-v0.1-protocol.md).
+The candidate is not cleared for public model release. Affect performance still
+varies substantially across corpora, the exact hostile-speech control needs a
+fresh consented human recording, and the derivative-weight redistribution
+review remains open. The system must not be used for diagnosis, deception
+detection, covert surveillance, protected-trait inference, or automated
+high-stakes decisions.
 
-The next accuracy candidate adds a truncated three-block emotion2vec+ branch
-and remains below 300 million active parameters. The v0.13 head uses a small
-probability-replay update over v0.11 to reduce unsupported named-affect output
-on ordinary speech. Fixed Cadence fusion reaches macro-F1 0.6401 on paired
-CREMA-D development, 0.3070 on BERSt development, and 0.8322 on external
-RAVDESS. On 100 untouched British Common Voice speakers, named affect is the
-top category for 3 clips and only 1 clears the default 0.40 confidence gate.
-On the untouched joy-to-distress composite, it emits separate joy and distress
-spans and abstains on the mixed utterance as a whole. This candidate is not the
-published v0.1 model; its method and remaining release work are documented in
-[`research/affect-control-finetune-v0.13-results.md`](research/affect-control-finetune-v0.13-results.md).
+See the [v0.13 results](research/affect-control-finetune-v0.13-results.md) for
+training, calibration, quantization, controls, and limitations. The original
+[v0.1 release protocol](research/release-cascade-v0.1-protocol.md) records the
+baseline composition and rejected style experiments.
 
 ## Output
 
