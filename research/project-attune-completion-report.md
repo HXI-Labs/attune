@@ -1,5 +1,10 @@
 # Project Attune v0.1 Implementation Report
 
+> Historical report for the superseded split-tail candidate measured on
+> 29 August 2026. Current release composition and metrics are documented in
+> `README.md`, `docs/model-card.md`, and
+> `research/release-cascade-v0.1-protocol.md`.
+
 - **Project:** Beyond the Transcript — Compact, Time-Aligned Paralinguistic
   Transcription for Emotion-Aware Voice Interaction
 - **Working codename:** Project Attune

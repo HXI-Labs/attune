@@ -12,42 +12,40 @@ protected-trait inference, surveillance, or automated high-stakes decisions.
 
 ## Current status
 
-The code, evaluation pipeline, local API, browser test interface, and ONNX
-export path are implemented. Model publication remains disabled.
+The v0.1 private release candidate is implemented in full precision and INT8.
+It contains the 241,904,650-parameter Cadence graph and a 30,726-parameter
+calibrated event head. The combined deployment remains below 242 million
+parameters. The INT8 graph is 500 MB, 48.4% smaller than the 970 MB
+full-precision graph.
 
-A live hostile-speech test produced an accurate transcript but false
-`whispering`, `cough`, and `sneeze` annotations. Runtime hardening now permits
-only localized `laugh`, `cough`, and `throat_clear` events above 0.98
-confidence. Utterance-level event and style allowlists are empty. The original
-uploaded clip was processed in memory and was not retained, so a recording of
-that case must be tested again before release.
+The release candidate supports ASR, word timing, affect distributions,
+abstention, and conservative vocal-event output. Vocal styles are disabled.
+A four-way sound-event style head hallucinated `whispering` on ordinary speech,
+and a replacement BERSt shouting head missed its fixed recall and F1 gates.
+Both experiments were rejected rather than hidden behind a higher runtime
+threshold.
 
-As a lexical-leakage control, four neutral system voices subsequently read the
-exact hostile sentence. Cadence transcribed all four correctly, returned no
-events or styles, and abstained on affect; anger probability ranged from 8.1%
-to 19.9%. This establishes that the words alone do not reproduce the failure,
-but synthetic neutral speech cannot validate expressive human delivery. The
-protocol and checksums are recorded in
-[`research/hostile-lexical-control-v0.1.md`](research/hostile-lexical-control-v0.1.md).
+The event head reaches macro-F1 0.814 through the full-precision ONNX graph and
+0.826 through INT8 on the 80-clip opened VocalSound inspection set. Both graphs
+produce two false event emissions across 160 external OOD speech and sound
+controls, a 1.25% false-positive clip rate. These are source-labelled opened
+benchmarks, not a claim of natural inline-event accuracy.
 
-ASR is not the current failure. Cadence v0.9 keeps a frozen base-ASR tail; its
-CTC logits are bit-identical to the preceding candidate on real speech clips.
-The 241,904,650-parameter model adapts the upper acoustic encoder for perception
-and then trains isolated event, style, and affect branches. Its self-contained
-delta contains 7,905,483 learned parameters; the remaining base weights stay
-frozen.
+Four neutral system voices reading `I hate you, I hate you so much, never call
+me again` are the exact regression for the failure that prompted this release.
+Both FP32 and INT8 transcribe all four correctly, return no events or styles,
+and abstain on affect. The INT8 FastAPI and pseudo-streaming smoke test commits
+the same transcript at real-time factor 0.055 on the development Mac.
 
-The current candidate reaches affect macro-F1 of 0.6643 on development, 0.6336
-on the opened regression set, and 0.3853 on the external 480-clip RAVDESS set.
-Localized-event segment macro-F1 is 0.6204 on opened regression data, with no
-localized false positives across 549 regression speech controls or 480
-RAVDESS speech clips. External WESR results remain weak: temporal event
-presence macro-F1 is 0.2882 and style macro-F1 is 0.3795. Event-presence and
-style allowlists therefore remain empty, quantization is deferred, and the
-fresh confirmation set remains sealed. Protocols and complete results are in
-[`research/affect-focus-v0.9-protocol.md`](research/affect-focus-v0.9-protocol.md),
-[`research/event-hardening-v0.8-protocol.md`](research/event-hardening-v0.8-protocol.md),
-and [`research/style-branch-v0.7-protocol.md`](research/style-branch-v0.7-protocol.md).
+The retained affect model reaches macro-F1 0.6643 on development, 0.6336 on the
+opened regression set, and 0.3853 on external RAVDESS. INT8 reaches 0.3803 on
+the same RAVDESS set, a 0.51-point absolute loss. Both external results remain
+below the project's 0.40 public-release target. A fresh consented human
+recording of the hostile-speech regression and the derivative-weight licensing
+review also remain required before public model publication. The current
+artifact is therefore a private research release candidate, not a validated
+public emotion model. The locked composition and acceptance checks are in
+[`research/release-cascade-v0.1-protocol.md`](research/release-cascade-v0.1-protocol.md).
 
 ## Output
 
@@ -156,19 +154,20 @@ that utterance.
 
 ## Architecture
 
-Cadence uses SenseVoice-Small as a shared acoustic encoder. The model has
-separate heads for CTC transcription, frame-level events, event boundaries,
-styles, categorical affect, valence/arousal/dominance, and out-of-distribution
-scoring. Attentive statistics pooling produces the utterance-level affect
-representation.
+Cadence uses SenseVoice-Small as a shared acoustic encoder. One ONNX pass
+produces CTC transcription, frame-level event outputs, affect outputs, and a
+padding-safe 5,120-value acoustic embedding. A small NumPy linear head consumes
+that embedding for calibrated utterance-level vocal events. The head does not
+require PyTorch at inference time. Raw SenseVoice event and emotion tags are
+not used.
 
 The deployment path keeps transcript content and model-produced metadata in
 separate fields. Downstream applications should pass them through trusted
 structured channels rather than concatenate markup into the spoken text.
 
-The active v0.9 candidate is a full-precision ONNX export. INT8 work is deferred
-until the external affect, event, and style gates pass; quantizing an unreleasable
-candidate would not resolve its data-generalization failures.
+The release artifacts are `attune-cadence-v0.1-fp.onnx`,
+`attune-cadence-v0.1-int8.onnx`, and `vocalsound-en-head.npz`. Styles remain in
+the research architecture but have no enabled release labels.
 
 ## Installation
 
@@ -193,10 +192,11 @@ The command-line runner accepts PCM16, 16 kHz, mono WAV files between 0.5 and
 
 ```bash
 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/infer_onnx.py \
-  --model artifacts/models/attune-affect-focus-v0.9-fp.onnx \
+  --model artifacts/models/attune-cadence-v0.1-int8.onnx \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
   --calibration artifacts/evaluation/affect-focus-v0.9/calibration.json \
-  --quantization fp32 \
+  --probe-head artifacts/release-candidate/vocalsound-en-head.npz \
+  --quantization int8 \
   --xml input.wav
 ```
 
@@ -204,10 +204,11 @@ Run the same backend behind FastAPI:
 
 ```bash
 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/serve.py \
-  --model artifacts/models/attune-affect-focus-v0.9-fp.onnx \
+  --model artifacts/models/attune-cadence-v0.1-int8.onnx \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
   --calibration artifacts/evaluation/affect-focus-v0.9/calibration.json \
-  --quantization fp32
+  --probe-head artifacts/release-candidate/vocalsound-en-head.npz \
+  --quantization int8
 ```
 
 The service exposes `POST /v1/analyse`, `WS /v1/stream`, `/healthz`, and
@@ -225,10 +226,11 @@ ATTUNE_DEMO_USERNAME=attune-test \
 ATTUNE_DEMO_PASSWORD='generate-a-new-secret' \
 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 \
 uv run python scripts/serve.py \
-  --model artifacts/models/attune-affect-focus-v0.9-fp.onnx \
+  --model artifacts/models/attune-cadence-v0.1-int8.onnx \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
   --calibration artifacts/evaluation/affect-focus-v0.9/calibration.json \
-  --quantization fp32
+  --probe-head artifacts/release-candidate/vocalsound-en-head.npz \
+  --quantization int8
 ```
 
 Uploads are processed in memory. A reverse proxy or tunnel still handles audio
@@ -276,7 +278,7 @@ upload plan before publishing:
 
 ```bash
 uv run python scripts/publish_huggingface.py \
-  --repo-id buabaj/attune-cadence-241m \
+  --repo-id buabaj/attune-cadence \
   --bundle-manifest artifacts/release/cadence-v0.1/huggingface-bundle.json \
   --dry-run
 ```
@@ -308,6 +310,7 @@ uv run python scripts/infer_onnx.py hostile-human.wav \
   --model <final-model.onnx> \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
   --calibration <final-calibration.json> \
+  --probe-head artifacts/release-candidate/vocalsound-en-head.npz \
   --quantization int8 \
   --output-dir artifacts/release/cadence-v0.1/hostile
 

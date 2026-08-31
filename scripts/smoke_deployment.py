@@ -23,6 +23,7 @@ def main() -> None:
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--sensevoice-path", type=Path, required=True)
     parser.add_argument("--calibration", type=Path, required=True)
+    parser.add_argument("--probe-head", type=Path, action="append", default=[])
     parser.add_argument("--quantization", choices=("fp32", "fp16", "int8"), required=True)
     parser.add_argument("--audio", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -33,6 +34,7 @@ def main() -> None:
         arguments.sensevoice_path,
         arguments.calibration,
         quantization=arguments.quantization,
+        probe_artifacts=tuple(arguments.probe_head),
     )
     streaming = StreamingConfig(window_ms=1_000, overlap_ms=250)
     client = TestClient(create_app(backend, streaming=streaming))

@@ -31,13 +31,9 @@ REQUIRED_BUNDLE_DESTINATIONS = {
 }
 SENSEVOICE_REVISION = "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7"
 REQUIRED_TRAINING_SOURCES = {
-    "attune_inline_event_mixtures_v0.1",
-    "berst_v1",
     "common_voice_17_en",
     "crema_d_paired_v0.1",
-    "crema_d_perceptual_v1",
     "dcase2016_task2",
-    "disfluency_speech_v0.1",
     "fsd50k_bounded_v0.1",
     "subesco_v1_1",
     "thorsten_voice_2021_06_emotional",

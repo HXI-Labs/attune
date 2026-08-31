@@ -41,12 +41,19 @@ def test_onnx_export_parity_and_int8_structure(tmp_path: Path) -> None:
     fp_model = tmp_path / "attune.onnx"
     int8_model = tmp_path / "attune-int8.onnx"
 
-    export_onnx(model, fp_model, feature_size=8, sample_frames=20)
+    export_onnx(
+        model,
+        fp_model,
+        feature_size=8,
+        sample_frames=20,
+        include_probe_embedding=True,
+    )
     parity = validate_onnx_parity(
         model,
         fp_model,
         sample=torch.randn(2, 21, 8),
         absolute_tolerance=2e-4,
+        include_probe_embedding=True,
     )
     report = quantize_dynamic_int8(
         fp_model,
@@ -55,7 +62,7 @@ def test_onnx_export_parity_and_int8_structure(tmp_path: Path) -> None:
     )
     validate_quantized_session(int8_model)
 
-    assert parity.outputs_checked == 10
+    assert parity.outputs_checked == 11
     assert report["method"] == "onnxruntime_dynamic_qint8_per_channel"
     assert report["materialized_aliased_gemm_weights"] == [
         "/model/style_projection/style_projection.0/Gemm",

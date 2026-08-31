@@ -29,6 +29,16 @@ def _accepted(value: dict[str, Any], name: str) -> bool:
     return accepted
 
 
+def _style_accepted(value: dict[str, Any], name: str, *, styles_enabled: bool) -> bool:
+    accepted = _accepted(value, name)
+    if styles_enabled:
+        return accepted
+    enabled_labels = _required(value, "deployment_enabled_labels")
+    if enabled_labels != []:
+        raise ValueError(f"{name} must list no deployment labels when styles are disabled")
+    return accepted
+
+
 def _accepted_hostile_regression(value: dict[str, Any] | None) -> bool:
     if value is None:
         return False
@@ -66,6 +76,7 @@ def assemble(
     int8_style_acceptance: dict[str, Any],
     int8_affect_acceptance: dict[str, Any],
     parameter_count: int,
+    styles_enabled: bool = True,
     hostile_speech_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
@@ -91,6 +102,7 @@ def assemble(
         "int8_event_presence_macro_f1": _required(int8, "event_presence_macro_f1"),
         "fp_style_macro_f1": _required(full_precision, "style_macro_f1"),
         "int8_style_macro_f1": _required(int8, "style_macro_f1"),
+        "styles_enabled": styles_enabled,
         "fp_affect_macro_f1": _required(full_precision, "affect_macro_f1"),
         "int8_affect_macro_f1": _required(int8, "affect_macro_f1"),
         "fp_ood_f1": _required(full_precision, "ood_f1"),
@@ -104,10 +116,14 @@ def assemble(
         "cpu_real_time_factor": _required(deployment, "cpu_real_time_factor"),
         "committed_retraction_rate": _required(deployment, "committed_retraction_rate"),
         "event_external_validation_passed": _accepted(event_acceptance, "event"),
-        "style_external_validation_passed": _accepted(style_acceptance, "style"),
+        "style_external_validation_passed": _style_accepted(
+            style_acceptance, "style", styles_enabled=styles_enabled
+        ),
         "affect_external_validation_passed": _accepted(affect_acceptance, "affect"),
         "int8_event_external_validation_passed": _accepted(int8_event_acceptance, "INT8 event"),
-        "int8_style_external_validation_passed": _accepted(int8_style_acceptance, "INT8 style"),
+        "int8_style_external_validation_passed": _style_accepted(
+            int8_style_acceptance, "INT8 style", styles_enabled=styles_enabled
+        ),
         "int8_affect_external_validation_passed": _accepted(int8_affect_acceptance, "INT8 affect"),
         "hostile_speech_regression_passed": _accepted_hostile_regression(hostile_speech_report),
     }
@@ -126,6 +142,12 @@ def main() -> None:
     parser.add_argument("--int8-style-acceptance", type=Path, required=True)
     parser.add_argument("--int8-affect-acceptance", type=Path, required=True)
     parser.add_argument("--parameter-count", type=int, required=True)
+    parser.add_argument(
+        "--styles-enabled",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Whether the release exposes any vocal-style labels",
+    )
     parser.add_argument("--hostile-speech-report", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
@@ -141,6 +163,7 @@ def main() -> None:
         int8_style_acceptance=_load(arguments.int8_style_acceptance),
         int8_affect_acceptance=_load(arguments.int8_affect_acceptance),
         parameter_count=arguments.parameter_count,
+        styles_enabled=arguments.styles_enabled,
         hostile_speech_report=_load(arguments.hostile_speech_report),
     )
     arguments.output.parent.mkdir(parents=True, exist_ok=True)

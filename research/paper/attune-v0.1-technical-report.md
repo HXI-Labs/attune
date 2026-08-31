@@ -1,5 +1,9 @@
 # Project Attune v0.1 technical report
 
+> Historical draft for the superseded split-tail candidate. Do not use its
+> parameter counts or release metrics as the current Cadence v0.1 result. See
+> `docs/model-card.md` and `research/release-cascade-v0.1-protocol.md`.
+
 ## Abstract
 
 Project Attune v0.1 tests whether a compact pretrained speech model can retain

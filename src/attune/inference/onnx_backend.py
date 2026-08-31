@@ -17,7 +17,8 @@ from typing import Any, Literal, Protocol
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from attune.inference.export import OUTPUT_NAMES
+from attune.inference.export import OUTPUT_NAMES, PROBE_EMBEDDING_OUTPUT
+from attune.inference.probe_head import LinearProbeHead, ProbeDecision
 from attune.models.joint import SUPPORTED_EVENTS, SUPPORTED_STYLES
 from attune.schema.output import AffectCategory
 from attune.schema.v2 import AttuneOutputV2
@@ -279,6 +280,7 @@ class OnnxAttuneBackend:
         calibration: RuntimeCalibration,
         session: Any | None = None,
         quantization: str = "int8",
+        probe_heads: tuple[LinearProbeHead, ...] = (),
     ) -> None:
         if session is None:
             try:
@@ -292,7 +294,13 @@ class OnnxAttuneBackend:
         self.transcript_decoder = transcript_decoder
         self.calibration = calibration
         self.quantization = quantization
-        self.name = f"attune-cadence-241m-{quantization}"
+        self.probe_heads = probe_heads
+        if probe_heads:
+            available_outputs = {output.name for output in session.get_outputs()}
+            if PROBE_EMBEDDING_OUTPUT not in available_outputs:
+                raise ValueError("configured probe heads require a probe_embedding model output")
+        probe_suffix = "+calibrated-probes" if probe_heads else ""
+        self.name = f"attune-cadence-242m-{quantization}{probe_suffix}"
 
     @classmethod
     def from_local_assets(
@@ -302,6 +310,7 @@ class OnnxAttuneBackend:
         calibration_path: Path,
         *,
         quantization: str = "int8",
+        probe_artifacts: tuple[Path, ...] = (),
     ) -> OnnxAttuneBackend:
         frontend = LocalSenseVoiceFrontend(sensevoice_checkpoint)
         calibration = RuntimeCalibration.model_validate_json(calibration_path.read_text())
@@ -311,6 +320,7 @@ class OnnxAttuneBackend:
             transcript_decoder=frontend.decoder,
             calibration=calibration,
             quantization=quantization,
+            probe_heads=tuple(LinearProbeHead(path) for path in probe_artifacts),
         )
 
     def analyse_wav(self, audio: bytes) -> AttuneOutputV2:
@@ -318,14 +328,18 @@ class OnnxAttuneBackend:
         features = self.feature_extractor(audio)
         if features.ndim != 2:
             raise ValueError("feature extractor must return (time, feature) values")
+        requested_outputs = [
+            *OUTPUT_NAMES,
+            *([PROBE_EMBEDDING_OUTPUT] if self.probe_heads else []),
+        ]
         values = self.session.run(
-            list(OUTPUT_NAMES),
+            requested_outputs,
             {
                 "speech": features[np.newaxis].astype(np.float32),
                 "speech_lengths": np.asarray([features.shape[0]], dtype=np.int64),
             },
         )
-        outputs = dict(zip(OUTPUT_NAMES, values, strict=True))
+        outputs = dict(zip(requested_outputs, values, strict=True))
         acoustic_length = int(outputs["acoustic_lengths"][0])
         decode_with_words = getattr(self.transcript_decoder, "decode_with_words", None)
         if decode_with_words is None:
@@ -337,8 +351,9 @@ class OnnxAttuneBackend:
             transcript, transcript_confidence, words = decode_with_words(
                 outputs["ctc_logits"][0], acoustic_length, metadata.duration_ms
             )
-        events = self._events(outputs, acoustic_length, metadata.duration_ms)
-        styles = self._styles(outputs)
+        probe_decisions = self._probe_decisions(outputs)
+        events = self._events(outputs, acoustic_length, metadata.duration_ms, probe_decisions)
+        styles = self._styles(outputs, probe_decisions)
         affect, ood_probability = self._affect(outputs, metadata.duration_ms)
         payload = {
             "schema_version": "2.0",
@@ -376,7 +391,11 @@ class OnnxAttuneBackend:
         return AttuneOutputV2.model_validate(payload)
 
     def _events(
-        self, outputs: dict[str, np.ndarray], length: int, duration_ms: int
+        self,
+        outputs: dict[str, np.ndarray],
+        length: int,
+        duration_ms: int,
+        probe_decisions: tuple[ProbeDecision, ...] = (),
     ) -> list[dict[str, Any]]:
         probabilities = _sigmoid(
             outputs["event_logits"][0, :length] / self.calibration.event_temperature
@@ -427,9 +446,32 @@ class OnnxAttuneBackend:
                         "status": "committed",
                     }
                 )
+        already_present = {item["label"] for item in items}
+        for decision in probe_decisions:
+            if decision.abstained or decision.channel != "event":
+                continue
+            if decision.label in already_present:
+                continue
+            items.append(
+                {
+                    "id": f"event-{len(items) + 1}",
+                    "label": decision.label,
+                    "temporal_scope": "utterance",
+                    "start_ms": None,
+                    "end_ms": None,
+                    "after_word_id": None,
+                    "confidence": decision.confidence,
+                    "status": "committed",
+                }
+            )
+            already_present.add(decision.label)
         return items
 
-    def _styles(self, outputs: dict[str, np.ndarray]) -> list[dict[str, Any]]:
+    def _styles(
+        self,
+        outputs: dict[str, np.ndarray],
+        probe_decisions: tuple[ProbeDecision, ...] = (),
+    ) -> list[dict[str, Any]]:
         probabilities = _sigmoid(outputs["style_logits"][0] / self.calibration.style_temperature)
         items = []
         for index, label in enumerate(SUPPORTED_STYLES):
@@ -450,7 +492,33 @@ class OnnxAttuneBackend:
                         "status": "committed",
                     }
                 )
+        already_present = {item["label"] for item in items}
+        for decision in probe_decisions:
+            if decision.abstained or decision.channel != "style":
+                continue
+            if decision.label in already_present:
+                continue
+            items.append(
+                {
+                    "id": f"style-{len(items) + 1}",
+                    "label": decision.label,
+                    "temporal_scope": "utterance",
+                    "start_ms": None,
+                    "end_ms": None,
+                    "start_word_id": None,
+                    "end_word_id": None,
+                    "confidence": decision.confidence,
+                    "status": "committed",
+                }
+            )
+            already_present.add(decision.label)
         return items
+
+    def _probe_decisions(self, outputs: dict[str, np.ndarray]) -> tuple[ProbeDecision, ...]:
+        if not self.probe_heads:
+            return ()
+        embedding = outputs[PROBE_EMBEDDING_OUTPUT][0]
+        return tuple(head.predict(embedding) for head in self.probe_heads)
 
     def _affect(
         self, outputs: dict[str, np.ndarray], duration_ms: int

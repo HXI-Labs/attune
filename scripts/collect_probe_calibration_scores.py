@@ -62,6 +62,7 @@ def score(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sensevoice-path", type=Path, required=True)
+    parser.add_argument("--query-language", choices=("auto", "en"), default="auto")
     parser.add_argument("--vocalsound-probe-checkpoint", type=Path, required=True)
     parser.add_argument("--fsd50k-probe-checkpoint", type=Path, required=True)
     parser.add_argument(
@@ -156,6 +157,7 @@ def main() -> None:
     encoder = FrozenEncoderProvider(
         arguments.sensevoice_path,
         arguments.embedding_cache,
+        query_language=arguments.query_language,
     )
     vocalsound_head = FrozenLinearProbeHead(
         name="vocalsound-frozen-linear-probe",

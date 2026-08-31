@@ -35,9 +35,10 @@ def test_attune_cascade_name_omits_missing_optional_heads(tmp_path: Path) -> Non
         embedding_cache=tmp_path / "cache",
     )
 
-    assert cascade.name == "attune-cascade:sensevoice+affect-abstain+aed"
+    assert cascade.name == "attune-cascade:sensevoice+affect-abstain"
     assert isinstance(cascade.affect, MissingAffectAdapter)
     assert cascade.event_heads == ()
+    assert cascade.include_asr_annotations is False
 
 
 def test_attune_cascade_name_keeps_full_package_when_all_heads_present(tmp_path: Path) -> None:
@@ -51,5 +52,5 @@ def test_attune_cascade_name_keeps_full_package_when_all_heads_present(tmp_path:
     )
 
     assert cascade.name == (
-        "attune-cascade:sensevoice+emotion2vec+aed+vocalsound-probe+fsd50k-probe+1-gated-frame-heads"
+        "attune-cascade:sensevoice+emotion2vec+vocalsound-probe+fsd50k-probe+1-gated-frame-heads"
     )

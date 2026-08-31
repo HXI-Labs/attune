@@ -1,174 +1,114 @@
-# Model card: Attune Cadence 241M
+# Model card: Attune Cadence 242M
 
-**Release ID:** `attune-cadence-241m`
+**Release ID:** `attune-cadence-v0.1`
 
 ## Status
 
-This is an accuracy-hardening prerelease, not a public-weight release. A live
-test found severe false-positive style and event tags while ASR remained
-accurate. The demo and publication were withdrawn. The executable report in
-`artifacts/release/v0.1/release-gates.json` is deliberately
-`release_ready: false` until the original hostile-speech case is retested.
-Public redistribution also depends on a final review of every training
-source's derivative-artifact terms.
+This is a private research release candidate. It is not cleared for public
+weight publication. Public release still requires a fresh consented human
+regression recording, affect confirmation, and approval of the derivative
+weight redistribution review.
 
-An external 480-clip RAVDESS evaluation subsequently measured 0.1213 affect
-macro-F1 and a 70.8% anger prediction share. This failure supersedes the
-internal affect gate result below and is the main reason a replacement affect
-candidate is being trained with the encoder and CTC path frozen.
-
-The candidate has 241,609,098 parameters. Its trained delta is
-`artifacts/training/local-upper-two-v0.1/model.pt`; its deployment graphs are:
-
-- FP: `artifacts/models/attune-split-tail-v0.1-fp.onnx` (968,740,218 bytes)
-- mixed INT8: `artifacts/models/attune-split-tail-v0.1-int8.onnx`
-  (594,795,068 bytes)
-
-All release hashes are recorded in
-`artifacts/release/v0.1/artifact-manifest.json`.
+Cadence v0.1 deliberately disables vocal styles. An FSD50K-derived head
+hallucinated `whispering` on four ordinary speech controls, and a replacement
+BERSt shouting head reached only 0.689 F1 and 0.551 recall at the fixed
+false-positive limits. Neither head is part of the release candidate.
 
 ## Intended task
 
 For English, single-speaker, 0.5–30 second, 16 kHz mono PCM16 WAV input, emit:
 
-- CTC transcript;
-- localized `laugh`, `cough`, and `throat_clear` spans at confidence >= 0.98;
-- no user-facing weak event-presence or style labels until they are validated
-  against speech-negative controls;
-- a calibrated distribution over perceived affect categories;
-- abstention and out-of-distribution information; and
+- a CTC transcript and approximate word timings;
+- conservative `laugh`, `sigh`, `cough`, `throat_clear`, and `sneeze` events;
+- a probability distribution over perceived affect categories;
+- calibrated abstention and out-of-distribution information; and
 - schema-v2 JSON plus deterministic XML.
 
-The system estimates audible expression, not verified internal emotion.
+The system estimates audible expression. It does not establish a speaker's
+internal emotional state.
 
 ## Architecture
 
-The lower SenseVoice encoder is shared. The selected upper-two adapted path
-feeds all paralinguistic heads. CTC ASR uses frozen copies of only the two
-original upper encoder blocks and final norms, followed by the shared frozen
-temporal-predictor blocks. This 6,318,080-parameter copy corrected ASR drift
-without changing any selected perception logits; the full model stays below
-300M parameters.
+The ONNX graph is derived from SenseVoice-Small and contains 241,904,650
+parameters. One encoder pass produces CTC, localized-event, affect, OOD, and a
+padding-safe 5,120-value acoustic embedding. A 30,726-parameter NumPy linear
+head consumes the embedding for utterance-level event decisions. The combined
+deployment contains 241,935,376 parameters.
 
-The deployment graph uses ONNX Runtime dynamic per-channel QInt8 for most
-eligible shared weights. The upper eight perception blocks, two-block frozen
-ASR tail, pooling, and small utterance heads remain FP to meet fixed parity
-gates. “INT8” is therefore a deployment shorthand for a mixed-precision graph,
-not a claim that every operator is integer-only.
+The event head has an explicit `none` logit and a validation-selected margin
+threshold. Raw SenseVoice AED and emotion tags are not exposed. Existing weak
+style and event-presence outputs remain disabled. The small head does not
+require PyTorch at inference time.
 
-## Training data and procedure
+The full-precision graph is 969,933,834 bytes. ONNX Runtime dynamic per-channel
+QInt8 reduces it to 500,481,798 bytes. The event head and frontend assets are
+separate files.
 
-The source-labelled bundle contains 2,490 rows / 3.79 hours: 1,691 train, 398
-development, and 401 sealed test. It combines Common Voice CTC replay, DCASE
-strong event timing, weak FSD50K/VocalSound event/style labels, and acted
-CREMA-D categorical affect pairs. Known speakers and recording groups are
-disjoint where source metadata permits. Missing labels are masked.
+## Training and calibration
 
-The frozen-head model was trained first. The selected upper-two run warm-started
-only its task heads, trained for 14 epochs, early-stopped after three stale
-epochs, and selected epoch 11 at development loss 1.2537. It updates 7,609,931
-parameters. Training ran locally on CPU at zero cloud cost; no rented GPU was
-used.
+The retained graph is the affect-focus v0.9 candidate. ASR uses a frozen
+base-ASR view so perception adaptation cannot change the CTC path. The event
+head is a frozen-encoder linear probe trained from VocalSound, with FSD50K and
+CREMA-D controls used for abstention. Its English-query embedding is verified
+against the full-precision ONNX output on 20 clips with maximum absolute error
+`5.34e-5`.
 
-No reviewed V/A/D source was available. The architecture retains a dormant
-head, but runtime calibration marks dimensional outputs unavailable.
+All datasets and base weights have independent licence and provenance records
+under `data/provenance/`. Source labels in the event inspection sets are weak
+labels rather than reviewed natural inline-event annotations.
 
 ## Evaluation
 
-### Sealed technical results
+| Metric | Full precision | INT8 |
+|---|---:|---:|
+| VocalSound event macro-F1, 80 opened clips | 0.814 | 0.826 |
+| External OOD false-positive rate, 160 clips | 0.0125 | 0.0125 |
+| Exact hostile-lexical transcripts | 4/4 | 4/4 |
+| Events/styles on hostile-lexical controls | 0/0 | 0/0 |
+| Affect abstention on hostile-lexical controls | 4/4 | 4/4 |
 
-| Metric | FP | mixed INT8 | Fixed requirement |
-|---|---:|---:|---:|
-| WER | 0.0734 | 0.0782 | FP ≤ base + 0.01; INT8 ≤ FP + 0.005 |
-| Localized-event segment macro-F1 at >= 0.98 | 0.6645 | 0.6548 | FP ≥ 0.50; loss ≤ 0.02 |
-| Speech-control auxiliary false-positive rate | 0.0000 | 0.0000 | ≤ 0.01 |
-| Speech-control localized false events/minute | 0.0000 | 0.0000 | ≤ 0.10 |
-| Event-presence macro-F1 | 0.8258 | 0.8220 | FP ≥ 0.50; loss ≤ 0.02 |
-| Style macro-F1 | 1.0000 | 1.0000 | FP ≥ 0.60; loss ≤ 0.02 |
-| Supported-class affect macro-F1 | 0.4746 | 0.4591 | FP ≥ 0.40; loss ≤ 0.02 |
-| OOD F1 | 0.9907 | 0.9747 | FP ≥ 0.75; loss ≤ 0.02 |
-| Affect coverage | 0.8258 | 0.8712 | FP ≥ 0.50 |
-| Acoustic Preference Score | +0.2727 | +0.2727 | > 0 |
+On the retained full-precision graph, affect macro-F1 is 0.6643 on development,
+0.6336 on the opened regression set, and 0.3853 on the 480-clip external
+RAVDESS set. INT8 reaches 0.3803 on the same set, an absolute loss of 0.0051;
+selective risk still improves and coverage is 0.75. Quantization is within the
+two-point degradation budget, but both graphs remain below the project's 0.40
+public-release target.
 
-FP affect error falls from 0.4773 at full coverage to 0.4128 under the
-development-selected abstention rule. FP Brier score is 0.5999 and ECE is
-0.1134. The categorical metric covers the six supported classes (`neutral`,
-`joy`, `distress`, `anger`, `fear`, `other`); ontology-wide F1 including
-unsupported classes is lower.
+The real FastAPI and pseudo-streaming smoke test passed on the development Mac.
+For a 3.74-second regression clip it measured 207 ms processing time and RTF
+0.055. This is a single smoke measurement, not a hardware benchmark.
 
-These are internal candidate-selection results, not evidence of affect
-generalization. On the external RAVDESS inspection set, ASR remained accurate
-at 0.0104 WER while affect macro-F1 fell to 0.1213 and the prediction
-distribution collapsed toward anger. The current model must therefore not be
-published or described as a validated affect model.
-
-The event-presence and style metrics are offline research diagnostics only.
-Those heads are disabled in runtime output because their source data did not
-establish acceptable false-positive behaviour on ordinary speech. Six real
-speech clips that previously triggered multiple false tags emitted zero events
-and zero styles under the hardened policy, with their transcripts preserved.
-
-### Runtime
-
-On the development Mac CPU, mixed INT8 reached 0.0534 RTF over 40 contract-valid
-clips, with p50/p95/p99 latency of 206/415/440 ms, 100% JSON/XML validity, and
-zero committed retractions. One hundred DCASE source rows at 44.1 kHz were
-explicitly excluded from this runtime benchmark because the API contract is
-16 kHz mono; their model scores remain present in offline evaluation.
-
-Archived unmodified SenseVoice evaluations report WER 0.2365 on a 100-clip
-Ghanaian-English broadcast slice and 0.1149 on a 100-speaker British Common
-Voice slice. The final FP ASR route copies those exact frozen base weights, but
-the final graph was not rerun because those audio caches were not retained; the
-mixed-INT8 route has not been measured on either slice. These archived results
-are context, not final-model accent validation.
-
-## Evaluation caveat
-
-The first sealed pass used the selected single-tail adapted encoder and revealed
-2.23 absolute WER points of drift over the frozen base. All other gates passed.
-The perception checkpoint, thresholds, and model choice remained fixed; only a
-frozen two-block ASR route was added. Development confirmed exact base WER and
-unchanged perception metrics, after which the corrected graph was evaluated on
-the already-opened sealed set.
-
-This makes the correction transparent and mechanically grounded, but the
-corrected ASR result is no longer a pristine one-shot sealed estimate. Confirm
-it on a new external untouched English/accent set before publication. The
-sealed perception evaluation was not used to retune perception heads.
+The four hostile-lexical controls use neutral system voices. They prove that
+the exact words no longer trigger the original false tags, but they do not
+replace the required consented human recording or expressive-speech testing.
 
 ## Known limitations
 
-- Affect supervision is acted, one-hot CREMA-D—not naturalistic multi-rater
-  soft labels.
-- Only three event classes are localized; all weak utterance-presence event
-  outputs are currently disabled.
-- Style output is currently disabled. Its offline F1 is based on a narrow
-  weak-label set and cannot be read as natural speech-style reliability.
-- Word timestamps group genuine CTC token spans using SentencePiece boundaries;
-  they are approximate acoustic alignments, not interpolated word durations.
-- V/A/D, `surprise`, and `ambiguous` lack positive reviewed supervision.
-- The semantic-conflict set is small; positive APS does not prove lexical
-  disentanglement across domains.
-- Ghanaian/British manifests and archived base-ASR results exist, but the final
-  mixed graph lacks a rerun and the slices are not sufficient fairness or
-  cross-accent validation.
-- No human interaction study, naturalistic cross-corpus affect test, GPU
-  benchmark, Apple Neural Engine benchmark, or production monitoring study has
-  been completed.
-- Sarcasm, overlap, far-field speech, clipping, noise, code-switching, atypical
-  voices, and unseen devices can yield confident errors.
+- Vocal styles are disabled.
+- Event results are based partly on isolated, source-labelled vocal sounds and
+  do not establish natural inline-event localization quality.
+- Affect supervision remains dominated by acted and categorical data.
+- Affect is utterance-level; changing emotion inside one uninterrupted turn is
+  not localized.
+- Valence, arousal, and dominance are unavailable in v0.1.
+- Word timestamps are approximate CTC alignments.
+- Ghanaian, British, and other accent slices are too small for a fairness claim.
+- Noise, far-field speech, overlap, sarcasm, code-switching, atypical voices,
+  and unseen devices can produce confident errors.
+- No downstream human interaction study has established conversational value.
 
-## Prohibited uses
+## Intended and prohibited use
 
-Do not use this model for diagnosis, deception detection, covert monitoring,
-protected-trait inference, speaker identification, or automated high-stakes
-decisions. Do not tell a user they “are” an emotion based on this output.
+Cadence is intended for consented speech research, accessibility experiments,
+and low-stakes conversational interfaces where uncertainty is preserved. It
+must not be used for covert monitoring, diagnosis, deception detection,
+speaker identification, protected-trait inference, or automated high-stakes
+decisions. Applications must not present perceived affect as a verified fact.
 
 ## Third-party licences
 
-SenseVoice-Small source is MIT, while official weights use the
+Project code is MIT licensed. SenseVoice-Small weights and their derivatives
+are governed separately by the
 [FunASR Model Open Source License Agreement v1.1](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE).
-Use and release must attribute SenseVoiceSmall by FunASR/FunAudioLLM and comply
-with the exact agreement. Dataset and baseline-model records are in
-`data/provenance/`; project code licensing does not override them.
+Dataset terms are recorded under `data/provenance/`. The committed
+redistribution review currently does not approve public weight publication.

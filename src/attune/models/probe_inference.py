@@ -35,6 +35,10 @@ FSD50K_LABEL_MAPPING: dict[str, tuple[AnnotationChannel, EventLabel | StyleLabel
     "scream": ("event", EventLabel.SCREAM),
 }
 
+BERST_STYLE_LABEL_MAPPING: dict[str, tuple[AnnotationChannel, EventLabel | StyleLabel]] = {
+    "shout": ("style", StyleLabel.SHOUTING),
+}
+
 
 @dataclass(frozen=True)
 class ProbeAnnotation:
@@ -60,9 +64,10 @@ class ProbePrediction:
 class FrozenEncoderProvider:
     """Lazily share one immutable SenseVoice encoder across multiple heads."""
 
-    def __init__(self, checkpoint: Path, cache_dir: Path) -> None:
+    def __init__(self, checkpoint: Path, cache_dir: Path, *, query_language: str = "auto") -> None:
         self.checkpoint = checkpoint
         self.cache_dir = cache_dir
+        self.query_language = query_language
         self._extractor: FrozenSenseVoiceEncoder | None = None
         self._torch: Any | None = None
 
@@ -87,6 +92,7 @@ class FrozenEncoderProvider:
                 self.checkpoint,
                 self.cache_dir,
                 torch,
+                query_language=self.query_language,
             )
         return self._extractor, self._torch
 
@@ -119,7 +125,8 @@ class FrozenLinearProbeHead:
     def predict(self, audio_path: Path) -> ProbePrediction:
         started = time.perf_counter()
         extractor, torch = self.encoder.get()
-        head, payload = self._load(torch)
+        embedding_name = getattr(extractor, "embedding_name", SENSEVOICE_EMBEDDING)
+        head, payload = self._load(torch, embedding_name)
         with torch.inference_mode():
             features = extractor(audio_path)
             normalized = (features - payload["feature_mean"]) / payload["feature_scale"]
@@ -200,13 +207,13 @@ class FrozenLinearProbeHead:
                 "calibration_labels": probability_labels,
                 "uncalibrated_logits": [float(value) for value in logits[0].tolist()],
                 "encoder_frozen": True,
-                "embedding": SENSEVOICE_EMBEDDING,
+                "embedding": embedding_name,
                 "span_scope": "utterance",
             },
             abstained=abstained,
         )
 
-    def _load(self, torch: Any) -> tuple[Any, dict[str, Any]]:
+    def _load(self, torch: Any, embedding_name: str) -> tuple[Any, dict[str, Any]]:
         if self._head is not None and self._payload is not None:
             return self._head, self._payload
         payload = torch.load(self.checkpoint, map_location="cpu", weights_only=True)
@@ -220,10 +227,9 @@ class FrozenLinearProbeHead:
         }
         if not isinstance(payload, dict) or not required <= payload.keys():
             raise RuntimeError(f"{self.name} checkpoint has an unsupported payload")
-        if payload["embedding"] != SENSEVOICE_EMBEDDING:
+        if payload["embedding"] != embedding_name:
             raise RuntimeError(
-                f"{self.name} checkpoint uses {payload['embedding']!r}, "
-                f"expected {SENSEVOICE_EMBEDDING!r}"
+                f"{self.name} checkpoint uses {payload['embedding']!r}, expected {embedding_name!r}"
             )
         method, _threshold = checkpoint_abstention(payload)
         labels = payload["labels"]

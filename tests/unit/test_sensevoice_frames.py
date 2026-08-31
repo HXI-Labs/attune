@@ -7,6 +7,7 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from attune.models.sensevoice_probe import (  # noqa: E402
+    SENSEVOICE_EN_EMBEDDING,
     SENSEVOICE_FRAME_EMBEDDING,
     FrozenSenseVoiceEncoder,
     FrozenSenseVoiceFrameEncoder,
@@ -34,7 +35,7 @@ class FakeSenseVoiceModel(torch.nn.Module):
         super().__init__()
         self.encoder = FakeEncoder()
         self.embed = torch.nn.Embedding(4, 560)
-        self.lid_dict = {"auto": 0}
+        self.lid_dict = {"auto": 0, "en": 1}
         self.textnorm_dict = {"woitn": 3}
 
 
@@ -116,3 +117,33 @@ def test_frame_time_geometry_excludes_query_prefix_without_audio_shift(
     assert frame_extractor.frame_centers_ms(3) == (30.0, 90.0, 150.0)
     assert frame_extractor.metadata()["query_frames_excluded"] == 4
     assert frame_extractor.metadata()["trainable_parameters"] == 0
+
+
+def test_english_query_uses_a_separate_embedding_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    audio = tmp_path / "clip.wav"
+    audio.write_bytes(b"fixture")
+    checkpoint = tmp_path / "model"
+    checkpoint.mkdir()
+    (checkpoint / "model.pt").write_bytes(b"fake model")
+    monkeypatch.setenv("ATTUNE_SENSEVOICE_LICENSE_REVIEWED", "1")
+    english = FrozenSenseVoiceEncoder(
+        checkpoint,
+        tmp_path / "cache",
+        torch,
+        model_factory=FakeAutoModel,
+        feature_loader=fake_feature_loader,
+        query_language="en",
+    )
+    automatic = FrozenSenseVoiceEncoder(
+        checkpoint,
+        tmp_path / "cache",
+        torch,
+        model_factory=FakeAutoModel,
+        feature_loader=fake_feature_loader,
+    )
+
+    assert english.metadata()["name"] == SENSEVOICE_EN_EMBEDDING
+    assert english.metadata()["query_language"] == "en"
+    assert english._cache_path(audio) != automatic._cache_path(audio)

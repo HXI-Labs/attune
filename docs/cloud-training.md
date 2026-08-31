@@ -123,51 +123,37 @@ After frozen, change only the policy if its result passes the development gate.
 Copy the delta checkpoint and report off the instance before termination. The
 report records manifest hash, seed, parameters, time, cost, losses, and history.
 
-## Export, calibration, sealed evaluation, and INT8
+## Export, probe composition, and INT8
 
-The final v0.1 export uses a split tail: the selected adapted path remains the
-perception path, while frozen copies of the two original upper encoder blocks
-serve CTC ASR. Export it with:
+The v0.1 release candidate retains the affect-focus v0.9 graph and exposes the
+padding-safe English-query embedding used by the separately calibrated event
+head. Frozen base weights serve CTC ASR. Export it with:
 
 ```bash
 ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/export_onnx.py \
   --sensevoice-path data/raw/model-cache/sensevoice-small \
-  --checkpoint artifacts/training/cadence-release-candidate-v0.11/model.pt \
+  --checkpoint artifacts/training/local-affect-focus-v0.9/model.pt \
   --adaptation-policy upper_two --preserve-base-asr \
-  --output artifacts/models/attune-cadence-v0.11-fp.onnx
+  --include-probe-embedding \
+  --output artifacts/models/attune-cadence-v0.1-fp.onnx
 ```
 
-Fit thresholds on `development`, freeze them, then evaluate `sealed_test`.
-Quantize only the selected FP candidate; collect a new INT8 development score
-file and recalibrate before its sealed evaluation.
+Verify the probe embedding against the English-query training representation,
+then evaluate the NPZ event head through the exported graph. Quantize only
+after the full-precision graph passes the event, OOD, hostile-lexical, schema,
+and service gates.
 
 ```bash
-uv run python scripts/collect_joint_scores.py \
-  --manifest artifacts/manifests/joint-release-v0.11.jsonl \
-  --model artifacts/models/attune-cadence-v0.11-fp.onnx --split development \
-  --sensevoice-path data/raw/model-cache/sensevoice-small \
-  --output artifacts/fp-development.jsonl
-uv run python scripts/calibrate_joint.py \
-  --scores artifacts/fp-development.jsonl --output artifacts/fp-calibration.json
-uv run python scripts/collect_joint_scores.py \
-  --manifest artifacts/manifests/joint-release-evaluation-v0.11.jsonl \
-  --model artifacts/models/attune-cadence-v0.11-fp.onnx --split sealed_test \
-  --sensevoice-path data/raw/model-cache/sensevoice-small \
-  --output artifacts/fp-sealed.jsonl
-uv run python scripts/evaluate_joint.py \
-  --scores artifacts/fp-sealed.jsonl --calibration artifacts/fp-calibration.json \
-  --output artifacts/fp-metrics.json
+uv run python scripts/quantize.py \
+  --input artifacts/models/attune-cadence-v0.1-fp.onnx \
+  --output artifacts/models/attune-cadence-v0.1-int8.onnx
 ```
 
-Repeat this sequence for INT8. WER values are fractions (`0.12` means 12%);
-allowed FP and INT8 degradations are therefore `0.01` and `0.005`.
-
-The v0.11 pipeline first applies dynamic per-channel INT8 to every eligible
-weight and records the exact graph conversion. It then recalibrates the graph
-and repeats the external event, style, affect, gain, and speech-control gates.
-Use `--exclude-node-prefix` only if the measured all-eligible conversion fails
-and a predeclared selective-precision follow-up is required. “INT8” describes
-the quantized eligible weights, not every operator in the ONNX graph.
+The INT8 graph must repeat the integrated event and OOD evaluation, exact
+hostile-lexical regression, affect/calibration evaluation, and API/streaming
+smoke test. Compare probe decisions rather than raw embedding equality because
+QInt8 intentionally changes intermediate floating-point values. Use selective
+precision only after a predeclared all-eligible conversion fails a quality gate.
 
 For a fresh scientific reproduction, do not reuse the existing sealed split as
 the final untouched ASR estimate: the initial v0.1 sealed pass triggered the

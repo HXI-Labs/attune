@@ -17,6 +17,13 @@ def main() -> None:
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--sensevoice-path", type=Path, required=True)
     parser.add_argument("--calibration", type=Path, required=True)
+    parser.add_argument(
+        "--probe-head",
+        type=Path,
+        action="append",
+        default=[],
+        help="Calibrated NumPy probe artifact; may be supplied more than once",
+    )
     parser.add_argument("--quantization", choices=("fp32", "fp16", "int8"), default="int8")
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--xml", action="store_true")
@@ -26,6 +33,7 @@ def main() -> None:
         arguments.sensevoice_path,
         arguments.calibration,
         quantization=arguments.quantization,
+        probe_artifacts=tuple(arguments.probe_head),
     )
     client = AttuneClient(backend)
     if len(arguments.audio) > 1 and arguments.output_dir is None:

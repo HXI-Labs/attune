@@ -39,7 +39,11 @@ from attune.models.probe_ood import (
     partition_negatives,
     source_speakers,
 )
-from attune.models.sensevoice_probe import SENSEVOICE_EMBEDDING, FrozenSenseVoiceEncoder
+from attune.models.sensevoice_probe import (
+    SENSEVOICE_EMBEDDING,
+    SENSEVOICE_EN_EMBEDDING,
+    FrozenSenseVoiceEncoder,
+)
 
 AED_DETECTION_RATE = {
     "shout": 0.0,
@@ -125,6 +129,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         arguments.sensevoice_model,
         arguments.embedding_cache,
         torch,
+        query_language=arguments.query_language,
     )
     train_x, train_y = extract_partition(train_examples, extractor, torch)
     validation_x, validation_y = extract_partition(validation_examples, extractor, torch)
@@ -231,7 +236,11 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
             "feature_mean": mean,
             "feature_scale": scale,
             "labels": list(FSD50K_PROBE_LABELS),
-            "embedding": SENSEVOICE_EMBEDDING,
+            "embedding": (
+                SENSEVOICE_EN_EMBEDDING
+                if arguments.query_language == "en"
+                else SENSEVOICE_EMBEDDING
+            ),
             "abstention": abstention,
         },
         arguments.checkpoint_output,
@@ -406,6 +415,7 @@ def parse_args() -> argparse.Namespace:
         default=Path("data/raw/crema-probe-ood"),
     )
     parser.add_argument("--sensevoice-model", type=Path, required=True)
+    parser.add_argument("--query-language", choices=("auto", "en"), default="auto")
     parser.add_argument(
         "--embedding-cache",
         type=Path,

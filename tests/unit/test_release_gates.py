@@ -21,6 +21,7 @@ def passing_metrics() -> ReleaseMetrics:
         int8_event_presence_macro_f1=0.67,
         fp_style_macro_f1=0.73,
         int8_style_macro_f1=0.72,
+        styles_enabled=True,
         fp_affect_macro_f1=0.64,
         int8_affect_macro_f1=0.625,
         fp_ood_f1=0.89,
@@ -63,6 +64,16 @@ def test_int8_and_acoustic_failures_are_visible() -> None:
 def test_metrics_mapping_rejects_incomplete_evidence() -> None:
     with pytest.raises(ValueError, match="missing"):
         ReleaseMetrics.from_mapping({"parameter_count": 10})
+
+
+def test_disabled_styles_do_not_require_classification_metrics() -> None:
+    values = passing_metrics().__dict__ | {
+        "styles_enabled": False,
+        "fp_style_macro_f1": 0.0,
+        "int8_style_macro_f1": 0.0,
+    }
+
+    assert all(result.passed for result in evaluate_release_gates(ReleaseMetrics(**values)))
 
 
 def test_release_fails_closed_without_hostile_speech_retest() -> None:

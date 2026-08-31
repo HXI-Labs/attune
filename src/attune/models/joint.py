@@ -45,6 +45,7 @@ class JointOutput:
     ood_logit: Tensor
     affect_embedding: Tensor
     ood_embedding: Tensor
+    probe_embedding: Tensor | None = None
 
 
 class AttentiveStatisticsPooling(nn.Module):
@@ -216,6 +217,7 @@ class AttuneJointModel(nn.Module):
         speech_lengths: Tensor,
         rich_tokens: Tensor | None = None,
         compute_ctc_logits: bool = True,
+        compute_probe_embedding: bool = False,
     ) -> JointOutput:
         batch_size = speech.shape[0]
         if rich_tokens is None:
@@ -228,7 +230,7 @@ class AttuneJointModel(nn.Module):
             speech,
             speech_lengths.clone(),
             rich_tokens,
-            compute_asr_view=compute_ctc_logits,
+            compute_asr_view=compute_ctc_logits or compute_probe_embedding,
         )
         if encoded.shape[1] <= 4:
             raise ValueError("SenseVoice returned no acoustic encoder frames")
@@ -237,6 +239,9 @@ class AttuneJointModel(nn.Module):
         positions = torch.arange(acoustic.shape[1], device=acoustic.device)
         frame_mask = positions.unsqueeze(0) < acoustic_lengths.unsqueeze(1)
         asr_acoustic = asr_encoded[:, 4:, :]
+        probe_embedding = (
+            _pooled_probe_embedding(asr_acoustic, frame_mask) if compute_probe_embedding else None
+        )
         ctc_logits = (
             self.sensevoice.ctc.ctc_lo(asr_acoustic)
             if compute_ctc_logits
@@ -260,6 +265,7 @@ class AttuneJointModel(nn.Module):
             ood_logit=self.ood_head(affect_embedding).squeeze(-1),
             affect_embedding=affect_embedding,
             ood_embedding=nn.functional.normalize(self.ood_projection(affect_embedding), dim=-1),
+            probe_embedding=probe_embedding,
         )
 
     def _encode(
@@ -345,6 +351,33 @@ class AttuneJointModel(nn.Module):
             self.base_asr_tp_norm(base_asr),
             encoded_lengths,
         )
+
+
+def _pooled_probe_embedding(frames: Tensor, mask: Tensor, temporal_bins: int = 8) -> Tensor:
+    """Match the frozen-probe temporal mean/mean/std representation in batches."""
+    if frames.ndim != 3 or mask.shape != frames.shape[:2]:
+        raise ValueError("probe pooling expects frames (B, T, D) and mask (B, T)")
+    lengths = mask.sum(dim=1).clamp_min(1)
+    positions = torch.arange(frames.shape[1], device=frames.device).view(1, 1, -1)
+    bins = torch.arange(temporal_bins, device=frames.device).view(1, -1, 1)
+    starts = torch.div(bins * lengths.view(-1, 1, 1), temporal_bins, rounding_mode="floor")
+    ends = torch.div(
+        (bins + 1) * lengths.view(-1, 1, 1) + temporal_bins - 1,
+        temporal_bins,
+        rounding_mode="floor",
+    )
+    windows = ((positions >= starts) & (positions < ends) & mask.unsqueeze(1)).to(frames.dtype)
+    temporal = torch.einsum("bkt,btd->bkd", windows, frames)
+    temporal = temporal / windows.sum(dim=2, keepdim=True).clamp_min(1)
+
+    valid = mask.unsqueeze(-1).to(frames.dtype)
+    counts = lengths.to(frames.dtype).unsqueeze(-1)
+    mean = (frames * valid).sum(dim=1) / counts
+    variance = ((frames - mean.unsqueeze(1)).square() * valid).sum(dim=1) / counts
+    return torch.cat(
+        (temporal.transpose(1, 2).flatten(start_dim=1), mean, variance.clamp_min(0).sqrt()),
+        dim=1,
+    )
 
 
 def attune_delta_checkpoint(model: AttuneJointModel) -> dict[str, Any]:

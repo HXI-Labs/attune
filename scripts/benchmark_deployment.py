@@ -21,6 +21,7 @@ def main() -> None:
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--sensevoice-path", type=Path, required=True)
     parser.add_argument("--calibration", type=Path, required=True)
+    parser.add_argument("--probe-head", type=Path, action="append", default=[])
     parser.add_argument("--quantization", choices=("fp32", "fp16", "int8"), required=True)
     parser.add_argument("--split", default="sealed_test")
     parser.add_argument("--per-dataset", type=int, default=10)
@@ -56,6 +57,7 @@ def main() -> None:
         arguments.sensevoice_path,
         arguments.calibration,
         quantization=arguments.quantization,
+        probe_artifacts=tuple(arguments.probe_head),
     )
     backend.analyse_wav(Path(rows[0]["audio_path"]).read_bytes())
     report = benchmark_backend(backend, rows)

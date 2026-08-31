@@ -18,126 +18,91 @@ tags:
   - int8
 ---
 
-# Attune Cadence 241M
+# Attune Cadence 242M
 
-Attune Cadence is an English paralinguistic transcription model from
-HXI Labs. It combines CTC speech transcription with supported vocal-event
-localization, perceived-affect probabilities,
-out-of-distribution detection, calibrated abstention, and word timing.
+Attune Cadence is a compact English paralinguistic transcription model. It
+returns CTC transcription and word timing together with conservative vocal
+events, perceived-affect probabilities, OOD information, and calibrated
+abstention. Schema-v2 JSON is authoritative; XML and bracketed text are
+deterministic views.
 
-Publication is blocked. A live test exposed false-positive event and style
-tags. The hardened runtime disables weak event-presence and style output,
-requires at least 0.98 confidence for localized events, and still requires a
-manual hostile-speech regression. A later external RAVDESS evaluation also
-found only 0.1213 affect macro-F1 and a 70.8% anger prediction share. Do not
-publish this package yet.
+This package is a private research release candidate. Do not make it public
+until the included release gates, human regression, affect confirmation, and
+weight-redistribution review all pass.
 
-This v0.1 checkpoint is a 241,609,098-parameter derivative of
-[SenseVoiceSmall](https://huggingface.co/FunAudioLLM/SenseVoiceSmall) by
-FunASR/FunAudioLLM. The uploaded deployment graph is mixed precision: most
-eligible shared linear weights are QInt8, while accuracy-sensitive upper blocks
-and small heads remain floating point.
+## Scope
 
-## Example
+- English, single-speaker clips or user turns.
+- 16 kHz mono PCM16 WAV input, 0.5–30 seconds.
+- CTC transcript and approximate word timings.
+- Calibrated `laugh`, `sigh`, `cough`, `throat_clear`, and `sneeze` events.
+- One perceived-affect distribution per analysed utterance.
+- Abstention and OOD probability.
+- Vocal styles and V/A/D disabled in v0.1.
 
-For the hostile sentence that exposed the failure, the precision-first output
-should preserve the transcript without inventing auxiliary evidence:
+For ordinary speech without supported paralinguistic evidence, a readable view
+can be:
 
 ```text
 [affect uncertain] I hate you, I hate you so much—never call me again.
 ```
 
-The model itself emits validated schema-v2 JSON. Affect is a probability
-distribution over perceived vocal expression, never a claim about the
-speaker's true internal state.
+Four neutral system voices reading that exact sentence are the regression for
+the false-tag failure that prompted this candidate. FP32 and INT8 transcribe
+all four correctly, produce no events or styles, and abstain on affect.
 
-## Current scope
+## Architecture and files
 
-- English, single-speaker clips or user turns.
-- 16 kHz mono PCM16 WAV input, 0.5–30 seconds.
-- CTC transcript and CTC-derived word times.
-- Localized `laugh`, `cough`, and `throat_clear` events at confidence >=0.98.
-- Weak utterance event-presence and style output disabled pending stronger data.
-- One calibrated affect distribution per analysed utterance.
-- Abstention and OOD probability.
-- Valence, arousal, and dominance explicitly unavailable in v0.1.
+The SenseVoice-derived ONNX graph has 241,904,650 parameters. A separate
+30,726-parameter NumPy event head consumes a padding-safe acoustic embedding
+from the same graph. The unique total is 241,935,376 parameters.
 
-Cadence v0.1 does not localize changing emotions inside a continuous
-utterance. Separate VAD/turn segments can receive separate affect results; an
-unsegmented delivery change may produce a mixed distribution or abstention.
-
-## Technical results
-
-| Metric | Full precision | Mixed INT8 |
-|---|---:|---:|
-| WER | 0.0734 | 0.0782 |
-| Localized-event segment macro-F1 at >=0.98 | 0.6645 | 0.6548 |
-| Speech-control auxiliary false-positive rate (189 clips) | 0.0000 | 0.0000 |
-| Speech-control localized false events/minute | 0.0000 | 0.0000 |
-| Event-presence macro-F1 | 0.8258 | 0.8220 |
-| Style macro-F1 | 1.0000 | 1.0000 |
-| Supported-class affect macro-F1 | 0.4746 | 0.4591 |
-| OOD F1 | 0.9907 | 0.9747 |
-| Acoustic Preference Score | +0.2727 | +0.2727 |
-
-The local Mac CPU benchmark measured mixed-INT8 RTF 0.0534 and p95 latency
-415 ms over 40 contract-valid clips. These are small, partly acted/synthetic
-technical evaluations—not evidence of broad naturalistic emotion understanding.
-Event-presence and style metrics are shown only as research diagnostics. Those
-outputs are disabled in the user-facing runtime because isolated-sound scores
-did not establish their reliability on speech.
-
-The table contains internal candidate-selection results. On 480 external
-RAVDESS clips, ASR remained accurate at 0.0104 WER while affect macro-F1 fell
-to 0.1213 and predictions collapsed toward anger. This external failure
-supersedes the internal affect gate and blocks the v0.1 model from release.
-
-## Files
-
-- `attune-cadence-241m-int8.onnx` — recommended mixed-INT8 deployment graph.
-- `int8-calibration.json` — thresholds, temperatures, and abstention settings.
+- `attune-cadence-242m-int8.onnx` — recommended 500 MB deployment graph.
+- `attune-cadence-242m-fp.onnx` — 970 MB full-precision reference.
+- `event-head.npz` — calibrated event head; no PyTorch dependency.
+- `calibration.json` — affect and OOD calibration.
 - `attune-output-v2.0.schema.json` — authoritative output contract.
-- `quantization.json` — exact quantization method and preserved FP nodes.
-- `release-gates.json` — executable technical gate results.
-- `artifact-manifest.json` — release hashes.
+- `evidence/` — evaluation and deployment reports.
+- `release-gates.json` — executable publication decision.
 
-The ONNX graph contains the learned model. The current Python inference path
-also uses the official SenseVoiceSmall frontend and decoder assets, which must
-be obtained separately under the upstream model agreement. See the
-[Project Attune repository](https://github.com/buabaj/attune) for installation
-and inference commands.
+The Python runtime also needs the official SenseVoiceSmall frontend and decoder
+assets obtained separately under the upstream agreement.
 
-## Important evaluation caveat
+## Measured results
 
-The first sealed evaluation exposed excessive ASR drift. The perception
-checkpoint and calibration were kept fixed while a frozen two-block ASR tail
-was added, then evaluated on the already-opened partition. The corrected ASR
-result therefore needs confirmation on a new untouched external set before a
-publication-level claim.
+| Metric | Full precision | INT8 |
+|---|---:|---:|
+| VocalSound event macro-F1, 80 opened clips | 0.814 | 0.826 |
+| External OOD false-positive rate, 160 clips | 0.0125 | 0.0125 |
+| Exact hostile-lexical transcripts | 4/4 | 4/4 |
+| False events/styles on those controls | 0 | 0 |
 
-The included gate report must state `release_ready: false` until the original
-hostile-speech audio passes the manual regression.
+The retained full-precision affect graph reaches macro-F1 0.6643 on
+development, 0.6336 on an opened regression set, and 0.3853 on external
+RAVDESS. INT8 reaches 0.3803 on the same 480 clips, an absolute loss of 0.0051.
+Both external results are below the project's 0.40 public-release target. No
+public affect-generalization claim is supported.
+
+The event sets are source-labelled, partly isolated sounds rather than reviewed
+natural inline events. The four lexical controls are synthetic neutral speech.
+These opened results do not replace a sealed human evaluation.
 
 ## Intended use and safety
 
-Use Cadence as uncertain supplementary evidence for consented speech research,
-accessibility, and low-stakes conversational interfaces. Do not use it for
-covert monitoring, diagnosis, deception detection, protected-trait inference,
-speaker identification, or automated high-stakes decisions. Do not tell users
-they “are” an emotion based on this output.
+Use Cadence only as uncertain supplementary evidence in consented speech
+research, accessibility experiments, and low-stakes conversational interfaces.
+Do not use it for covert monitoring, diagnosis, deception detection, protected-
+trait inference, speaker identification, or automated high-stakes decisions.
+Do not state that a speaker *is* an emotion based on this output.
 
-No controlled downstream human study has yet shown that the representation
+No controlled downstream human study has established that this representation
 improves conversational responses.
 
 ## Licence and attribution
 
-The model is derived from **SenseVoiceSmall by FunASR/FunAudioLLM**. Its weights
+Cadence is derived from **SenseVoiceSmall by FunASR/FunAudioLLM**. Its weights
 and derivatives are governed by the
 [FunASR Model Open Source License Agreement v1.1](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE),
-which must be reviewed and followed separately from the MIT-licensed Attune
-source code. Retain the SenseVoiceSmall model name, source, and author
-attribution when using or sharing this derivative.
-
-Training-source terms and the current redistribution review are documented in
-the project dataset card and provenance ledger. A private Hugging Face upload
-does not by itself represent public-release clearance.
+separately from the MIT-licensed Attune source code. Dataset terms and the
+current redistribution decision are included with the project. A private
+Hugging Face upload is not public-release clearance.

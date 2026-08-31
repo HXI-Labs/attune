@@ -26,6 +26,7 @@ OUTPUT_NAMES = (
     "ood_logit",
     "ood_embedding",
 )
+PROBE_EMBEDDING_OUTPUT = "probe_embedding"
 
 
 def sensevoice_feature_size(model: AttuneJointModel) -> int:
@@ -59,13 +60,18 @@ def sensevoice_feature_size(model: AttuneJointModel) -> int:
 
 
 class ExportableAttune(nn.Module):
-    def __init__(self, model: AttuneJointModel) -> None:
+    def __init__(self, model: AttuneJointModel, *, include_probe_embedding: bool = False) -> None:
         super().__init__()
         self.model = model
+        self.include_probe_embedding = include_probe_embedding
 
     def forward(self, speech: Tensor, speech_lengths: Tensor) -> tuple[Tensor, ...]:
-        output = self.model(speech, speech_lengths)
-        return (
+        output = self.model(
+            speech,
+            speech_lengths,
+            compute_probe_embedding=self.include_probe_embedding,
+        )
+        outputs = (
             output.ctc_logits,
             output.acoustic_lengths,
             output.event_logits,
@@ -78,6 +84,11 @@ class ExportableAttune(nn.Module):
             output.ood_logit,
             output.ood_embedding,
         )
+        if not self.include_probe_embedding:
+            return outputs
+        if output.probe_embedding is None:
+            raise RuntimeError("model did not return a frozen-ASR probe embedding")
+        return (*outputs, output.probe_embedding)
 
 
 @dataclass(frozen=True)
@@ -94,9 +105,13 @@ def export_onnx(
     feature_size: int | None = None,
     sample_frames: int = 160,
     opset: int = 18,
+    include_probe_embedding: bool = False,
 ) -> None:
     model.eval().cpu()
-    wrapper = ExportableAttune(model).eval()
+    wrapper = ExportableAttune(model, include_probe_embedding=include_probe_embedding).eval()
+    output_names = (
+        (*OUTPUT_NAMES, PROBE_EMBEDDING_OUTPUT) if include_probe_embedding else OUTPUT_NAMES
+    )
     feature_size = feature_size or sensevoice_feature_size(model)
     speech = torch.randn(1, sample_frames, feature_size)
     lengths = torch.tensor([sample_frames], dtype=torch.long)
@@ -106,7 +121,7 @@ def export_onnx(
         (speech, lengths),
         output_path,
         input_names=("speech", "speech_lengths"),
-        output_names=OUTPUT_NAMES,
+        output_names=output_names,
         dynamic_axes={
             "speech": {0: "batch", 1: "input_frames"},
             "speech_lengths": {0: "batch"},
@@ -121,6 +136,7 @@ def export_onnx(
             "vad": {0: "batch"},
             "ood_logit": {0: "batch"},
             "ood_embedding": {0: "batch"},
+            **({PROBE_EMBEDDING_OUTPUT: {0: "batch"}} if include_probe_embedding else {}),
         },
         opset_version=opset,
         do_constant_folding=True,
@@ -134,6 +150,7 @@ def validate_onnx_parity(
     *,
     sample: Tensor | None = None,
     absolute_tolerance: float = 1e-3,
+    include_probe_embedding: bool = False,
 ) -> ParityResult:
     try:
         import onnxruntime as ort
@@ -143,10 +160,15 @@ def validate_onnx_parity(
     sample = sample if sample is not None else torch.randn(2, 121, sensevoice_feature_size(model))
     lengths = torch.tensor([sample.shape[1], sample.shape[1] - 17], dtype=torch.long)
     with torch.inference_mode():
-        expected = ExportableAttune(model)(sample, lengths)
+        expected = ExportableAttune(model, include_probe_embedding=include_probe_embedding)(
+            sample, lengths
+        )
     session = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
+    output_names = (
+        (*OUTPUT_NAMES, PROBE_EMBEDDING_OUTPUT) if include_probe_embedding else OUTPUT_NAMES
+    )
     actual = session.run(
-        list(OUTPUT_NAMES),
+        list(output_names),
         {"speech": sample.numpy(), "speech_lengths": lengths.numpy()},
     )
     errors = [

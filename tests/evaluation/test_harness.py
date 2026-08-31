@@ -125,6 +125,46 @@ def test_modular_cascade_retains_asr_events() -> None:
     assert prediction.output.transcript.words == []
 
 
+def test_modular_cascade_can_exclude_raw_asr_annotations() -> None:
+    class EventASR(TranscriptSentimentAdapter):
+        name = "event-asr"
+
+        def predict(self, item):
+            prediction = super().predict(item)
+            payload = prediction.output.model_dump(mode="json")
+            payload["events"] = [
+                {
+                    "id": "e1",
+                    "label": "cough",
+                    "start_ms": 0,
+                    "end_ms": prediction.output.audio.duration_ms,
+                    "after_word_id": None,
+                    "confidence": 0.99,
+                    "status": "provisional",
+                }
+            ]
+            return prediction.__class__(
+                output=AttuneOutput.model_validate(payload),
+                runtime=prediction.runtime,
+            )
+
+    prediction = ModularCascade(
+        asr=EventASR(),
+        affect=TranscriptSentimentAdapter(),
+        include_asr_annotations=False,
+    ).predict(
+        BaselineInput(
+            FIXTURES / "explicit_match_joy.wav",
+            transcript_hint="I am happy about this",
+        )
+    )
+
+    assert prediction.output.events == []
+    assert prediction.output.styles == []
+    assert prediction.diagnostics["event_style_components"] == []
+    assert "asr-aed" not in prediction.output.model.name
+
+
 def test_modular_cascade_passes_through_genuine_asr_word_alignment() -> None:
     class AlignedASR(TranscriptSentimentAdapter):
         name = "aligned-asr"

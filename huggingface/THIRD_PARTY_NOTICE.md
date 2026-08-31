@@ -1,6 +1,6 @@
 # Third-party model notice
 
-Attune Cadence 241M is derived from **SenseVoiceSmall by
+Attune Cadence 242M is derived from **SenseVoiceSmall by
 FunASR/FunAudioLLM**.
 
 - Upstream model: https://huggingface.co/FunAudioLLM/SenseVoiceSmall

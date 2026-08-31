@@ -10,10 +10,11 @@ internally good score is not sufficient.
    branch candidate. Generate `lineage.json` with
    `scripts/build_training_lineage.py`; if source files changed during a run,
    bind the record to the start revision and state the reason explicitly.
-2. Require the event branch to pass its external WESR, strong-label
-   regression, weak human-speech development, and speech-control gates.
-3. Require the style branch to pass BERSt development/confirmation, WESR,
-   British negative-control, checkpoint-scope, and gain-sweep gates.
+2. Require each enabled event route to pass its own positive and OOD gates
+   through the final exported graph. Do not reuse a frozen-encoder score as an
+   ONNX result.
+3. Keep styles disabled. A future style head must pass speech-specific positive,
+   ordinary-speech, gain, accent, and hostile-lexical gates before composition.
 4. Require the affect branch to pass core development, acoustic-preference,
    RAVDESS, BERSt development/confirmation, selective-risk, prediction-share,
    and checkpoint-scope gates.
@@ -22,28 +23,26 @@ internally good score is not sufficient.
 
 ## Composition and full precision
 
-1. Compose only branches with `candidate_passes: true`. Pass each acceptance
-   report to `scripts/compose_attune_checkpoint.py`; do not use an unbound
-   overlay.
-2. Inspect `composition.json`. It must contain the base, every overlay and
-   acceptance-report SHA-256, the exact changed tensors, and the output hash.
-3. Export ONNX and retain its parity report. Refit calibration on development
-   data after composition.
-4. Collect calibration and release-quality scores with batch size one. The
+1. Lock the Cadence graph, calibration, and enabled NumPy probe artifacts by
+   SHA-256 before running release evaluation.
+2. Export ONNX and retain its parity report. The English-query probe embedding
+   must match the frozen training representation before quantization.
+3. Collect calibration and release-quality scores with batch size one. The
    temporal event head is not padding-invariant for mixed-length ONNX batches;
    see `research/onnx-batch-padding-audit.md`.
-5. Rerun overall ASR/event/style/affect/OOD metrics and all external branch
-   gates on the composed graph. Do not infer full-model acceptance from the
-   isolated branches alone.
-6. Keep DisfluencySpeech test clips unopened; its one shared speaker prevents
+4. Rerun ASR, event, affect, OOD, and hostile-lexical gates on the composed
+   graph. Assert that styles are empty. Do not infer full-model acceptance from
+   isolated branches.
+5. Keep DisfluencySpeech test clips unopened; its one shared speaker prevents
    that split from serving as final external evidence.
 
 ## INT8 and deployment
 
 1. Quantize only an accepted full-precision graph. Retain the source/output
    sizes, method, excluded nodes, and quantization report.
-2. Refit calibration for the INT8 graph. Rerun overall metrics and independent
-   event, style, affect, gain, negative-control, and external gates.
+2. Refit or confirm calibration for the INT8 graph. Rerun overall metrics and
+   independent event, affect, negative-control, and external gates. Compare
+   event decisions rather than requiring raw INT8 embeddings to equal FP32.
 3. Benchmark batch inference on CPU and record RTF, p50/p95/p99 latency,
    JSON/XML validity, failures, and the exact hardware.
 4. Exercise FastAPI batch and WebSocket streaming with the final model and

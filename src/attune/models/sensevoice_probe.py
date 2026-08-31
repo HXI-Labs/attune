@@ -12,6 +12,7 @@ from typing import Any
 from attune.models.frozen_event_probe import ProbeDataError
 
 SENSEVOICE_EMBEDDING = "sensevoice-small-encoder-v2"
+SENSEVOICE_EN_EMBEDDING = "sensevoice-small-encoder-en-v3"
 SENSEVOICE_FRAME_EMBEDDING = "sensevoice-small-encoder-frames-v1"
 SENSEVOICE_REVISION = "3847d57b6bdf2dd8875cb1508d2af43d80a16bf7"
 QUERY_FRAMES = 4
@@ -57,6 +58,7 @@ class FrozenSenseVoiceEncoder:
         *,
         model_factory: Callable[..., Any] | None = None,
         feature_loader: Callable[[Path, Any, Any], tuple[Any, Any]] | None = None,
+        query_language: str = "auto",
     ) -> None:
         if os.environ.get("ATTUNE_SENSEVOICE_LICENSE_REVIEWED") != "1":
             raise ProbeDataError(
@@ -87,12 +89,18 @@ class FrozenSenseVoiceEncoder:
         self.torch = torch
         self.checkpoint = checkpoint
         self.cache_dir = cache_dir
+        self.query_language = query_language
+        self.embedding_name = (
+            SENSEVOICE_EN_EMBEDDING if query_language == "en" else SENSEVOICE_EMBEDDING
+        )
         self.model_sha256 = file_sha256(model_file)
         self.cache_hits = 0
         self.cache_misses = 0
         self.feature_loader = feature_loader or _load_fbank
 
         self.model = self.wrapper.model
+        if query_language not in self.model.lid_dict:
+            raise ProbeDataError(f"SenseVoice does not support query language {query_language!r}")
         self.model.eval()
         self.frontend = self.wrapper.kwargs["frontend"]
         self.frontend.eval()
@@ -114,7 +122,8 @@ class FrozenSenseVoiceEncoder:
 
     def _cache_path(self, audio_path: Path) -> Path:
         digest = hashlib.sha256()
-        digest.update(SENSEVOICE_EMBEDDING.encode())
+        digest.update(self.embedding_name.encode())
+        digest.update(f"language-query={self.query_language}".encode())
         digest.update(b"frontend-dither=0")
         digest.update(b"direct-encoder-v1")
         digest.update(self.model_sha256.encode())
@@ -151,7 +160,7 @@ class FrozenSenseVoiceEncoder:
             speech_lengths = speech_lengths.to(device="cpu")
 
             language_query = self.model.embed(
-                self.torch.LongTensor([[self.model.lid_dict["auto"]]])
+                self.torch.LongTensor([[self.model.lid_dict[self.query_language]]])
             ).repeat(speech.size(0), 1, 1)
             textnorm_query = self.model.embed(
                 self.torch.LongTensor([[self.model.textnorm_dict["woitn"]]])
@@ -184,13 +193,14 @@ class FrozenSenseVoiceEncoder:
     def metadata(self) -> dict[str, Any]:
         """Return non-weight provenance and freeze evidence for the metrics report."""
         return {
-            "name": SENSEVOICE_EMBEDDING,
+            "name": self.embedding_name,
             "model": "SenseVoiceSmall by FunASR/FunAudioLLM",
             "revision": SENSEVOICE_REVISION,
             "model_file_sha256": self.model_sha256,
             "trainable_parameters": 0,
             "total_parameters": sum(parameter.numel() for parameter in self.model.parameters()),
             "query_frames_excluded": QUERY_FRAMES,
+            "query_language": self.query_language,
             "frontend_dither": self.frontend.dither,
             "extraction_route": "direct_frontend_and_frozen_encoder",
             "pooling": f"{TEMPORAL_BINS} temporal means plus acoustic-frame mean/std",
@@ -208,6 +218,7 @@ class FrozenSenseVoiceFrameEncoder(FrozenSenseVoiceEncoder):
     def _cache_path(self, audio_path: Path) -> Path:
         digest = hashlib.sha256()
         digest.update(SENSEVOICE_FRAME_EMBEDDING.encode())
+        digest.update(f"language-query={self.query_language}".encode())
         digest.update(b"frontend-dither=0")
         digest.update(b"direct-encoder-v1")
         digest.update(b"query-frames-stripped=4")

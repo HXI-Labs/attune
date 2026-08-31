@@ -24,6 +24,7 @@ class ReleaseMetrics:
     int8_event_presence_macro_f1: float
     fp_style_macro_f1: float
     int8_style_macro_f1: float
+    styles_enabled: bool
     fp_affect_macro_f1: float
     int8_affect_macro_f1: float
     fp_ood_f1: float
@@ -84,7 +85,12 @@ def evaluate_release_gates(metrics: ReleaseMetrics) -> list[GateResult]:
             0.10,
         ),
         minimum("fp_event_presence_macro_f1", metrics.fp_event_presence_macro_f1, 0.50),
-        minimum("fp_style_macro_f1", metrics.fp_style_macro_f1, 0.60),
+        GateResult(
+            "fp_style_macro_f1",
+            not metrics.styles_enabled or metrics.fp_style_macro_f1 >= 0.60,
+            metrics.fp_style_macro_f1,
+            ">= 0.60 when styles are enabled; otherwise output must be disabled",
+        ),
         minimum("fp_affect_macro_f1", metrics.fp_affect_macro_f1, 0.40),
         minimum("fp_ood_f1", metrics.fp_ood_f1, 0.75),
         GateResult(
@@ -121,10 +127,12 @@ def evaluate_release_gates(metrics: ReleaseMetrics) -> list[GateResult]:
             metrics.fp_event_presence_macro_f1 - metrics.int8_event_presence_macro_f1,
             0.02,
         ),
-        maximum(
+        GateResult(
             "int8_style_macro_f1_degradation",
+            not metrics.styles_enabled
+            or metrics.fp_style_macro_f1 - metrics.int8_style_macro_f1 <= 0.02,
             metrics.fp_style_macro_f1 - metrics.int8_style_macro_f1,
-            0.02,
+            "<= 0.02 when styles are enabled; otherwise output must remain disabled",
         ),
         maximum(
             "int8_affect_macro_f1_degradation",
@@ -146,7 +154,7 @@ def evaluate_release_gates(metrics: ReleaseMetrics) -> list[GateResult]:
             "style_external_validation",
             metrics.style_external_validation_passed,
             metrics.style_external_validation_passed,
-            "must pass BERSt, WESR, negative-control, and gain-robustness gates",
+            "enabled styles must pass external gates; disabled styles must emit nothing",
         ),
         GateResult(
             "affect_external_validation",
@@ -164,7 +172,7 @@ def evaluate_release_gates(metrics: ReleaseMetrics) -> list[GateResult]:
             "int8_style_external_validation",
             metrics.int8_style_external_validation_passed,
             metrics.int8_style_external_validation_passed,
-            "INT8 must independently pass the external style and gain gates",
+            "INT8 enabled styles must pass external gates or remain disabled",
         ),
         GateResult(
             "int8_affect_external_validation",

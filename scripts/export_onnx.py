@@ -40,6 +40,11 @@ def main() -> None:
         action="store_true",
         help="Use frozen copies of the two base encoder tail blocks for CTC ASR",
     )
+    parser.add_argument(
+        "--include-probe-embedding",
+        action="store_true",
+        help="Expose the frozen ASR representation used by calibrated linear heads",
+    )
     arguments = parser.parse_args()
     backbone = load_local_sensevoice(arguments.sensevoice_path)
     model = AttuneJointModel(
@@ -50,8 +55,17 @@ def main() -> None:
     if arguments.checkpoint:
         state = torch.load(arguments.checkpoint, map_location="cpu", weights_only=True)
         load_attune_checkpoint(model, state)
-    export_onnx(model, arguments.output, feature_size=arguments.feature_size)
-    parity = validate_onnx_parity(model, arguments.output)
+    export_onnx(
+        model,
+        arguments.output,
+        feature_size=arguments.feature_size,
+        include_probe_embedding=arguments.include_probe_embedding,
+    )
+    parity = validate_onnx_parity(
+        model,
+        arguments.output,
+        include_probe_embedding=arguments.include_probe_embedding,
+    )
     report_path = arguments.output.with_suffix(".export.json")
     write_export_report(
         report_path,
@@ -62,6 +76,7 @@ def main() -> None:
             "preserve_base_asr": arguments.preserve_base_asr,
             "checkpoint": str(arguments.checkpoint) if arguments.checkpoint else None,
             "purpose": "candidate" if arguments.checkpoint else "unadapted_asr_reference",
+            "probe_embedding": arguments.include_probe_embedding,
         },
     )
     print(json.dumps({"output": str(arguments.output), "report": str(report_path)}))

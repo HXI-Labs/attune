@@ -33,6 +33,7 @@ from attune.models.probe_ood import (
 )
 from attune.models.sensevoice_probe import (
     SENSEVOICE_EMBEDDING,
+    SENSEVOICE_EN_EMBEDDING,
     FrozenSenseVoiceEncoder,
 )
 
@@ -351,7 +352,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
 
     embedding_name = getattr(args, "embedding", "fixed-logmel-v1")
     sensevoice_extractor = None
-    if embedding_name == SENSEVOICE_EMBEDDING:
+    if embedding_name in {SENSEVOICE_EMBEDDING, SENSEVOICE_EN_EMBEDDING}:
         sensevoice_model = getattr(args, "sensevoice_model", None)
         if sensevoice_model is None:
             raise ProbeDataError("--sensevoice-model is required for SenseVoice extraction")
@@ -363,6 +364,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 Path("artifacts/cascade-sensevoice-embeddings"),
             ),
             torch,
+            query_language=("en" if embedding_name == SENSEVOICE_EN_EMBEDDING else "auto"),
         )
         extractor = sensevoice_extractor
     elif embedding_name == "fixed-logmel-v1":
@@ -576,7 +578,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--embedding",
-        choices=("fixed-logmel-v1", SENSEVOICE_EMBEDDING),
+        choices=("fixed-logmel-v1", SENSEVOICE_EMBEDDING, SENSEVOICE_EN_EMBEDDING),
         default="fixed-logmel-v1",
     )
     parser.add_argument(

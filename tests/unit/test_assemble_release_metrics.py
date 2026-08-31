@@ -139,3 +139,28 @@ def test_assemble_rejects_non_boolean_acceptance() -> None:
             int8_affect_acceptance={"candidate_passes": True},
             parameter_count=1,
         )
+
+
+def test_assemble_requires_empty_style_allowlist_when_styles_are_disabled() -> None:
+    metrics = MODULE.assemble(
+        base={"asr_wer": 0.1},
+        full_precision=_sealed(0.105),
+        int8=_sealed(0.108),
+        deployment={
+            "json_validity_rate": 1.0,
+            "xml_validity_rate": 1.0,
+            "cpu_real_time_factor": 0.7,
+            "committed_retraction_rate": 0.0,
+        },
+        event_acceptance={"candidate_passes": True},
+        style_acceptance={"candidate_passes": True, "deployment_enabled_labels": []},
+        affect_acceptance={"candidate_passes": True},
+        int8_event_acceptance={"candidate_passes": True},
+        int8_style_acceptance={"candidate_passes": True, "deployment_enabled_labels": []},
+        int8_affect_acceptance={"candidate_passes": True},
+        parameter_count=241_935_376,
+        styles_enabled=False,
+    )
+
+    assert metrics["styles_enabled"] is False
+    assert metrics["style_external_validation_passed"] is True

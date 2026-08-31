@@ -6,12 +6,13 @@ from pathlib import Path
 
 import numpy as np
 
-from attune.inference.export import OUTPUT_NAMES
+from attune.inference.export import OUTPUT_NAMES, PROBE_EMBEDDING_OUTPUT
 from attune.inference.onnx_backend import (
     GreedySenseVoiceDecoder,
     OnnxAttuneBackend,
     RuntimeCalibration,
 )
+from attune.inference.probe_head import ProbeDecision
 
 
 class FakeSession:
@@ -113,6 +114,47 @@ def test_default_runtime_suppresses_unvalidated_presence_and_styles() -> None:
     assert result.events[0].temporal_scope == "localized"
     assert result.styles == []
     assert result.transcript.text == "hello"
+
+
+def test_calibrated_probe_adds_utterance_annotation_without_raw_aed() -> None:
+    class Output:
+        name = PROBE_EMBEDDING_OUTPUT
+
+    class ProbeSession(FakeSession):
+        def get_outputs(self):
+            return [Output()]
+
+        def run(self, names, inputs):
+            base = super().run(names[: len(OUTPUT_NAMES)], inputs)
+            return [*base, np.zeros((1, 2), dtype=np.float32)]
+
+    class Probe:
+        def predict(self, embedding):
+            assert embedding.shape == (2,)
+            return ProbeDecision(
+                channel="event",
+                label="cough",
+                confidence=0.91,
+                abstained=False,
+                source_label="cough",
+                score=0.8,
+                threshold=0.7,
+            )
+
+    backend = OnnxAttuneBackend(
+        Path("fixture.onnx"),
+        feature_extractor=lambda _wav: np.zeros((12, 80), dtype=np.float32),
+        transcript_decoder=lambda _logits, _length: ("hello", 0.9),
+        calibration=_calibration(localized_event_labels=[]),
+        session=ProbeSession(),
+        probe_heads=(Probe(),),
+    )
+
+    result = backend.analyse_wav(_wav())
+
+    assert len(result.events) == 1
+    assert result.events[0].label == "cough"
+    assert result.events[0].temporal_scope == "utterance"
 
 
 def test_missing_ood_calibration_forces_affect_abstention() -> None:

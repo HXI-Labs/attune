@@ -13,6 +13,7 @@
   "int8_event_presence_macro_f1": 0.0,
   "fp_style_macro_f1": 0.0,
   "int8_style_macro_f1": 0.0,
+  "styles_enabled": false,
   "fp_affect_macro_f1": 0.0,
   "int8_affect_macro_f1": 0.0,
   "fp_ood_f1": 0.0,

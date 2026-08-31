@@ -6,13 +6,9 @@
   "reviewed_at": "",
   "scope": "",
   "training_sources": [
-    "attune_inline_event_mixtures_v0.1",
-    "berst_v1",
     "common_voice_17_en",
     "crema_d_paired_v0.1",
-    "crema_d_perceptual_v1",
     "dcase2016_task2",
-    "disfluency_speech_v0.1",
     "fsd50k_bounded_v0.1",
     "subesco_v1_1",
     "thorsten_voice_2021_06_emotional",
