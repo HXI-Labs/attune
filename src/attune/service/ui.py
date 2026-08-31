@@ -11,15 +11,13 @@ INDEX_HTML = r"""<!doctype html>
   <style>
     :root {
       color-scheme: light;
-      --page: #f7f5ef;
-      --surface: #fffefa;
-      --text: #171816;
-      --muted: #6e716b;
-      --line: #d9d8d1;
-      --accent: #1f6257;
-      --accent-dark: #174a43;
-      --recording: #a33a37;
-      --focus: #2768c7;
+      --page: #faf9f6;
+      --text: #1a1c1b;
+      --muted: #6b706c;
+      --line: #deded8;
+      --accent: #176454;
+      --recording: #a33b38;
+      --focus: #2668c7;
       --laugh: #b96b16;
       --breath: #3973a8;
       --cough: #8a4e9c;
@@ -35,98 +33,68 @@ INDEX_HTML = r"""<!doctype html>
       min-height: 100vh;
       background: var(--page);
       color: var(--text);
-      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
     }
 
     main {
-      width: min(840px, calc(100% - 36px));
+      width: min(720px, calc(100% - 40px));
       margin: 0 auto;
-      padding: 34px 0 56px;
+      padding: 28px 0 48px;
     }
 
     header {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
       border-bottom: 1px solid var(--line);
-      padding-bottom: 14px;
+      padding-bottom: 16px;
     }
 
-    .wordmark { margin: 0; font-size: 15px; font-weight: 750; letter-spacing: -0.01em; }
-    .model-state { margin: 0; color: var(--muted); font-size: 12px; }
+    .wordmark { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
 
     .recorder {
       display: grid;
       justify-items: center;
-      min-height: 330px;
+      min-height: 300px;
       align-content: center;
       text-align: center;
     }
 
     h1 {
-      max-width: 600px;
-      margin: 0 0 12px;
+      margin: 0 0 8px;
       font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-      font-size: clamp(38px, 7vw, 64px);
+      font-size: clamp(34px, 6vw, 48px);
       font-weight: 500;
-      line-height: 1.02;
-      letter-spacing: -0.045em;
+      line-height: 1.08;
+      letter-spacing: -0.035em;
     }
 
-    .intro { max-width: 470px; margin: 0 0 30px; color: var(--muted); font-size: 16px; }
+    .intro { margin: 0 0 26px; color: var(--muted); }
     button, summary, .file-link { -webkit-tap-highlight-color: transparent; }
 
     .record-button {
       display: inline-flex;
       align-items: center;
-      gap: 11px;
-      min-height: 52px;
+      justify-content: center;
+      min-width: 148px;
+      min-height: 48px;
       border: 0;
-      border-radius: 999px;
-      padding: 0 23px;
+      border-radius: 9px;
+      padding: 0 20px;
       background: var(--text);
       color: #fff;
       font: inherit;
-      font-weight: 700;
+      font-weight: 650;
       cursor: pointer;
-      transition: background 140ms ease, transform 140ms ease;
+      transition: background 120ms ease;
     }
 
-    .record-button:hover:not(:disabled) {
-      background: var(--accent-dark);
-      transform: translateY(-1px);
-    }
+    .record-button:hover:not(:disabled) { background: #333634; }
     .record-button:disabled { cursor: wait; opacity: 0.62; }
     .record-button.recording { background: var(--recording); }
-
-    .record-icon {
-      width: 13px;
-      height: 13px;
-      border-radius: 50%;
-      background: #ea4f4a;
-      box-shadow: 0 0 0 4px rgb(255 255 255 / 14%);
-    }
-
-    .recording .record-icon { border-radius: 2px; background: #fff; }
-    .status { min-height: 23px; margin: 15px 0 0; color: var(--muted); font-size: 13px; }
+    .status { min-height: 21px; margin: 13px 0 0; color: var(--muted); font-size: 12px; }
     .status.error { color: var(--recording); }
-
-    .status.busy::after {
-      content: "";
-      display: inline-block;
-      width: 5px;
-      height: 5px;
-      margin-left: 7px;
-      border-radius: 50%;
-      background: currentColor;
-      animation: pulse 700ms infinite alternate;
-    }
-
-    @keyframes pulse { to { opacity: 0.2; } }
 
     .file-link {
       display: inline-block;
-      margin-top: 4px;
+      margin-top: 3px;
       color: var(--muted);
       font-size: 12px;
       text-decoration: underline;
@@ -145,24 +113,22 @@ INDEX_HTML = r"""<!doctype html>
 
     #results { display: none; }
     #results.visible { display: block; }
-    .result-shell { border-top: 1px solid var(--line); padding: 44px 0 0; }
+    .result-shell { border-top: 1px solid var(--line); padding: 38px 0 0; }
 
-    .eyebrow {
-      margin: 0 0 15px;
+    .result-heading {
+      margin: 0 0 14px;
       color: var(--muted);
       font-size: 12px;
-      font-weight: 750;
-      letter-spacing: 0.09em;
-      text-transform: uppercase;
+      font-weight: 650;
     }
 
     .transcript {
       margin: 0;
       font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-      font-size: clamp(32px, 6vw, 54px);
+      font-size: clamp(29px, 5vw, 42px);
       font-weight: 500;
-      line-height: 1.38;
-      letter-spacing: -0.035em;
+      line-height: 1.42;
+      letter-spacing: -0.025em;
     }
 
     ruby.annotation {
@@ -182,10 +148,10 @@ INDEX_HTML = r"""<!doctype html>
     }
 
     .event-token { font-size: 0.7em; letter-spacing: -0.01em; }
-    .affect-summary { margin: 20px 0 0; color: var(--muted); font-size: 14px; }
+    .affect-summary { margin: 18px 0 0; color: var(--muted); font-size: 13px; }
 
     .details {
-      margin-top: 28px;
+      margin-top: 24px;
       border-top: 1px solid var(--line);
       border-bottom: 1px solid var(--line);
     }
@@ -194,9 +160,9 @@ INDEX_HTML = r"""<!doctype html>
       display: flex;
       align-items: center;
       justify-content: space-between;
-      min-height: 58px;
+      min-height: 54px;
       color: var(--text);
-      font-weight: 700;
+      font-weight: 650;
       cursor: pointer;
       list-style: none;
     }
@@ -205,7 +171,7 @@ INDEX_HTML = r"""<!doctype html>
     .details > summary::after {
       content: "+";
       color: var(--muted);
-      font-size: 21px;
+      font-size: 19px;
       font-weight: 400;
     }
     .details[open] > summary::after { content: "−"; }
@@ -213,12 +179,12 @@ INDEX_HTML = r"""<!doctype html>
     .detail-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 36px;
-      padding: 5px 0 30px;
+      gap: 32px;
+      padding: 4px 0 26px;
     }
 
     .detail-section + .detail-section { margin-top: 24px; }
-    h2 { margin: 0 0 11px; font-size: 13px; }
+    h2 { margin: 0 0 10px; font-size: 13px; }
     .evidence-list { margin: 0; padding-left: 18px; }
     .evidence-list li + li { margin-top: 6px; }
     .muted { color: var(--muted); font-size: 13px; }
@@ -257,11 +223,11 @@ INDEX_HTML = r"""<!doctype html>
       margin: 10px 0 0;
       padding: 13px;
       border: 1px solid var(--line);
-      background: #f0eee8;
+      background: #f2f1ed;
       font-size: 11px;
     }
 
-    footer { margin-top: 23px; color: var(--muted); font-size: 11px; }
+    .interpretation-note { margin: 20px 0 0; color: var(--muted); font-size: 11px; }
 
     .record-button:focus-visible,
     .file-link:focus-within,
@@ -271,16 +237,14 @@ INDEX_HTML = r"""<!doctype html>
     }
 
     @media (max-width: 680px) {
-      main { padding-top: 22px; }
-      .recorder { min-height: 285px; }
-      .result-shell { padding-top: 34px; }
+      main { width: min(100% - 28px, 720px); padding-top: 20px; }
+      .recorder { min-height: 270px; }
+      .result-shell { padding-top: 30px; }
       .detail-grid { grid-template-columns: 1fr; gap: 24px; }
-      .model-state { display: none; }
     }
 
     @media (prefers-reduced-motion: reduce) {
       .record-button { transition: none; }
-      .status.busy::after { animation: none; }
     }
   </style>
 </head>
@@ -288,69 +252,60 @@ INDEX_HTML = r"""<!doctype html>
   <main>
     <header>
       <p class="wordmark">Attune Cadence</p>
-      <p class="model-state">Local speech perception · v0.1 candidate</p>
     </header>
 
     <section class="recorder" aria-labelledby="page-title">
-      <h1 id="page-title">Hear more than the words.</h1>
-      <p class="intro">
-        Record up to 30 seconds. Cadence transcribes the speech and marks supported
-        vocal events without treating emotion as fact.
-      </p>
+      <h1 id="page-title">Record and transcribe.</h1>
+      <p class="intro">Speak naturally for up to 30 seconds.</p>
       <button class="record-button" id="record-button" type="button">
-        <span class="record-icon" aria-hidden="true"></span>
-        <span id="record-label">Start recording</span>
+        <span id="record-label">Record</span>
       </button>
       <p class="status" id="status" role="status" aria-live="polite">
-        Microphone audio is processed in memory and is not stored.
+        Audio is processed in memory and is not stored.
       </p>
-      <label class="file-link" for="file-input">Or choose an audio file</label>
+      <label class="file-link" for="file-input">Upload audio</label>
       <input id="file-input" type="file" accept="audio/*,.wav">
     </section>
 
     <section id="results" aria-labelledby="transcript-heading">
       <div class="result-shell">
-        <p class="eyebrow" id="transcript-heading">Cadence heard</p>
+        <p class="result-heading" id="transcript-heading">Transcript</p>
         <p class="transcript" id="transcript"></p>
         <p class="affect-summary" id="affect-summary"></p>
 
         <details class="details">
-          <summary>View details</summary>
+          <summary>Details</summary>
           <div class="detail-grid">
             <div>
               <section class="detail-section">
-                <h2>Detected evidence</h2>
+                <h2>Evidence</h2>
                 <ul class="evidence-list" id="events"></ul>
               </section>
               <section class="detail-section">
-                <h2>Audio and timing</h2>
+                <h2>Timing</h2>
                 <dl id="timing"></dl>
                 <audio id="audio-preview" controls hidden></audio>
               </section>
             </div>
             <div>
               <section class="detail-section">
-                <h2>Perceived affect</h2>
+                <h2>Affect</h2>
                 <div id="affect"></div>
               </section>
               <section class="detail-section">
-                <h2>Uncertainty</h2>
+                <h2>Confidence</h2>
                 <dl id="uncertainty"></dl>
               </section>
             </div>
           </div>
           <details class="raw-details">
-            <summary>Structured JSON</summary>
+            <summary>JSON</summary>
             <pre id="json"></pre>
           </details>
         </details>
+        <p class="interpretation-note">Affect labels describe vocal delivery and may be wrong.</p>
       </div>
     </section>
-
-    <footer>
-      Vocal interpretation is probabilistic evidence, not a verified internal state,
-      diagnosis, or basis for a high-stakes decision.
-    </footer>
   </main>
 
   <script>
@@ -401,11 +356,14 @@ INDEX_HTML = r"""<!doctype html>
     }
 
     function affectSpanLabel(span) {
-      if (!span.abstain && span.top_label) return `perceived ${span.top_label}`;
-      const candidate = Object.entries(span.categories).sort(
+      const strongest = Object.entries(span.categories).sort(
         (left, right) => right[1] - left[1],
       )[0];
-      if (candidate && candidate[1] >= 0.25) return `possible ${candidate[0]} · uncertain`;
+      if (strongest?.[0] === "neutral") return null;
+      if (!span.abstain && span.top_label) return `perceived ${span.top_label}`;
+      if (strongest && strongest[1] >= 0.25) {
+        return `possible ${strongest[0]} · uncertain`;
+      }
       return "affect uncertain";
     }
 
@@ -556,7 +514,8 @@ INDEX_HTML = r"""<!doctype html>
           : [attune.affect];
         const affectLabels = affectSpans
           .filter((span) => span.start_ms < word.end_ms && span.end_ms > word.start_ms)
-          .map(affectSpanLabel);
+          .map(affectSpanLabel)
+          .filter(Boolean);
         const labels = [...styleLabels, ...affectLabels];
         if (JSON.stringify(labels) !== JSON.stringify(activeLabels)) {
           flushWords();
@@ -577,8 +536,8 @@ INDEX_HTML = r"""<!doctype html>
       const affect = attune.affect;
       renderTranscript(attune);
       element("affect-summary").textContent = !affect.abstain && affect.top_label
-        ? `Perceived ${affect.top_label} · ${formatPercent(affect.top_label_confidence)} confidence`
-        : "Perceived affect is uncertain; no category was asserted.";
+        ? `${affect.top_label} · ${formatPercent(affect.top_label_confidence)}`
+        : "Affect uncertain";
 
       const eventList = element("events");
       clearElement(eventList);
@@ -642,7 +601,9 @@ INDEX_HTML = r"""<!doctype html>
       appendDefinition(
         uncertainty,
         "Out of distribution",
-        formatPercent(attune.uncertainty.out_of_distribution_probability),
+        attune.uncertainty.out_of_distribution_available === false
+          ? "Unavailable"
+          : formatPercent(attune.uncertainty.out_of_distribution_probability),
       );
 
       element("json").textContent = JSON.stringify(analysis, null, 2);
@@ -653,8 +614,8 @@ INDEX_HTML = r"""<!doctype html>
     async function analyseAudio(wav) {
       setPreview(wav);
       recordButton.disabled = true;
-      setRecordState("Analysing");
-      setStatus("Listening for words and supported vocal events.", "busy");
+      setRecordState("Working…");
+      setStatus("Analysing audio.", "busy");
       try {
         const form = new FormData();
         form.append("audio", wav, "attune-input.wav");
@@ -662,7 +623,7 @@ INDEX_HTML = r"""<!doctype html>
         const analysis = await response.json();
         if (!response.ok) throw new Error(analysis.detail || "Analysis failed.");
         renderAnalysis(analysis);
-        setStatus("Analysis complete.");
+        setStatus("Done.");
         setRecordState("Record again");
       } catch (error) {
         setStatus(error.message, "error");
@@ -707,8 +668,8 @@ INDEX_HTML = r"""<!doctype html>
       microphoneSource.connect(recorderNode);
       recorderNode.connect(audioContext.destination);
       recordingStartedAt = Date.now();
-      setRecordState("Stop and analyse", "recording");
-      setStatus("Recording. Speak naturally.", "busy");
+      setRecordState("Stop", "recording");
+      setStatus("Recording…", "busy");
     }
 
     recordButton.addEventListener("click", async () => {
@@ -729,7 +690,7 @@ INDEX_HTML = r"""<!doctype html>
     fileInput.addEventListener("change", async () => {
       if (!fileInput.files[0]) return;
       recordButton.disabled = true;
-      setStatus("Preparing the audio file.", "busy");
+      setStatus("Preparing audio.", "busy");
       try {
         await analyseAudio(await normalizeAudio(fileInput.files[0]));
       } catch (error) {

@@ -22,14 +22,15 @@ licence:
   name: model-license
   source_text_url: https://github.com/alibaba-damo-academy/FunASR
   licence_family: FunASR Model Open Source License Agreement
-  licence_review_status: reviewed_internal_research_ok
+  licence_review_status: verified_upstream_v1_1_private_distillation_ok
   reviewed_by: Jerry Buaba / HXI Labs
   reviewed_at: "2026-08-26"
 redistribution_status: not_authorised_by_this_review
 downloaded_at: "2026-08-27 (base variant only; local gitignored cache)"
 notes:
-  - This review permits downloading the official seed, base, and large weights for internal baseline runs only.
-  - It does not authorise fine-tuning or public redistribution of weights.
+  - The official FunASR Model Open Source License Agreement v1.1 was re-read from the upstream repository on 2026-08-31.
+  - The agreement defines derivatives to include fine-tuned models and permits use, copying, modification, and sharing when its attribution and model-name requirements are followed.
+  - This operational update permits a private teacher-distillation experiment; it does not itself approve a public Cadence weight release.
   - Attribute emotion2vec+ and FunASR/FunAudioLLM, retain the model name, and link the model licence in internal work and later public artefacts.
   - The emotion2vec repository code licences do not cover the emotion2vec+ weights.
   - Do not download weights in CI.

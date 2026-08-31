@@ -83,15 +83,16 @@ def render_xml_v2(output: AttuneOutputV2) -> str:
     affect_spans = ET.SubElement(root, "affect_spans")
     for span in output.affect_spans:
         _append_affect(affect_spans, "affect", span)
-    uncertainty = ET.SubElement(
-        root,
-        "uncertainty",
-        {
-            "out_of_distribution_probability": _probability(
-                output.uncertainty.out_of_distribution_probability
-            )
-        },
-    )
+    uncertainty_attributes = {
+        "out_of_distribution_available": str(
+            output.uncertainty.out_of_distribution_available
+        ).lower()
+    }
+    if output.uncertainty.out_of_distribution_probability is not None:
+        uncertainty_attributes["out_of_distribution_probability"] = _probability(
+            output.uncertainty.out_of_distribution_probability
+        )
+    uncertainty = ET.SubElement(root, "uncertainty", uncertainty_attributes)
     warning = ET.SubElement(uncertainty, "interpretation_warning")
     warning.text = _xml_safe(output.uncertainty.interpretation_warning)
     ET.indent(root, space="  ")
