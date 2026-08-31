@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from pathlib import Path
 
 from attune.inference.timeline import (
     FRAME_LOCAL,
@@ -127,12 +126,3 @@ def test_html_projects_affect_distribution(example_output: AttuneOutput) -> None
     assert "top confidence" in rendered
     for label in example_output.affect.categories:
         assert label.value in rendered
-
-
-def test_demo_index_links_three_working_demos() -> None:
-    html = (Path(__file__).parents[2] / "research" / "demo" / "index.html").read_text()
-    assert 'href="isolated-dcase.attune.html"' in html
-    assert 'href="sensevoice-words.attune.html"' in html
-    assert 'href="vocalsound-sigh.attune.html"' in html
-    assert "STARSS23 timestamps are live" not in html
-    assert "live STARSS23" not in html.lower()

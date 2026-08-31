@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -199,4 +200,11 @@ def write_source_rows(path: Path, rows: Iterable[dict[str, Any]]) -> None:
     if len(identifiers) != len(set(identifiers)):
         raise ValueError("normalized source rows contain duplicate dataset/clip IDs")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in materialized) + "\n")
+    manifest_rows = []
+    for row in materialized:
+        manifest_row = dict(row)
+        audio_path = Path(str(manifest_row["audio_path"]))
+        if audio_path.is_absolute():
+            manifest_row["audio_path"] = os.path.relpath(audio_path, path.parent.absolute())
+        manifest_rows.append(manifest_row)
+    path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in manifest_rows) + "\n")

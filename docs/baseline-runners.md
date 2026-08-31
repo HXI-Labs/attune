@@ -140,7 +140,7 @@ an incomplete alignment rather than filling gaps. The cascade passes valid
 words through unchanged.
 
 SenseVoice, emotion2vec+, and the two probe heads are discovered from env vars
-or gitignored local caches listed in `research/demo/README.md`. SenseVoice is
+or gitignored artifacts below `artifacts/`. SenseVoice is
 required. Missing optional heads are omitted with a banner rather than
 invented. The optional DCASE frame-head is the same: if absent, events still
 run and DCASE spans are omitted. `--fixture-mode` is only a schema/CLI smoke path

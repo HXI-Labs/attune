@@ -111,7 +111,7 @@
     },
     "vocalsound": {
       "path": "data/manifests/vocalsound-joint-source-v0.1.jsonl",
-      "sha256": "74e35f497d747b39d1b9e9d7a50842ba912f08f16bbddfb8347577dbafaf894f"
+      "sha256": "b4c39ebfd35eed38dffbed5e537f0d394093655c48cade7885fa6b7d9517f043"
     }
   },
   "synthesis": {

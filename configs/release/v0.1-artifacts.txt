@@ -45,7 +45,7 @@ data/provenance/crema_d.yaml
 data/provenance/public_weight_redistribution.json
 README.md
 docs/model-card.md
-docs/dataset-card.md
+docs/dataset-card-v0.1.md
 docs/cloud-training.md
 docs/ethics.md
 docs/release-checklist.md

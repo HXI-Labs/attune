@@ -56,18 +56,18 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument(
-        "--demo-username",
-        default=os.getenv("ATTUNE_DEMO_USERNAME"),
-        help="Protect every route with Basic Auth; can use ATTUNE_DEMO_USERNAME.",
+        "--basic-auth-username",
+        default=os.getenv("ATTUNE_BASIC_AUTH_USERNAME"),
+        help="Protect every route with Basic Authentication.",
     )
     parser.add_argument(
-        "--demo-password",
-        default=os.getenv("ATTUNE_DEMO_PASSWORD"),
-        help="Can use ATTUNE_DEMO_PASSWORD. Never commit demo credentials.",
+        "--basic-auth-password",
+        default=os.getenv("ATTUNE_BASIC_AUTH_PASSWORD"),
+        help="Basic Authentication password. Never commit credentials.",
     )
     arguments = parser.parse_args()
-    if bool(arguments.demo_username) != bool(arguments.demo_password):
-        parser.error("demo username and password must be configured together")
+    if bool(arguments.basic_auth_username) != bool(arguments.basic_auth_password):
+        parser.error("Basic Authentication username and password must be configured together")
     if bool(arguments.emotion2vec_path) != bool(arguments.affect_student):
         parser.error("--emotion2vec-path and --affect-student must be supplied together")
     affect_artifacts = [
@@ -136,8 +136,8 @@ def main() -> None:
             confidence_threshold=arguments.affect_confidence_threshold,
         )
     credentials = (
-        BasicAuthCredentials(arguments.demo_username, arguments.demo_password)
-        if arguments.demo_username
+        BasicAuthCredentials(arguments.basic_auth_username, arguments.basic_auth_password)
+        if arguments.basic_auth_username
         else None
     )
     app = create_app(backend, credentials=credentials)

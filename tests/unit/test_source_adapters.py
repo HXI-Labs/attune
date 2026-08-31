@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from attune.training.source_adapters import (
@@ -7,6 +8,7 @@ from attune.training.source_adapters import (
     adapt_crema,
     adapt_dcase,
     adapt_fsd50k,
+    write_source_rows,
 )
 
 
@@ -141,3 +143,20 @@ def test_v2_speech_controls_are_explicit_and_opt_in() -> None:
     assert legacy["event_presence"] is None and legacy["styles"] is None
     assert controlled["event_presence"] == [] and controlled["styles"] == []
     assert controlled["auxiliary_negative_tasks"] == ["event_presence", "styles"]
+
+
+def test_source_manifests_store_portable_audio_paths(tmp_path: Path) -> None:
+    output = tmp_path / "manifests" / "source.jsonl"
+    write_source_rows(
+        output,
+        [
+            {
+                "dataset_id": "example",
+                "clip_id": "clip-1",
+                "audio_path": str(tmp_path / "audio" / "clip-1.wav"),
+            }
+        ],
+    )
+
+    row = json.loads(output.read_text())
+    assert row["audio_path"] == "../audio/clip-1.wav"

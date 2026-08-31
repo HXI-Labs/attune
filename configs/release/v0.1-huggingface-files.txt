@@ -2,7 +2,7 @@
 huggingface/README.md=README.md
 huggingface/THIRD_PARTY_NOTICE.md=THIRD_PARTY_NOTICE.md
 docs/model-card.md=MODEL_CARD.md
-docs/dataset-card.md=DATASET_CARD.md
+docs/dataset-card-v0.1.md=DATASET_CARD.md
 data/schemas/attune-output-v2.0.schema.json=attune-output-v2.0.schema.json
 
 # Locked model composition

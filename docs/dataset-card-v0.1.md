@@ -27,7 +27,7 @@ The complete feature manifest has 2,490 rows (1,691 train, 398 development,
 `00fded47e4bb177af4816cc07cd8939f8376e6c77c423e17cd7624789c03c708`.
 
 The corresponding source-audio manifest SHA-256 is
-`685d3353f79a3567c9e64a58b93854cdb6f44bbfac09bcbbeae56cc5d6e527de`.
+`15c77f1721fa9ef9186c4e7c6c72d865ac058674d74cb39aa2e38387c6070cd6`.
 The release artifact manifest records both files and the audit report.
 
 ## Subsequent candidate sources

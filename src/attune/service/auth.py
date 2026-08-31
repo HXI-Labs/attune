@@ -1,4 +1,4 @@
-"""Optional Basic Authentication for temporary Attune demo deployments."""
+"""Optional Basic Authentication for the Attune HTTP service."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ class BasicAuthCredentials:
 
     def __post_init__(self) -> None:
         if not self.username or not self.password:
-            raise ValueError("demo username and password must both be non-empty")
+            raise ValueError("username and password must both be non-empty")
 
 
 class BasicAuthMiddleware:
