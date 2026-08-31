@@ -55,14 +55,16 @@ composition and acceptance checks are in
 [`research/release-cascade-v0.1-protocol.md`](research/release-cascade-v0.1-protocol.md).
 
 The next accuracy candidate adds a truncated three-block emotion2vec+ branch
-and remains below 300 million active parameters. Its distilled v0.11 head
-improves full CREMA-D perceptual development macro-F1 from 0.5399 to 0.5901 and
-BERSt from 0.2917 to 0.3042 relative to the first compact student. External
-RAVDESS macro-F1 is 0.7981 for the student and 0.8220 after fixed Cadence
-fusion. On the untouched joy-to-distress transition, it emits separate joy and
-distress spans and abstains on the mixed utterance as a whole. This candidate
-is not the published v0.1 model; its remaining release work is documented in
-[`research/affect-consensus-v0.11-results.md`](research/affect-consensus-v0.11-results.md).
+and remains below 300 million active parameters. The v0.13 head uses a small
+probability-replay update over v0.11 to reduce unsupported named-affect output
+on ordinary speech. Fixed Cadence fusion reaches macro-F1 0.6401 on paired
+CREMA-D development, 0.3070 on BERSt development, and 0.8322 on external
+RAVDESS. On 100 untouched British Common Voice speakers, named affect is the
+top category for 3 clips and only 1 clears the default 0.40 confidence gate.
+On the untouched joy-to-distress composite, it emits separate joy and distress
+spans and abstains on the mixed utterance as a whole. This candidate is not the
+published v0.1 model; its method and remaining release work are documented in
+[`research/affect-control-finetune-v0.13-results.md`](research/affect-control-finetune-v0.13-results.md).
 
 ## Output
 
@@ -216,6 +218,15 @@ ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/infer_onnx.py \
   --probe-head artifacts/release-candidate/vocalsound-en-head.npz \
   --quantization int8 \
   --xml input.wav
+```
+
+To run the unreleased v0.13 affect candidate, add the compact acoustic branch.
+The runner then uses the fixed 0.86 acoustic fusion weight and 0.40 confidence
+threshold unless explicitly overridden:
+
+```bash
+  --emotion2vec-path data/raw/model-cache/emotion2vec-plus \
+  --affect-student artifacts/training/truncated-emotion2vec-affect-control-finetune-v0.13/head.pt
 ```
 
 Run the same backend behind FastAPI:

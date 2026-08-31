@@ -16,6 +16,7 @@ from attune.schema.v2 import AttuneOutputV2
 CADENCE_PARAMETER_COUNT = 241_904_650
 PARAMETER_LIMIT = 300_000_000
 DEFAULT_ACOUSTIC_WEIGHT = 0.86
+DEFAULT_AFFECT_CONFIDENCE_THRESHOLD = 0.40
 
 
 class AffectPredictor(Protocol):
@@ -64,7 +65,7 @@ class FusedAffectBackend:
         acoustic_student: AffectPredictor,
         *,
         acoustic_weight: float = DEFAULT_ACOUSTIC_WEIGHT,
-        confidence_threshold: float = 0.25,
+        confidence_threshold: float = DEFAULT_AFFECT_CONFIDENCE_THRESHOLD,
     ) -> None:
         expected_labels = tuple(category.value for category in AffectCategory)
         if acoustic_student.labels != expected_labels:

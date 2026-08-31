@@ -5,7 +5,11 @@ import wave
 
 import numpy as np
 
-from attune.inference.affect_fusion import FusedAffectBackend, fuse_probabilities
+from attune.inference.affect_fusion import (
+    DEFAULT_AFFECT_CONFIDENCE_THRESHOLD,
+    FusedAffectBackend,
+    fuse_probabilities,
+)
 from attune.schema.migration import migrate_v1_to_v2
 from attune.schema.output import AffectCategory, AttuneOutput
 
@@ -60,6 +64,16 @@ def test_probability_fusion_preserves_normalization() -> None:
 
     assert np.allclose(fused, [0.275, 0.725])
     assert np.isclose(fused.sum(), 1.0)
+
+
+def test_backend_uses_selective_default_threshold(example_payload: dict) -> None:
+    backend = FusedAffectBackend(
+        FakeCadenceBackend(example_payload),
+        FakeAffectStudent(),
+        acoustic_weight=0.0,
+    )
+
+    assert backend.confidence_threshold == DEFAULT_AFFECT_CONFIDENCE_THRESHOLD
 
 
 def test_backend_replaces_affect_but_preserves_transcript(example_payload: dict) -> None:

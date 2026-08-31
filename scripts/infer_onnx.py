@@ -7,7 +7,11 @@ import argparse
 from pathlib import Path
 
 from attune.client import AttuneClient
-from attune.inference.affect_fusion import DEFAULT_ACOUSTIC_WEIGHT, FusedAffectBackend
+from attune.inference.affect_fusion import (
+    DEFAULT_ACOUSTIC_WEIGHT,
+    DEFAULT_AFFECT_CONFIDENCE_THRESHOLD,
+    FusedAffectBackend,
+)
 from attune.inference.emotion2vec_student import TruncatedEmotion2VecPredictor
 from attune.inference.onnx_backend import OnnxAttuneBackend
 from attune.schema.xml_v2 import render_xml_v2
@@ -30,7 +34,11 @@ def main() -> None:
     parser.add_argument("--emotion2vec-path", type=Path)
     parser.add_argument("--affect-student", type=Path)
     parser.add_argument("--affect-weight", type=float, default=DEFAULT_ACOUSTIC_WEIGHT)
-    parser.add_argument("--affect-confidence-threshold", type=float, default=0.25)
+    parser.add_argument(
+        "--affect-confidence-threshold",
+        type=float,
+        default=DEFAULT_AFFECT_CONFIDENCE_THRESHOLD,
+    )
     parser.add_argument("--affect-device", default="auto")
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--xml", action="store_true")
