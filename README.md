@@ -335,7 +335,7 @@ upload plan before publishing:
 
 ```bash
 uv run python scripts/publish_huggingface.py \
-  --repo-id buabaj/attune-cadence \
+  --repo-id jbuaba/attune-cadence-242m \
   --bundle-manifest artifacts/release/cadence-v0.1/huggingface-bundle.json \
   --dry-run
 ```
