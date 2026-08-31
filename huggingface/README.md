@@ -26,7 +26,7 @@ events, perceived-affect probabilities, OOD information, and calibrated
 abstention. Schema-v2 JSON is authoritative; XML and bracketed text are
 deterministic views.
 
-This package is a private research release candidate. Do not make it public
+This package is an experimental private research preview. Do not make it public
 until the included release gates, human regression, affect confirmation, and
 weight-redistribution review all pass.
 
@@ -36,7 +36,8 @@ weight-redistribution review all pass.
 - 16 kHz mono PCM16 WAV input, 0.5–30 seconds.
 - CTC transcript and approximate word timings.
 - Calibrated `laugh`, `sigh`, `cough`, `throat_clear`, and `sneeze` events.
-- One perceived-affect distribution per analysed utterance.
+- One utterance-level perceived-affect distribution, plus experimental fixed
+  windows for recordings longer than four seconds.
 - Abstention and OOD probability.
 - Vocal styles and V/A/D disabled in v0.1.
 
@@ -82,6 +83,12 @@ development, 0.6336 on an opened regression set, and 0.3853 on external
 RAVDESS. INT8 reaches 0.3803 on the same 480 clips, an absolute loss of 0.0051.
 Both external results are below the project's 0.40 public-release target. No
 public affect-generalization claim is supported.
+
+An internal transition regression concatenated one RAVDESS joy clip and one
+distress clip. The compact head classified both component windows as fear,
+whereas the local emotion2vec+ teacher classified the original clips correctly.
+This regression is not a general benchmark, but it is a concrete reason to
+treat the current affect windows as experimental.
 
 The event sets are source-labelled, partly isolated sounds rather than reviewed
 natural inline events. The four lexical controls are synthetic neutral speech.

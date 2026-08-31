@@ -11,16 +11,21 @@ INDEX_HTML = r"""<!doctype html>
   <style>
     :root {
       color-scheme: light;
-      --page: #f2f0e9;
-      --surface: #ffffff;
-      --surface-muted: #e9e6dd;
-      --border: #d3d0c7;
-      --text: #202220;
-      --muted: #646862;
-      --accent: #28675b;
-      --accent-hover: #1f554c;
-      --danger: #a53b3b;
-      --focus: #1f6feb;
+      --page: #f7f5ef;
+      --surface: #fffefa;
+      --text: #171816;
+      --muted: #6e716b;
+      --line: #d9d8d1;
+      --accent: #1f6257;
+      --accent-dark: #174a43;
+      --recording: #a33a37;
+      --focus: #2768c7;
+      --laugh: #b96b16;
+      --breath: #3973a8;
+      --cough: #8a4e9c;
+      --sigh: #367f70;
+      --sob: #b4435c;
+      --speech-style: #8a4d27;
     }
 
     * { box-sizing: border-box; }
@@ -30,57 +35,104 @@ INDEX_HTML = r"""<!doctype html>
       min-height: 100vh;
       background: var(--page);
       color: var(--text);
-      font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
     }
 
     main {
-      width: min(960px, calc(100% - 32px));
+      width: min(840px, calc(100% - 36px));
       margin: 0 auto;
-      padding: 44px 0 64px;
+      padding: 34px 0 56px;
     }
 
-    header { max-width: 680px; margin-bottom: 28px; }
-
-    .project-label {
-      margin: 0 0 8px;
-      color: var(--accent);
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 14px;
     }
 
-    h1 {
-      margin: 0;
-      font-size: clamp(34px, 6vw, 48px);
-      line-height: 1.08;
-      letter-spacing: -0.035em;
-    }
+    .wordmark { margin: 0; font-size: 15px; font-weight: 750; letter-spacing: -0.01em; }
+    .model-state { margin: 0; color: var(--muted); font-size: 12px; }
 
-    header p { margin: 12px 0 0; color: var(--muted); font-size: 17px; }
-
-    .panel {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: var(--surface);
-    }
-
-    .input-panel { padding: 22px; }
-
-    .drop-area {
-      min-height: 132px;
+    .recorder {
       display: grid;
-      place-items: center;
-      border: 1px dashed #999d96;
-      border-radius: 8px;
-      cursor: pointer;
+      justify-items: center;
+      min-height: 330px;
+      align-content: center;
       text-align: center;
     }
 
-    .drop-area:hover,
-    .drop-area.dragging { border-color: var(--accent); background: #f4f8f6; }
-    .drop-area strong { display: block; margin-bottom: 4px; font-size: 16px; }
-    .muted, .drop-area span { color: var(--muted); font-size: 13px; }
+    h1 {
+      max-width: 600px;
+      margin: 0 0 12px;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      font-size: clamp(38px, 7vw, 64px);
+      font-weight: 500;
+      line-height: 1.02;
+      letter-spacing: -0.045em;
+    }
+
+    .intro { max-width: 470px; margin: 0 0 30px; color: var(--muted); font-size: 16px; }
+    button, summary, .file-link { -webkit-tap-highlight-color: transparent; }
+
+    .record-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      min-height: 52px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 23px;
+      background: var(--text);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 140ms ease, transform 140ms ease;
+    }
+
+    .record-button:hover:not(:disabled) {
+      background: var(--accent-dark);
+      transform: translateY(-1px);
+    }
+    .record-button:disabled { cursor: wait; opacity: 0.62; }
+    .record-button.recording { background: var(--recording); }
+
+    .record-icon {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #ea4f4a;
+      box-shadow: 0 0 0 4px rgb(255 255 255 / 14%);
+    }
+
+    .recording .record-icon { border-radius: 2px; background: #fff; }
+    .status { min-height: 23px; margin: 15px 0 0; color: var(--muted); font-size: 13px; }
+    .status.error { color: var(--recording); }
+
+    .status.busy::after {
+      content: "";
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      margin-left: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 700ms infinite alternate;
+    }
+
+    @keyframes pulse { to { opacity: 0.2; } }
+
+    .file-link {
+      display: inline-block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
 
     input[type="file"] {
       position: absolute;
@@ -91,135 +143,143 @@ INDEX_HTML = r"""<!doctype html>
       white-space: nowrap;
     }
 
-    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-
-    button {
-      min-height: 42px;
-      border: 1px solid var(--border);
-      border-radius: 7px;
-      padding: 9px 16px;
-      background: var(--surface);
-      color: var(--text);
-      font: inherit;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    button:hover:not(:disabled) { background: var(--surface-muted); }
-    button.primary { border-color: var(--accent); background: var(--accent); color: #ffffff; }
-    button.primary:hover:not(:disabled) { background: var(--accent-hover); }
-    button.recording { border-color: var(--danger); background: var(--danger); color: #ffffff; }
-    button:disabled { opacity: 0.45; cursor: not-allowed; }
-
-    button:focus-visible,
-    .drop-area:focus-within,
-    summary:focus-visible {
-      outline: 3px solid color-mix(in srgb, var(--focus) 35%, transparent);
-      outline-offset: 2px;
-    }
-
-    .status { min-height: 24px; margin: 12px 0 0; color: var(--muted); }
-    .status.error { color: var(--danger); }
-
-    .status.busy::after {
-      content: "";
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      margin-left: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      animation: pulse 0.8s infinite alternate;
-    }
-
-    @keyframes pulse { to { opacity: 0.2; } }
-    audio { width: 100%; margin-top: 14px; }
-    .examples { margin: 28px 0; }
-    .examples > p { max-width: 680px; margin: -4px 0 16px; color: var(--muted); }
-    .example-list { margin: 0; padding: 0; border-top: 1px solid var(--border); list-style: none; }
-    .example-list li { padding: 15px 0; border-bottom: 1px solid var(--border); }
-    .example-list p { margin: 0; }
-    .example-list .delivery { color: var(--accent); font-weight: 700; }
-    .example-list .prompt { margin-top: 3px; font-size: 17px; }
-    .example-note { margin-top: 12px; color: var(--muted); font-size: 12px; }
-    #results { display: none; margin-top: 20px; }
+    #results { display: none; }
     #results.visible { display: block; }
-    .section { padding: 22px; border-bottom: 1px solid var(--border); }
-    .section:last-child { border-bottom: 0; }
-    h2, h3 { margin: 0 0 12px; line-height: 1.25; }
-    h2 { font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; }
-    h3 { font-size: 17px; }
+    .result-shell { border-top: 1px solid var(--line); padding: 44px 0 0; }
+
+    .eyebrow {
+      margin: 0 0 15px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
 
     .transcript {
-      margin: 0 0 14px;
-      font-size: clamp(24px, 4vw, 34px);
-      line-height: 1.25;
-      letter-spacing: -0.02em;
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      font-size: clamp(32px, 6vw, 54px);
+      font-weight: 500;
+      line-height: 1.38;
+      letter-spacing: -0.035em;
     }
 
-    .summary { margin: 0 0 12px; color: var(--accent); font-weight: 700; }
-    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+    ruby.annotation {
+      margin: 0 0.04em;
+      color: var(--mark, var(--accent));
+      text-decoration-line: underline;
+      text-decoration-color: currentColor;
+      text-decoration-thickness: 0.075em;
+      text-underline-offset: 0.12em;
+    }
+
+    ruby.annotation rt {
+      color: var(--mark, var(--accent));
+      font: 700 10px/1.1 Inter, ui-sans-serif, system-ui, sans-serif;
+      letter-spacing: 0.035em;
+      text-transform: lowercase;
+    }
+
+    .event-token { font-size: 0.7em; letter-spacing: -0.01em; }
+    .affect-summary { margin: 20px 0 0; color: var(--muted); font-size: 14px; }
+
+    .details {
+      margin-top: 28px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .details > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 58px;
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .details > summary::-webkit-details-marker { display: none; }
+    .details > summary::after {
+      content: "+";
+      color: var(--muted);
+      font-size: 21px;
+      font-weight: 400;
+    }
+    .details[open] > summary::after { content: "−"; }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 36px;
+      padding: 5px 0 30px;
+    }
+
+    .detail-section + .detail-section { margin-top: 24px; }
+    h2 { margin: 0 0 11px; font-size: 13px; }
+    .evidence-list { margin: 0; padding-left: 18px; }
+    .evidence-list li + li { margin-top: 6px; }
+    .muted { color: var(--muted); font-size: 13px; }
 
     .affect-row {
       display: grid;
-      grid-template-columns: 82px 1fr 42px;
-      gap: 10px;
+      grid-template-columns: 76px 1fr 38px;
+      gap: 9px;
       align-items: center;
       margin: 8px 0;
-      font-size: 13px;
+      font-size: 12px;
     }
 
-    progress {
-      width: 100%;
-      height: 8px;
-      border: 0;
-      border-radius: 0;
-      background: var(--surface-muted);
-    }
-
-    progress::-webkit-progress-bar { background: var(--surface-muted); }
+    progress { width: 100%; height: 5px; border: 0; background: #e3e2dc; }
+    progress::-webkit-progress-bar { background: #e3e2dc; }
     progress::-webkit-progress-value { background: var(--accent); }
     progress::-moz-progress-bar { background: var(--accent); }
-
-    .number {
-      color: var(--muted);
-      text-align: right;
-      font-variant-numeric: tabular-nums;
+    .number { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+    dl {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 7px 13px;
+      margin: 0;
+      font-size: 13px;
     }
-
-    .evidence-list { margin: 0; padding-left: 20px; }
-    .evidence-list li + li { margin-top: 7px; }
-    dl { display: grid; grid-template-columns: max-content 1fr; gap: 7px 14px; margin: 0; }
     dt { color: var(--muted); }
     dd { margin: 0; }
-    details { padding-top: 2px; }
-    summary { cursor: pointer; font-weight: 700; }
+    audio { width: 100%; margin-top: 10px; }
+
+    .raw-details { margin-top: 20px; }
+    .raw-details summary { color: var(--muted); cursor: pointer; font-size: 12px; }
 
     pre {
-      max-height: 460px;
+      max-height: 380px;
       overflow: auto;
-      margin: 14px 0 0;
-      padding: 14px;
-      border: 1px solid var(--border);
-      background: #f6f5f1;
-      color: #30342f;
-      font-size: 12px;
+      margin: 10px 0 0;
+      padding: 13px;
+      border: 1px solid var(--line);
+      background: #f0eee8;
+      font-size: 11px;
     }
 
-    footer {
-      max-width: 720px;
-      margin: 20px 0 0;
-      color: var(--muted);
-      font-size: 12px;
+    footer { margin-top: 23px; color: var(--muted); font-size: 11px; }
+
+    .record-button:focus-visible,
+    .file-link:focus-within,
+    summary:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--focus) 34%, transparent);
+      outline-offset: 3px;
     }
 
-    @media (max-width: 700px) {
-      main { padding-top: 28px; }
-      .columns { grid-template-columns: 1fr; }
-      .input-panel, .section { padding: 17px; }
+    @media (max-width: 680px) {
+      main { padding-top: 22px; }
+      .recorder { min-height: 285px; }
+      .result-shell { padding-top: 34px; }
+      .detail-grid { grid-template-columns: 1fr; gap: 24px; }
+      .model-state { display: none; }
     }
 
     @media (prefers-reduced-motion: reduce) {
+      .record-button { transition: none; }
       .status.busy::after { animation: none; }
     }
   </style>
@@ -227,95 +287,77 @@ INDEX_HTML = r"""<!doctype html>
 <body>
   <main>
     <header>
-      <p class="project-label">Project Attune</p>
-      <h1>Attune Cadence</h1>
-      <p>Test transcription, localized vocal events, and perceived affect from one voice clip.</p>
+      <p class="wordmark">Attune Cadence</p>
+      <p class="model-state">Local speech perception · v0.1 candidate</p>
     </header>
 
-    <section class="panel input-panel" aria-labelledby="audio-heading">
-      <h2 id="audio-heading">Audio input</h2>
-      <label class="drop-area" id="drop-area" for="file-input">
-        <span>
-          <strong id="file-label">Drop an audio file here</strong>
-          Choose a file instead · 0.5–30 seconds
-        </span>
-      </label>
-      <input id="file-input" type="file" accept="audio/*,.wav">
-      <div class="actions">
-        <button id="record-button" type="button">Record</button>
-        <button class="primary" id="analyse-button" type="button" disabled>Analyse audio</button>
-      </div>
-      <audio id="audio-preview" controls hidden></audio>
+    <section class="recorder" aria-labelledby="page-title">
+      <h1 id="page-title">Hear more than the words.</h1>
+      <p class="intro">
+        Record up to 30 seconds. Cadence transcribes the speech and marks supported
+        vocal events without treating emotion as fact.
+      </p>
+      <button class="record-button" id="record-button" type="button">
+        <span class="record-icon" aria-hidden="true"></span>
+        <span id="record-label">Start recording</span>
+      </button>
       <p class="status" id="status" role="status" aria-live="polite">
-        Choose a file or record from the microphone.
+        Microphone audio is processed in memory and is not stored.
       </p>
+      <label class="file-link" for="file-input">Or choose an audio file</label>
+      <input id="file-input" type="file" accept="audio/*,.wav">
     </section>
 
-    <section class="examples" aria-labelledby="examples-heading">
-      <h2 id="examples-heading">Things to try</h2>
-      <p>
-        Perform the line rather than reading the annotation aloud. The brackets show the
-        compact, human-readable output Attune is designed to produce.
-      </p>
-      <ul class="example-list">
-        <li>
-          <p class="delivery">[laughing speech; perceived joy]</p>
-          <p class="prompt">I cannot believe you actually did that! [laugh]</p>
-        </li>
-        <li>
-          <p class="delivery">[whispering; perceived fear]</p>
-          <p class="prompt">Do not turn around. I think the cat followed us in here. [breath]</p>
-        </li>
-        <li>
-          <p class="delivery">[crying speech; perceived distress]</p>
-          <p class="prompt">It was the last slice of cake. [sob]</p>
-        </li>
-        <li>
-          <p class="delivery">[neutral] I thought I had lost the tickets.</p>
-          <p class="prompt">
-            [laughing speech; perceived joy] They were in my hand the whole time. [laugh]
-          </p>
-        </li>
-      </ul>
-      <p class="example-note">
-        These are illustrative target outputs. The current model may abstain when the vocal
-        evidence is weak or a label has not passed its release gate.
-      </p>
-    </section>
-
-    <section class="panel" id="results" aria-labelledby="transcript-heading">
-      <div class="section">
-        <h2 id="transcript-heading">Transcript</h2>
+    <section id="results" aria-labelledby="transcript-heading">
+      <div class="result-shell">
+        <p class="eyebrow" id="transcript-heading">Cadence heard</p>
         <p class="transcript" id="transcript"></p>
-        <p class="summary" id="summary"></p>
-        <ul class="evidence-list" id="events"></ul>
-        <p class="muted" id="timing"></p>
-      </div>
+        <p class="affect-summary" id="affect-summary"></p>
 
-      <div class="section columns">
-        <div><h3>Perceived affect</h3><div id="affect"></div></div>
-        <div><h3>Uncertainty</h3><dl id="uncertainty"></dl></div>
-      </div>
-
-      <div class="section">
-        <details><summary>Structured JSON</summary><pre id="json"></pre></details>
+        <details class="details">
+          <summary>View details</summary>
+          <div class="detail-grid">
+            <div>
+              <section class="detail-section">
+                <h2>Detected evidence</h2>
+                <ul class="evidence-list" id="events"></ul>
+              </section>
+              <section class="detail-section">
+                <h2>Audio and timing</h2>
+                <dl id="timing"></dl>
+                <audio id="audio-preview" controls hidden></audio>
+              </section>
+            </div>
+            <div>
+              <section class="detail-section">
+                <h2>Perceived affect</h2>
+                <div id="affect"></div>
+              </section>
+              <section class="detail-section">
+                <h2>Uncertainty</h2>
+                <dl id="uncertainty"></dl>
+              </section>
+            </div>
+          </div>
+          <details class="raw-details">
+            <summary>Structured JSON</summary>
+            <pre id="json"></pre>
+          </details>
+        </details>
       </div>
     </section>
 
     <footer>
-      Perceived vocal expression is uncertain evidence, not a verified internal state,
-      diagnosis, or safety decision. Audio is processed in memory and is not stored.
+      Vocal interpretation is probabilistic evidence, not a verified internal state,
+      diagnosis, or basis for a high-stakes decision.
     </footer>
   </main>
 
   <script>
     const fileInput = document.getElementById("file-input");
-    const dropArea = document.getElementById("drop-area");
-    const analyseButton = document.getElementById("analyse-button");
     const recordButton = document.getElementById("record-button");
     const audioPreview = document.getElementById("audio-preview");
 
-    let selectedWav = null;
     let previewUrl = null;
     let recorderNode = null;
     let microphoneSource = null;
@@ -332,8 +374,40 @@ INDEX_HTML = r"""<!doctype html>
       status.className = `status ${kind}`;
     }
 
+    function setRecordState(label, state = "") {
+      element("record-label").textContent = label;
+      recordButton.className = `record-button ${state}`;
+    }
+
     function formatPercent(value) { return `${Math.round(value * 100)}%`; }
     function clearElement(target) { target.replaceChildren(); }
+
+    function markColor(label) {
+      if (label.includes("joy")) return "var(--laugh)";
+      if (label.includes("distress")) return "var(--sob)";
+      if (label.includes("anger")) return "var(--recording)";
+      if (label.includes("fear")) return "var(--breath)";
+      const colors = {
+        laugh: "var(--laugh)",
+        laughing_speech: "var(--laugh)",
+        breath: "var(--breath)",
+        cough: "var(--cough)",
+        throat_clear: "var(--cough)",
+        sigh: "var(--sigh)",
+        sob: "var(--sob)",
+        crying_speech: "var(--sob)",
+      };
+      return colors[label] || "var(--speech-style)";
+    }
+
+    function affectSpanLabel(span) {
+      if (!span.abstain && span.top_label) return `perceived ${span.top_label}`;
+      const candidate = Object.entries(span.categories).sort(
+        (left, right) => right[1] - left[1],
+      )[0];
+      if (candidate && candidate[1] >= 0.25) return `possible ${candidate[0]} · uncertain`;
+      return "affect uncertain";
+    }
 
     function downsample(samples, inputRate, outputRate = 16000) {
       if (inputRate === outputRate) return samples;
@@ -343,9 +417,7 @@ INDEX_HTML = r"""<!doctype html>
         const start = Math.round(outputIndex * ratio);
         const end = Math.min(samples.length, Math.round((outputIndex + 1) * ratio));
         let sum = 0;
-        for (let inputIndex = start; inputIndex < end; inputIndex += 1) {
-          sum += samples[inputIndex];
-        }
+        for (let inputIndex = start; inputIndex < end; inputIndex += 1) sum += samples[inputIndex];
         output[outputIndex] = sum / Math.max(1, end - start);
       }
       return output;
@@ -382,7 +454,6 @@ INDEX_HTML = r"""<!doctype html>
     }
 
     async function normalizeAudio(source) {
-      setStatus("Preparing 16 kHz mono audio.", "busy");
       const decodingContext = new AudioContext();
       try {
         const bytes = (await source.arrayBuffer()).slice(0);
@@ -411,100 +482,6 @@ INDEX_HTML = r"""<!doctype html>
       audioPreview.hidden = false;
     }
 
-    async function selectAudio(source, label = source.name) {
-      try {
-        selectedWav = await normalizeAudio(source);
-        element("file-label").textContent = label;
-        analyseButton.disabled = false;
-        setPreview(selectedWav);
-        setStatus("Audio is ready to analyse.");
-      } catch (error) {
-        selectedWav = null;
-        analyseButton.disabled = true;
-        setStatus(error.message, "error");
-      }
-    }
-
-    fileInput.addEventListener("change", () => {
-      if (fileInput.files[0]) selectAudio(fileInput.files[0]);
-    });
-
-    for (const eventName of ["dragenter", "dragover"]) {
-      dropArea.addEventListener(eventName, (event) => {
-        event.preventDefault();
-        dropArea.classList.add("dragging");
-      });
-    }
-
-    for (const eventName of ["dragleave", "drop"]) {
-      dropArea.addEventListener(eventName, (event) => {
-        event.preventDefault();
-        dropArea.classList.remove("dragging");
-      });
-    }
-
-    dropArea.addEventListener("drop", (event) => {
-      if (event.dataTransfer.files[0]) selectAudio(event.dataTransfer.files[0]);
-    });
-
-    async function stopRecording() {
-      recorderNode.disconnect();
-      microphoneSource.disconnect();
-      mediaStream.getTracks().forEach((track) => track.stop());
-      const sampleCount = audioChunks.reduce((total, chunk) => total + chunk.length, 0);
-      const joined = new Float32Array(sampleCount);
-      let offset = 0;
-      for (const chunk of audioChunks) {
-        joined.set(chunk, offset);
-        offset += chunk.length;
-      }
-      const sampleRate = audioContext.sampleRate;
-      await audioContext.close();
-      recorderNode = null;
-      microphoneSource = null;
-      mediaStream = null;
-      audioContext = null;
-      recordButton.textContent = "Record";
-      recordButton.className = "";
-      const durationSeconds = (Date.now() - recordingStartedAt) / 1000;
-      const label = `Microphone recording · ${durationSeconds.toFixed(1)} seconds`;
-      await selectAudio(encodePcm16Wav(downsample(joined, sampleRate)), label);
-    }
-
-    async function startRecording() {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioContext = new AudioContext();
-      microphoneSource = audioContext.createMediaStreamSource(mediaStream);
-      recorderNode = audioContext.createScriptProcessor(4096, 1, 1);
-      audioChunks = [];
-      recorderNode.onaudioprocess = (event) => {
-        audioChunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
-        if (Date.now() - recordingStartedAt > 30000) recordButton.click();
-      };
-      microphoneSource.connect(recorderNode);
-      recorderNode.connect(audioContext.destination);
-      recordingStartedAt = Date.now();
-      recordButton.textContent = "Stop recording";
-      recordButton.className = "recording";
-      analyseButton.disabled = true;
-      setStatus("Recording. Speak naturally.", "busy");
-    }
-
-    recordButton.addEventListener("click", async () => {
-      try {
-        if (recorderNode !== null) await stopRecording();
-        else await startRecording();
-      } catch (error) {
-        setStatus(`Microphone unavailable: ${error.message}`, "error");
-      }
-    });
-
-    function appendListEntry(list, text) {
-      const entry = document.createElement("li");
-      entry.textContent = text;
-      list.append(entry);
-    }
-
     function appendDefinition(list, term, description) {
       const termNode = document.createElement("dt");
       const descriptionNode = document.createElement("dd");
@@ -513,38 +490,125 @@ INDEX_HTML = r"""<!doctype html>
       list.append(termNode, descriptionNode);
     }
 
+    function appendListEntry(list, text) {
+      const entry = document.createElement("li");
+      entry.textContent = text;
+      list.append(entry);
+    }
+
+    function annotation(baseText, labels, className = "") {
+      const ruby = document.createElement("ruby");
+      const base = document.createElement("span");
+      const caption = document.createElement("rt");
+      ruby.className = `annotation ${className}`;
+      ruby.style.setProperty("--mark", markColor(labels[0]));
+      base.textContent = baseText;
+      caption.textContent = labels.map((label) => label.replaceAll("_", " ")).join(" · ");
+      ruby.append(base, caption);
+      return ruby;
+    }
+
+    function renderTranscript(attune) {
+      const transcript = element("transcript");
+      clearElement(transcript);
+      const words = attune.transcript.words || [];
+      if (words.length === 0) {
+        transcript.textContent = attune.transcript.text || "No speech was transcribed.";
+        return;
+      }
+
+      const eventsAfterWord = new Map();
+      for (const event of attune.events) {
+        let wordId = event.after_word_id;
+        if (!wordId && event.start_ms !== null) {
+          const previous = words.filter((word) => word.end_ms <= event.start_ms).at(-1);
+          wordId = previous ? previous.id : words[0].id;
+        }
+        const existing = eventsAfterWord.get(wordId) || [];
+        existing.push(event);
+        eventsAfterWord.set(wordId, existing);
+      }
+
+      let activeLabels = [];
+      let activeWords = [];
+      const appendSeparated = (node) => {
+        if (transcript.childNodes.length) transcript.append(" ");
+        transcript.append(node);
+      };
+      const flushWords = () => {
+        if (!activeWords.length) return;
+        const phrase = activeWords.join(" ");
+        appendSeparated(
+          activeLabels.length
+            ? annotation(phrase, activeLabels)
+            : document.createTextNode(phrase),
+        );
+        activeWords = [];
+      };
+
+      words.forEach((word) => {
+        const styleLabels = attune.styles
+          .filter((style) => style.temporal_scope === "utterance"
+            || (style.start_ms < word.end_ms && style.end_ms > word.start_ms))
+          .map((style) => style.label);
+        const affectSpans = attune.affect_spans?.length
+          ? attune.affect_spans
+          : [attune.affect];
+        const affectLabels = affectSpans
+          .filter((span) => span.start_ms < word.end_ms && span.end_ms > word.start_ms)
+          .map(affectSpanLabel);
+        const labels = [...styleLabels, ...affectLabels];
+        if (JSON.stringify(labels) !== JSON.stringify(activeLabels)) {
+          flushWords();
+          activeLabels = labels;
+        }
+        activeWords.push(word.text);
+        for (const event of eventsAfterWord.get(word.id) || []) {
+          flushWords();
+          const eventText = `[${event.label.replaceAll("_", " ")}]`;
+          appendSeparated(annotation(eventText, [event.label], "event-token"));
+        }
+      });
+      flushWords();
+    }
+
     function renderAnalysis(analysis) {
       const attune = analysis.result;
       const affect = attune.affect;
-      const styleSummary = attune.styles.map((style) => style.label.replaceAll("_", " "));
-      const affectSummary = !affect.abstain && affect.top_label
-        ? `perceived ${affect.top_label} ${formatPercent(affect.top_label_confidence)}`
-        : "affect uncertain";
-      styleSummary.push(affectSummary);
-
-      element("transcript").textContent = attune.transcript.text || "No speech was transcribed.";
-      element("summary").textContent = `[${styleSummary.join("; ")}] ${attune.transcript.text}`;
+      renderTranscript(attune);
+      element("affect-summary").textContent = !affect.abstain && affect.top_label
+        ? `Perceived ${affect.top_label} · ${formatPercent(affect.top_label_confidence)} confidence`
+        : "Perceived affect is uncertain; no category was asserted.";
 
       const eventList = element("events");
       clearElement(eventList);
       for (const style of attune.styles) {
         const label = style.label.replaceAll("_", " ");
-        appendListEntry(eventList, `${label} · ${formatPercent(style.confidence)}`);
+        appendListEntry(
+          eventList,
+          `${label} · ${formatPercent(style.confidence)} · ${style.start_ms}–${style.end_ms} ms`,
+        );
       }
       for (const event of attune.events) {
         const timing = event.start_ms === null ? "" : ` · ${event.start_ms}–${event.end_ms} ms`;
-        const label = event.label.replaceAll("_", " ");
-        appendListEntry(eventList, `${label} · ${formatPercent(event.confidence)}${timing}`);
+        appendListEntry(
+          eventList,
+          `${event.label.replaceAll("_", " ")} · ${formatPercent(event.confidence)}${timing}`,
+        );
       }
       if (eventList.childElementCount === 0) {
         appendListEntry(eventList, "No supported event or style was detected.");
       }
 
-      element("timing").textContent = [
-        `${analysis.timing.audio_duration_ms} ms audio`,
-        `${analysis.timing.processing_ms} ms processing`,
-        `real-time factor ${analysis.timing.real_time_factor.toFixed(3)}`,
-      ].join(" · ");
+      const timing = element("timing");
+      clearElement(timing);
+      appendDefinition(
+        timing,
+        "Audio",
+        `${(analysis.timing.audio_duration_ms / 1000).toFixed(1)} s`,
+      );
+      appendDefinition(timing, "Processing", `${analysis.timing.processing_ms} ms`);
+      appendDefinition(timing, "Real-time factor", analysis.timing.real_time_factor.toFixed(3));
 
       const affectPanel = element("affect");
       clearElement(affectPanel);
@@ -569,38 +633,111 @@ INDEX_HTML = r"""<!doctype html>
 
       const uncertainty = element("uncertainty");
       clearElement(uncertainty);
-      const decision = affect.abstain ? "Abstained" : "Interpretation returned";
-      const reason = affect.abstention_reason
-        || "The top category passed the calibrated threshold.";
-      appendDefinition(uncertainty, "Decision", decision);
-      appendDefinition(uncertainty, "Reason", reason);
+      appendDefinition(uncertainty, "Decision", affect.abstain ? "Abstained" : "Returned");
       appendDefinition(
         uncertainty,
-        "OOD probability",
+        "Reason",
+        affect.abstention_reason || "The top category passed the calibrated threshold.",
+      );
+      appendDefinition(
+        uncertainty,
+        "Out of distribution",
         formatPercent(attune.uncertainty.out_of_distribution_probability),
       );
-      appendDefinition(uncertainty, "Warning", attune.uncertainty.interpretation_warning);
 
       element("json").textContent = JSON.stringify(analysis, null, 2);
       element("results").classList.add("visible");
+      element("results").scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    analyseButton.addEventListener("click", async () => {
-      if (selectedWav === null) return;
-      analyseButton.disabled = true;
-      setStatus("Analysing audio.", "busy");
+    async function analyseAudio(wav) {
+      setPreview(wav);
+      recordButton.disabled = true;
+      setRecordState("Analysing");
+      setStatus("Listening for words and supported vocal events.", "busy");
       try {
         const form = new FormData();
-        form.append("audio", selectedWav, "attune-input.wav");
+        form.append("audio", wav, "attune-input.wav");
         const response = await fetch("/v1/analyse", { method: "POST", body: form });
         const analysis = await response.json();
         if (!response.ok) throw new Error(analysis.detail || "Analysis failed.");
         renderAnalysis(analysis);
         setStatus("Analysis complete.");
+        setRecordState("Record again");
       } catch (error) {
         setStatus(error.message, "error");
+        setRecordState("Try again");
       } finally {
-        analyseButton.disabled = false;
+        recordButton.disabled = false;
+      }
+    }
+
+    async function stopRecording() {
+      recorderNode.disconnect();
+      microphoneSource.disconnect();
+      mediaStream.getTracks().forEach((track) => track.stop());
+      const sampleCount = audioChunks.reduce((total, chunk) => total + chunk.length, 0);
+      const joined = new Float32Array(sampleCount);
+      let offset = 0;
+      for (const chunk of audioChunks) {
+        joined.set(chunk, offset);
+        offset += chunk.length;
+      }
+      const sampleRate = audioContext.sampleRate;
+      await audioContext.close();
+      recorderNode = null;
+      microphoneSource = null;
+      mediaStream = null;
+      audioContext = null;
+      const durationSeconds = (Date.now() - recordingStartedAt) / 1000;
+      if (durationSeconds < 0.5) throw new Error("Record at least half a second of audio.");
+      await analyseAudio(encodePcm16Wav(downsample(joined, sampleRate)));
+    }
+
+    async function startRecording() {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioContext = new AudioContext();
+      microphoneSource = audioContext.createMediaStreamSource(mediaStream);
+      recorderNode = audioContext.createScriptProcessor(4096, 1, 1);
+      audioChunks = [];
+      recorderNode.onaudioprocess = (event) => {
+        audioChunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+        if (Date.now() - recordingStartedAt > 30000) recordButton.click();
+      };
+      microphoneSource.connect(recorderNode);
+      recorderNode.connect(audioContext.destination);
+      recordingStartedAt = Date.now();
+      setRecordState("Stop and analyse", "recording");
+      setStatus("Recording. Speak naturally.", "busy");
+    }
+
+    recordButton.addEventListener("click", async () => {
+      try {
+        if (recorderNode !== null) await stopRecording();
+        else await startRecording();
+      } catch (error) {
+        if (mediaStream !== null) mediaStream.getTracks().forEach((track) => track.stop());
+        recorderNode = null;
+        microphoneSource = null;
+        mediaStream = null;
+        setRecordState("Try again");
+        recordButton.disabled = false;
+        setStatus(`Microphone unavailable: ${error.message}`, "error");
+      }
+    });
+
+    fileInput.addEventListener("change", async () => {
+      if (!fileInput.files[0]) return;
+      recordButton.disabled = true;
+      setStatus("Preparing the audio file.", "busy");
+      try {
+        await analyseAudio(await normalizeAudio(fileInput.files[0]));
+      } catch (error) {
+        setStatus(error.message, "error");
+        setRecordState("Try again");
+        recordButton.disabled = false;
+      } finally {
+        fileInput.value = "";
       }
     });
   </script>

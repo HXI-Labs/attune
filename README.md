@@ -12,8 +12,12 @@ protected-trait inference, surveillance, or automated high-stakes decisions.
 
 ## Current status
 
-The v0.1 private release candidate is implemented in full precision and INT8.
-It contains the 241,904,650-parameter Cadence graph and a 30,726-parameter
+Cadence v0.1 is an experimental research preview implemented in full precision
+and INT8. The source code is suitable for publication and review. The model
+weights are uploaded privately first because the recorded SenseVoice
+redistribution review does not yet approve a public derivative-weight release.
+
+The preview contains the 241,904,650-parameter Cadence graph and a 30,726-parameter
 calibrated event head. The combined deployment remains below 242 million
 parameters. The INT8 graph is 500 MB, 48.4% smaller than the 970 MB
 full-precision graph.
@@ -43,8 +47,11 @@ the same RAVDESS set, a 0.51-point absolute loss. Both external results remain
 below the project's 0.40 public-release target. A fresh consented human
 recording of the hostile-speech regression and the derivative-weight licensing
 review also remain required before public model publication. The current
-artifact is therefore a private research release candidate, not a validated
-public emotion model. The locked composition and acceptance checks are in
+artifact is therefore a research preview, not a validated public emotion
+model. An internal joy-to-distress transition regression also exposed a
+specific compact-head failure: both source clips were classified as fear even
+though the emotion2vec+ teacher distinguished them correctly. The locked
+composition and acceptance checks are in
 [`research/release-cascade-v0.1-protocol.md`](research/release-cascade-v0.1-protocol.md).
 
 ## Output
@@ -146,11 +153,12 @@ A supported localized event includes timestamps and confidence:
 }
 ```
 
-Cadence v0.1 estimates one affect distribution per analysed utterance. If VAD or
-turn boundaries separate a recording into several utterances, each utterance
-can receive its own result. It does not yet claim affect-span tracking inside a
-continuous utterance. Localized vocal events can still occur anywhere within
-that utterance.
+Cadence v0.1 returns an utterance-level affect distribution and experimental
+non-overlapping affect windows for recordings longer than four seconds. These
+windows make changing delivery visible in the interface, but they are fixed
+analysis windows rather than learned transition boundaries. Their categorical
+accuracy has not passed the release gate. Localized vocal events can still
+occur anywhere within the utterance.
 
 ## Architecture
 

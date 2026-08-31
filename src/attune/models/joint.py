@@ -123,6 +123,7 @@ class AttuneJointModel(nn.Module):
         self.style_head = nn.Linear(affect_embedding_size, len(SUPPORTED_STYLES))
         self.event_presence_head = nn.Linear(affect_embedding_size, len(SUPPORTED_EVENTS))
         self.affect_head = nn.Linear(affect_embedding_size, len(AffectCategory))
+        self.affect_ensemble_alpha: float | None = None
         self.vad_head = nn.Sequential(nn.Linear(affect_embedding_size, 3), nn.Tanh())
         self.ood_projection = nn.Linear(affect_embedding_size, 32)
         self.ood_head = nn.Linear(affect_embedding_size, 1)
@@ -174,6 +175,18 @@ class AttuneJointModel(nn.Module):
             self._lid_lookup = lid_lookup
             self._textnorm_lookup = textnorm_lookup
         self.set_adaptation_policy(adaptation_policy)
+
+    def enable_affect_ensemble(self, alpha: float) -> None:
+        """Add a second affect branch while retaining one shared speech encoder."""
+        if not 0.0 < alpha <= 1.0:
+            raise ValueError("affect ensemble alpha must be in (0, 1]")
+        if self.affect_ensemble_alpha is not None:
+            if self.affect_ensemble_alpha != alpha:
+                raise ValueError("affect ensemble is already configured with another alpha")
+            return
+        self.affect_projection_secondary = copy.deepcopy(self.affect_projection)
+        self.affect_head_secondary = copy.deepcopy(self.affect_head)
+        self.affect_ensemble_alpha = alpha
 
     def set_adaptation_policy(self, policy: AdaptationPolicy) -> None:
         for parameter in self.sensevoice.parameters():
@@ -250,6 +263,15 @@ class AttuneJointModel(nn.Module):
         event_logits, start_logits, end_logits = self.event_head(acoustic)
         pooled = self.pooling(acoustic, frame_mask)
         affect_embedding = self.affect_projection(pooled)
+        affect_logits = self.affect_head(affect_embedding)
+        if self.affect_ensemble_alpha is not None:
+            secondary_embedding = self.affect_projection_secondary(pooled)
+            secondary_logits = self.affect_head_secondary(secondary_embedding)
+            affect_logits = torch.lerp(
+                affect_logits,
+                secondary_logits,
+                self.affect_ensemble_alpha,
+            )
         style_embedding = self.style_projection(pooled)
         return JointOutput(
             ctc_logits=ctc_logits,
@@ -260,7 +282,7 @@ class AttuneJointModel(nn.Module):
             event_end_logits=end_logits,
             event_presence_logits=self.event_presence_head(affect_embedding),
             style_logits=self.style_head(style_embedding),
-            affect_logits=self.affect_head(affect_embedding),
+            affect_logits=affect_logits,
             vad=self.vad_head(affect_embedding),
             ood_logit=self.ood_head(affect_embedding).squeeze(-1),
             affect_embedding=affect_embedding,
@@ -388,11 +410,14 @@ def attune_delta_checkpoint(model: AttuneJointModel) -> dict[str, Any]:
         for name, parameter in model.named_parameters()
         if name in parameter_names
     }
-    return {
+    checkpoint: dict[str, Any] = {
         "format": "attune_delta_v1",
         "adaptation_policy": model.adaptation_policy.value,
         "state_dict": delta,
     }
+    if model.affect_ensemble_alpha is not None:
+        checkpoint["affect_ensemble"] = {"alpha": model.affect_ensemble_alpha}
+    return checkpoint
 
 
 def load_attune_checkpoint(model: AttuneJointModel, checkpoint: dict[str, Any]) -> None:
@@ -407,6 +432,11 @@ def load_attune_checkpoint(model: AttuneJointModel, checkpoint: dict[str, Any]) 
         state = checkpoint.get("state_dict")
         if not isinstance(state, dict) or not state:
             raise ValueError("Attune delta checkpoint contains no state_dict")
+        ensemble = checkpoint.get("affect_ensemble")
+        if ensemble is not None:
+            if not isinstance(ensemble, dict) or not isinstance(ensemble.get("alpha"), float):
+                raise ValueError("affect ensemble configuration is invalid")
+            model.enable_affect_ensemble(ensemble["alpha"])
         state = _with_style_projection(state)
         expected = _delta_parameter_names(model)
         if set(state) != expected:

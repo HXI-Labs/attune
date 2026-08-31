@@ -214,6 +214,7 @@ class AttuneOutputV2(StrictModel):
     styles: list[VocalStyle] = Field(default_factory=list)
     events: list[VocalEvent] = Field(default_factory=list)
     affect: Affect
+    affect_spans: list[Affect] = Field(default_factory=list)
     uncertainty: Uncertainty
 
     @model_validator(mode="after")
@@ -225,6 +226,13 @@ class AttuneOutputV2(StrictModel):
             raise ValueError("timestamps must be within audio duration")
         if self.affect.end_ms > self.audio.duration_ms:
             raise ValueError("affect timestamps must be within audio duration")
+        if any(span.end_ms > self.audio.duration_ms for span in self.affect_spans):
+            raise ValueError("affect span timestamps must be within audio duration")
+        if any(
+            current.start_ms < previous.end_ms
+            for previous, current in zip(self.affect_spans, self.affect_spans[1:], strict=False)
+        ):
+            raise ValueError("affect spans must be ordered and non-overlapping")
         for collection, name in ((self.styles, "style"), (self.events, "event")):
             identifiers = [item.id for item in collection]
             if len(identifiers) != len(set(identifiers)):

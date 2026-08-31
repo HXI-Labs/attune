@@ -5,8 +5,39 @@ from __future__ import annotations
 from xml.etree import ElementTree as ET
 
 from attune.schema.output import AffectCategory
-from attune.schema.v2 import AttuneOutputV2
+from attune.schema.v2 import Affect, AttuneOutputV2
 from attune.schema.xml import _probability, _xml_safe
+
+
+def _append_affect(parent: ET.Element, name: str, value: Affect) -> None:
+    affect = ET.SubElement(
+        parent,
+        name,
+        {
+            "start_ms": str(value.start_ms),
+            "end_ms": str(value.end_ms),
+            "abstain": str(value.abstain).lower(),
+        },
+    )
+    if value.abstention_reason:
+        affect.set("abstention_reason", _xml_safe(value.abstention_reason))
+    for name in ("valence", "arousal", "dominance"):
+        dimension = getattr(value, name)
+        attributes = {
+            "name": name,
+            "available": str(dimension.available).lower(),
+            "confidence": _probability(dimension.confidence),
+        }
+        if dimension.value is not None:
+            attributes["value"] = _probability(dimension.value)
+        ET.SubElement(affect, "dimension", attributes)
+    categories = ET.SubElement(affect, "categories")
+    for label in AffectCategory:
+        ET.SubElement(
+            categories,
+            "category",
+            {"label": label.value, "probability": _probability(value.categories[label])},
+        )
 
 
 def render_xml_v2(output: AttuneOutputV2) -> str:
@@ -44,38 +75,14 @@ def render_xml_v2(output: AttuneOutputV2) -> str:
                 attributes["start_ms"] = str(annotation.start_ms)
                 attributes["end_ms"] = str(annotation.end_ms)
             for field in ("start_word_id", "end_word_id", "after_word_id"):
-                value = getattr(annotation, field, None)
-                if value is not None:
-                    attributes[field] = _xml_safe(value)
+                field_value = getattr(annotation, field, None)
+                if field_value is not None:
+                    attributes[field] = _xml_safe(field_value)
             ET.SubElement(parent, element_name, attributes)
-    affect = ET.SubElement(
-        root,
-        "affect",
-        {
-            "start_ms": str(output.affect.start_ms),
-            "end_ms": str(output.affect.end_ms),
-            "abstain": str(output.affect.abstain).lower(),
-        },
-    )
-    if output.affect.abstention_reason:
-        affect.set("abstention_reason", _xml_safe(output.affect.abstention_reason))
-    for name in ("valence", "arousal", "dominance"):
-        dimension = getattr(output.affect, name)
-        attributes = {
-            "name": name,
-            "available": str(dimension.available).lower(),
-            "confidence": _probability(dimension.confidence),
-        }
-        if dimension.value is not None:
-            attributes["value"] = _probability(dimension.value)
-        ET.SubElement(affect, "dimension", attributes)
-    categories = ET.SubElement(affect, "categories")
-    for label in AffectCategory:
-        ET.SubElement(
-            categories,
-            "category",
-            {"label": label.value, "probability": _probability(output.affect.categories[label])},
-        )
+    _append_affect(root, "affect", output.affect)
+    affect_spans = ET.SubElement(root, "affect_spans")
+    for span in output.affect_spans:
+        _append_affect(affect_spans, "affect", span)
     uncertainty = ET.SubElement(
         root,
         "uncertainty",

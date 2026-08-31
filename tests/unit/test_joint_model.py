@@ -166,6 +166,32 @@ def test_delta_checkpoint_contains_only_trainable_parameters() -> None:
     assert torch.equal(restored.affect_head.weight, source.affect_head.weight)
 
 
+def test_affect_ensemble_blends_only_affect_logits() -> None:
+    model = AttuneJointModel(FakeSenseVoice()).eval()
+    model.enable_affect_ensemble(0.25)
+    with torch.no_grad():
+        model.affect_head.weight.zero_()
+        model.affect_head.bias.zero_()
+        model.affect_head_secondary.weight.zero_()
+        model.affect_head_secondary.bias.fill_(1.0)
+
+    output = model(torch.randn(2, 12, 80), torch.tensor([12, 9]))
+
+    assert torch.allclose(output.affect_logits, torch.full((2, 8), 0.25))
+
+
+def test_affect_ensemble_round_trips_through_delta_checkpoint() -> None:
+    source = AttuneJointModel(FakeSenseVoice())
+    source.enable_affect_ensemble(0.5)
+    checkpoint = attune_delta_checkpoint(source)
+    restored = AttuneJointModel(FakeSenseVoice())
+
+    load_attune_checkpoint(restored, checkpoint)
+
+    assert restored.affect_ensemble_alpha == 0.5
+    assert torch.equal(restored.affect_head_secondary.weight, source.affect_head_secondary.weight)
+
+
 def test_adapted_delta_retains_encoder_weights_after_training_freeze() -> None:
     model = AttuneJointModel(FakeSenseVoice(), adaptation_policy=AdaptationPolicy.UPPER_TWO)
     for parameter in model.sensevoice.parameters():

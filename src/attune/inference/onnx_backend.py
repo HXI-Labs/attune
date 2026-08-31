@@ -24,6 +24,8 @@ from attune.schema.output import AffectCategory
 from attune.schema.v2 import AttuneOutputV2
 
 RICH_TAG = re.compile(r"<\|[^|]+\|>")
+AFFECT_WINDOW_MS = 4_000
+AFFECT_MINIMUM_FINAL_WINDOW_MS = 2_000
 
 
 class FeatureExtractor(Protocol):
@@ -332,14 +334,7 @@ class OnnxAttuneBackend:
             *OUTPUT_NAMES,
             *([PROBE_EMBEDDING_OUTPUT] if self.probe_heads else []),
         ]
-        values = self.session.run(
-            requested_outputs,
-            {
-                "speech": features[np.newaxis].astype(np.float32),
-                "speech_lengths": np.asarray([features.shape[0]], dtype=np.int64),
-            },
-        )
-        outputs = dict(zip(requested_outputs, values, strict=True))
+        outputs = self._run_features(features, requested_outputs)
         acoustic_length = int(outputs["acoustic_lengths"][0])
         decode_with_words = getattr(self.transcript_decoder, "decode_with_words", None)
         if decode_with_words is None:
@@ -355,6 +350,12 @@ class OnnxAttuneBackend:
         events = self._events(outputs, acoustic_length, metadata.duration_ms, probe_decisions)
         styles = self._styles(outputs, probe_decisions)
         affect, ood_probability = self._affect(outputs, metadata.duration_ms)
+        affect_spans = self._affect_spans(
+            features,
+            requested_outputs,
+            metadata.duration_ms,
+            affect,
+        )
         payload = {
             "schema_version": "2.0",
             "model": {
@@ -381,6 +382,7 @@ class OnnxAttuneBackend:
             "events": events,
             "styles": styles,
             "affect": affect,
+            "affect_spans": affect_spans,
             "uncertainty": {
                 "out_of_distribution_probability": ood_probability,
                 "interpretation_warning": (
@@ -389,6 +391,47 @@ class OnnxAttuneBackend:
             },
         }
         return AttuneOutputV2.model_validate(payload)
+
+    def _run_features(
+        self,
+        features: np.ndarray,
+        requested_outputs: list[str],
+    ) -> dict[str, np.ndarray]:
+        values = self.session.run(
+            requested_outputs,
+            {
+                "speech": features[np.newaxis].astype(np.float32),
+                "speech_lengths": np.asarray([features.shape[0]], dtype=np.int64),
+            },
+        )
+        return dict(zip(requested_outputs, values, strict=True))
+
+    def _affect_spans(
+        self,
+        features: np.ndarray,
+        requested_outputs: list[str],
+        duration_ms: int,
+        utterance_affect: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        boundaries = list(range(0, duration_ms, AFFECT_WINDOW_MS))
+        if len(boundaries) <= 1:
+            return [utterance_affect]
+        if duration_ms - boundaries[-1] < AFFECT_MINIMUM_FINAL_WINDOW_MS:
+            boundaries.pop()
+        boundaries.append(duration_ms)
+
+        spans = []
+        feature_count = features.shape[0]
+        for start_ms, end_ms in zip(boundaries, boundaries[1:], strict=False):
+            start_frame = math.floor(start_ms / duration_ms * feature_count)
+            end_frame = math.ceil(end_ms / duration_ms * feature_count)
+            window_features = features[start_frame:end_frame]
+            outputs = self._run_features(window_features, requested_outputs)
+            affect, _ood_probability = self._affect(outputs, end_ms - start_ms)
+            affect["start_ms"] = start_ms
+            affect["end_ms"] = end_ms
+            spans.append(affect)
+        return spans
 
     def _events(
         self,

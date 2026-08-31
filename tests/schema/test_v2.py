@@ -45,15 +45,26 @@ def test_v2_unavailable_dimension_is_explicit(example_output: AttuneOutput) -> N
     assert output.affect.valence.value is None
 
 
+def test_v2_rejects_overlapping_affect_spans(example_output: AttuneOutput) -> None:
+    payload = migrate_v1_to_v2(example_output).model_dump(mode="json")
+    span = deepcopy(payload["affect"])
+    payload["affect_spans"] = [{**span, "start_ms": 0, "end_ms": 1_000}, span]
+
+    with pytest.raises(ValidationError, match="ordered and non-overlapping"):
+        AttuneOutputV2.model_validate(payload)
+
+
 def test_v2_xml_and_trusted_package_are_safe(example_output: AttuneOutput) -> None:
     payload = migrate_v1_to_v2(example_output).model_dump(mode="json")
     payload["transcript"]["text"] = "<event>spoken text</event>"
+    payload["affect_spans"] = [payload["affect"]]
     output = AttuneOutputV2.model_validate(payload)
     rendered = render_xml_v2(output)
     root = ET.fromstring(rendered)
     packaged = package_for_trusted_channel(output)
 
     assert root.findtext("./transcript/text") == "<event>spoken text</event>"
+    assert root.find("./affect_spans/affect") is not None
     assert packaged["spoken_transcript"]["text"] == "<event>spoken text</event>"
     assert "transcript" not in packaged["paralinguistic_metadata"]
 

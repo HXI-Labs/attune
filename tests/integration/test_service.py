@@ -95,10 +95,11 @@ def test_browser_interface_is_served(example_payload: dict) -> None:
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert "Attune Cadence" in response.text
-    assert "Things to try" in response.text
-    assert "[laughing speech; perceived joy]" in response.text
-    assert "[crying speech; perceived distress]" in response.text
-    assert "illustrative target outputs" in response.text
+    assert "Start recording" in response.text
+    assert "View details" in response.text
+    assert "analyse-button" not in response.text
+    assert "ruby.annotation" in response.text
+    assert "event-token" in response.text
     assert "/v1/analyse" in response.text
 
 

@@ -4,10 +4,10 @@
 
 ## Status
 
-This is a private research release candidate. It is not cleared for public
-weight publication. Public release still requires a fresh consented human
-regression recording, affect confirmation, and approval of the derivative
-weight redistribution review.
+This is an experimental research preview. The code may be reviewed publicly,
+but the weights are uploaded privately first. Public weight publication still
+requires a fresh consented human regression recording, affect confirmation,
+and approval of the derivative-weight redistribution review.
 
 Cadence v0.1 deliberately disables vocal styles. An FSD50K-derived head
 hallucinated `whispering` on four ordinary speech controls, and a replacement
@@ -88,8 +88,13 @@ replace the required consented human recording or expressive-speech testing.
 - Event results are based partly on isolated, source-labelled vocal sounds and
   do not establish natural inline-event localization quality.
 - Affect supervision remains dominated by acted and categorical data.
-- Affect is utterance-level; changing emotion inside one uninterrupted turn is
-  not localized.
+- The runtime emits fixed, non-overlapping affect windows for long recordings.
+  They are analysis windows, not learned change boundaries, and their
+  categorical accuracy is not release-validated.
+- On an internal RAVDESS joy-to-distress transition regression, the compact
+  head classified both component clips as fear. The emotion2vec+ teacher
+  classified the same clips correctly, motivating distillation in the next
+  research iteration.
 - Valence, arousal, and dominance are unavailable in v0.1.
 - Word timestamps are approximate CTC alignments.
 - Ghanaian, British, and other accent slices are too small for a fairness claim.

@@ -18,7 +18,8 @@ from attune.inference.probe_head import ProbeDecision
 class FakeSession:
     def run(self, names, inputs):
         assert tuple(names) == OUTPUT_NAMES
-        assert inputs["speech"].shape == (1, 12, 80)
+        assert inputs["speech"].shape[0] == 1
+        assert inputs["speech"].shape[2] == 80
         event = np.full((1, 10, 7), -8.0, dtype=np.float32)
         event[0, 2:6, 0] = 8.0
         style = np.asarray([[8.0, -8.0]], dtype=np.float32)
@@ -42,13 +43,13 @@ class FakeSession:
         return [values[name] for name in names]
 
 
-def _wav() -> bytes:
+def _wav(seconds: int = 1) -> bytes:
     target = io.BytesIO()
     with wave.open(target, "wb") as handle:
         handle.setnchannels(1)
         handle.setsampwidth(2)
         handle.setframerate(16_000)
-        handle.writeframes(b"\x00\x00" * 16_000)
+        handle.writeframes(b"\x00\x00" * 16_000 * seconds)
     return target.getvalue()
 
 
@@ -95,7 +96,25 @@ def test_onnx_backend_emits_honest_scope_and_calibrated_affect() -> None:
     assert result.styles[0].start_ms is None
     assert result.affect.top_label == "anger"
     assert result.affect.arousal.value > 0.7
+    assert len(result.affect_spans) == 1
     assert result.transcript.words == []
+
+
+def test_long_audio_receives_non_overlapping_affect_windows() -> None:
+    backend = OnnxAttuneBackend(
+        Path("fixture-int8.onnx"),
+        feature_extractor=lambda _wav: np.zeros((108, 80), dtype=np.float32),
+        transcript_decoder=lambda _logits, _length: ("hello", 0.9),
+        calibration=_calibration(),
+        session=FakeSession(),
+    )
+
+    result = backend.analyse_wav(_wav(9))
+
+    assert [(span.start_ms, span.end_ms) for span in result.affect_spans] == [
+        (0, 4_000),
+        (4_000, 9_000),
+    ]
 
 
 def test_default_runtime_suppresses_unvalidated_presence_and_styles() -> None:

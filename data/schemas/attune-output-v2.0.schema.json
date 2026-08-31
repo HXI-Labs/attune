@@ -3,23 +3,23 @@
     "Affect": {
       "additionalProperties": false,
       "properties": {
-        "abstain": {
-          "title": "Abstain",
-          "type": "boolean"
+        "start_ms": {
+          "minimum": 0,
+          "title": "Start Ms",
+          "type": "integer"
         },
-        "abstention_reason": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Abstention Reason"
+        "end_ms": {
+          "minimum": 0,
+          "title": "End Ms",
+          "type": "integer"
+        },
+        "valence": {
+          "$ref": "#/$defs/AffectDimension"
         },
         "arousal": {
+          "$ref": "#/$defs/AffectDimension"
+        },
+        "dominance": {
           "$ref": "#/$defs/AffectDimension"
         },
         "categories": {
@@ -33,19 +33,6 @@
           },
           "title": "Categories",
           "type": "object"
-        },
-        "dominance": {
-          "$ref": "#/$defs/AffectDimension"
-        },
-        "end_ms": {
-          "minimum": 0,
-          "title": "End Ms",
-          "type": "integer"
-        },
-        "start_ms": {
-          "minimum": 0,
-          "title": "Start Ms",
-          "type": "integer"
         },
         "top_label": {
           "anyOf": [
@@ -63,8 +50,21 @@
           "title": "Top Label Confidence",
           "type": "number"
         },
-        "valence": {
-          "$ref": "#/$defs/AffectDimension"
+        "abstain": {
+          "title": "Abstain",
+          "type": "boolean"
+        },
+        "abstention_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Abstention Reason"
         }
       },
       "required": [
@@ -98,16 +98,6 @@
     "AffectDimension": {
       "additionalProperties": false,
       "properties": {
-        "available": {
-          "title": "Available",
-          "type": "boolean"
-        },
-        "confidence": {
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Confidence",
-          "type": "number"
-        },
         "value": {
           "anyOf": [
             {
@@ -120,6 +110,16 @@
             }
           ],
           "title": "Value"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "available": {
+          "title": "Available",
+          "type": "boolean"
         }
       },
       "required": [
@@ -133,23 +133,23 @@
     "AudioInfo": {
       "additionalProperties": false,
       "properties": {
-        "channels": {
-          "exclusiveMinimum": 0,
-          "title": "Channels",
-          "type": "integer"
-        },
         "duration_ms": {
           "exclusiveMinimum": 0,
           "title": "Duration Ms",
           "type": "integer"
         },
-        "quality": {
-          "$ref": "#/$defs/AudioQuality"
-        },
         "sample_rate_hz": {
           "exclusiveMinimum": 0,
           "title": "Sample Rate Hz",
           "type": "integer"
+        },
+        "channels": {
+          "exclusiveMinimum": 0,
+          "title": "Channels",
+          "type": "integer"
+        },
+        "quality": {
+          "$ref": "#/$defs/AudioQuality"
         }
       },
       "required": [
@@ -167,10 +167,10 @@
         "clipping": {
           "$ref": "#/$defs/QualityEstimate"
         },
-        "far_field": {
+        "low_snr": {
           "$ref": "#/$defs/QualityEstimate"
         },
-        "low_snr": {
+        "far_field": {
           "$ref": "#/$defs/QualityEstimate"
         }
       },
@@ -208,15 +208,15 @@
     "LanguageInfo": {
       "additionalProperties": false,
       "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
         "confidence": {
           "maximum": 1.0,
           "minimum": 0.0,
           "title": "Confidence",
           "type": "number"
-        },
-        "label": {
-          "title": "Label",
-          "type": "string"
         }
       },
       "required": [
@@ -233,6 +233,10 @@
           "title": "Name",
           "type": "string"
         },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        },
         "quantization": {
           "anyOf": [
             {
@@ -244,10 +248,6 @@
           ],
           "default": null,
           "title": "Quantization"
-        },
-        "version": {
-          "title": "Version",
-          "type": "string"
         }
       },
       "required": [
@@ -260,9 +260,6 @@
     "QualityEstimate": {
       "additionalProperties": false,
       "properties": {
-        "method": {
-          "$ref": "#/$defs/EstimateMethod"
-        },
         "value": {
           "anyOf": [
             {
@@ -275,6 +272,9 @@
             }
           ],
           "title": "Value"
+        },
+        "method": {
+          "$ref": "#/$defs/EstimateMethod"
         }
       },
       "required": [
@@ -317,15 +317,15 @@
     "Transcript": {
       "additionalProperties": false,
       "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
         "confidence": {
           "maximum": 1.0,
           "minimum": 0.0,
           "title": "Confidence",
           "type": "number"
-        },
-        "text": {
-          "title": "Text",
-          "type": "string"
         },
         "words": {
           "items": {
@@ -346,16 +346,16 @@
     "Uncertainty": {
       "additionalProperties": false,
       "properties": {
-        "interpretation_warning": {
-          "default": "Vocal affect is a probabilistic perception, not a verified internal state.",
-          "title": "Interpretation Warning",
-          "type": "string"
-        },
         "out_of_distribution_probability": {
           "maximum": 1.0,
           "minimum": 0.0,
           "title": "Out Of Distribution Probability",
           "type": "number"
+        },
+        "interpretation_warning": {
+          "default": "Vocal affect is a probabilistic perception, not a verified internal state.",
+          "title": "Interpretation Warning",
+          "type": "string"
         }
       },
       "required": [
@@ -367,43 +367,12 @@
     "VocalEvent": {
       "additionalProperties": false,
       "properties": {
-        "after_word_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "After Word Id"
-        },
-        "confidence": {
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Confidence",
-          "type": "number"
-        },
-        "end_ms": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "End Ms"
-        },
         "id": {
           "title": "Id",
           "type": "string"
         },
-        "label": {
-          "$ref": "#/$defs/EventLabel"
+        "temporal_scope": {
+          "$ref": "#/$defs/TemporalScope"
         },
         "start_ms": {
           "anyOf": [
@@ -418,11 +387,42 @@
           "default": null,
           "title": "Start Ms"
         },
+        "end_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Ms"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
         "status": {
           "$ref": "#/$defs/Status"
         },
-        "temporal_scope": {
-          "$ref": "#/$defs/TemporalScope"
+        "label": {
+          "$ref": "#/$defs/EventLabel"
+        },
+        "after_word_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After Word Id"
         }
       },
       "required": [
@@ -438,43 +438,12 @@
     "VocalStyle": {
       "additionalProperties": false,
       "properties": {
-        "confidence": {
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Confidence",
-          "type": "number"
-        },
-        "end_ms": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "End Ms"
-        },
-        "end_word_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "End Word Id"
-        },
         "id": {
           "title": "Id",
           "type": "string"
         },
-        "label": {
-          "$ref": "#/$defs/StyleLabel"
+        "temporal_scope": {
+          "$ref": "#/$defs/TemporalScope"
         },
         "start_ms": {
           "anyOf": [
@@ -489,6 +458,31 @@
           "default": null,
           "title": "Start Ms"
         },
+        "end_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Ms"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "status": {
+          "$ref": "#/$defs/Status"
+        },
+        "label": {
+          "$ref": "#/$defs/StyleLabel"
+        },
         "start_word_id": {
           "anyOf": [
             {
@@ -501,11 +495,17 @@
           "default": null,
           "title": "Start Word Id"
         },
-        "status": {
-          "$ref": "#/$defs/Status"
-        },
-        "temporal_scope": {
-          "$ref": "#/$defs/TemporalScope"
+        "end_word_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Word Id"
         }
       },
       "required": [
@@ -521,19 +521,12 @@
     "Word": {
       "additionalProperties": false,
       "properties": {
-        "confidence": {
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Confidence",
-          "type": "number"
-        },
-        "end_ms": {
-          "minimum": 0,
-          "title": "End Ms",
-          "type": "integer"
-        },
         "id": {
           "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
           "type": "string"
         },
         "start_ms": {
@@ -541,9 +534,16 @@
           "title": "Start Ms",
           "type": "integer"
         },
-        "text": {
-          "title": "Text",
-          "type": "string"
+        "end_ms": {
+          "minimum": 0,
+          "title": "End Ms",
+          "type": "integer"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
         }
       },
       "required": [
@@ -559,29 +559,22 @@
   },
   "additionalProperties": false,
   "properties": {
-    "affect": {
-      "$ref": "#/$defs/Affect"
-    },
-    "audio": {
-      "$ref": "#/$defs/AudioInfo"
-    },
-    "events": {
-      "items": {
-        "$ref": "#/$defs/VocalEvent"
-      },
-      "title": "Events",
-      "type": "array"
-    },
-    "language": {
-      "$ref": "#/$defs/LanguageInfo"
-    },
-    "model": {
-      "$ref": "#/$defs/ModelInfo"
-    },
     "schema_version": {
       "const": "2.0",
       "title": "Schema Version",
       "type": "string"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelInfo"
+    },
+    "audio": {
+      "$ref": "#/$defs/AudioInfo"
+    },
+    "language": {
+      "$ref": "#/$defs/LanguageInfo"
+    },
+    "transcript": {
+      "$ref": "#/$defs/Transcript"
     },
     "styles": {
       "items": {
@@ -590,8 +583,22 @@
       "title": "Styles",
       "type": "array"
     },
-    "transcript": {
-      "$ref": "#/$defs/Transcript"
+    "events": {
+      "items": {
+        "$ref": "#/$defs/VocalEvent"
+      },
+      "title": "Events",
+      "type": "array"
+    },
+    "affect": {
+      "$ref": "#/$defs/Affect"
+    },
+    "affect_spans": {
+      "items": {
+        "$ref": "#/$defs/Affect"
+      },
+      "title": "Affect Spans",
+      "type": "array"
     },
     "uncertainty": {
       "$ref": "#/$defs/Uncertainty"
