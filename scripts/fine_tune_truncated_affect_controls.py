@@ -259,7 +259,7 @@ def main() -> None:
     arguments = parser.parse_args()
 
     control_weights = sorted(set(arguments.control_weight or (0.02, 0.05, 0.1, 0.2, 0.35)))
-    step_counts = sorted(set(arguments.step_count or (25, 50, 100)))
+    step_counts = sorted(set(arguments.step_count or (5, 10, 15, 20, 25)))
     if any(weight <= 0 for weight in control_weights) or any(count < 1 for count in step_counts):
         parser.error("control weights and step counts must be positive")
 

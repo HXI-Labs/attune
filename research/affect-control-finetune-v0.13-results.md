@@ -15,6 +15,13 @@ selected candidate uses control weight 0.02, learning rate 0.0001, 25 steps,
 and seed 42. Selection did not use RAVDESS or the separate 100-speaker British
 inspection set.
 
+A fixed-weight replication over seeds 7, 17, 42, and 73 searched only 5, 10,
+15, 20, and 25 update steps. Every seed produced a candidate that passed the
+same development constraints, reduced Common Voice development named tops to
+1, retained both transition controls, and reached fused external RAVDESS
+macro-F1 between 0.8322 and 0.8426. Seed 42 remains the declared release seed;
+external performance was not used to replace it.
+
 | Fixed Cadence fusion | v0.11 | v0.13 |
 |---|---:|---:|
 | Paired CREMA-D development macro-F1, 120 clips | 0.6427 | 0.6401 |
