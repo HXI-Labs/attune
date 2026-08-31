@@ -22,7 +22,7 @@ phrase-level perceived affect, and abstention. Vocal styles and dimensional
 valence, arousal, and dominance remain disabled until they pass the project's
 evaluation gates.
 
-The [model package](https://huggingface.co/jbuaba/attune-cadence-242m/tree/main/candidate-v0.13)
+The [model package](https://huggingface.co/jbuaba/attune-cadence/tree/main/candidate-v0.13)
 is currently private. v0.13 is intended for consented research and evaluation,
 not as a verified emotion detector or for automated high-stakes decisions.
 
@@ -298,7 +298,7 @@ upload plan before publishing:
 
 ```bash
 uv run python scripts/publish_huggingface.py \
-  --repo-id jbuaba/attune-cadence-242m \
+  --repo-id jbuaba/attune-cadence \
   --bundle-manifest artifacts/release/cadence-v0.1/huggingface-bundle.json \
   --dry-run
 ```
