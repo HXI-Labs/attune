@@ -201,8 +201,20 @@ class Affect(StrictModel):
 
 
 class Uncertainty(StrictModel):
-    out_of_distribution_probability: Probability
+    out_of_distribution_probability: Probability | None
+    out_of_distribution_available: bool = True
     interpretation_warning: str = DEFAULT_INTERPRETATION_WARNING
+
+    @model_validator(mode="after")
+    def validate_ood_availability(self) -> Uncertainty:
+        if self.out_of_distribution_available and self.out_of_distribution_probability is None:
+            raise ValueError("available OOD estimates require a probability")
+        if (
+            not self.out_of_distribution_available
+            and self.out_of_distribution_probability is not None
+        ):
+            raise ValueError("unavailable OOD estimates require a null probability")
+        return self
 
 
 class AttuneOutputV2(StrictModel):

@@ -54,6 +54,16 @@ though the emotion2vec+ teacher distinguished them correctly. The locked
 composition and acceptance checks are in
 [`research/release-cascade-v0.1-protocol.md`](research/release-cascade-v0.1-protocol.md).
 
+The next accuracy candidate adds a truncated three-block emotion2vec+ branch
+and remains below 300 million active parameters. Its distilled v0.11 head
+improves full CREMA-D perceptual development macro-F1 from 0.5399 to 0.5901 and
+BERSt from 0.2917 to 0.3042 relative to the first compact student. External
+RAVDESS macro-F1 is 0.7981 for the student and 0.8220 after fixed Cadence
+fusion. On the untouched joy-to-distress transition, it emits separate joy and
+distress spans and abstains on the mixed utterance as a whole. This candidate
+is not the published v0.1 model; its remaining release work is documented in
+[`research/affect-consensus-v0.11-results.md`](research/affect-consensus-v0.11-results.md).
+
 ## Output
 
 The structured result can be rendered as a compact readable transcript. These

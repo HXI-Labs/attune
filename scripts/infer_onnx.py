@@ -7,6 +7,8 @@ import argparse
 from pathlib import Path
 
 from attune.client import AttuneClient
+from attune.inference.affect_fusion import DEFAULT_ACOUSTIC_WEIGHT, FusedAffectBackend
+from attune.inference.emotion2vec_student import TruncatedEmotion2VecPredictor
 from attune.inference.onnx_backend import OnnxAttuneBackend
 from attune.schema.xml_v2 import render_xml_v2
 
@@ -25,9 +27,16 @@ def main() -> None:
         help="Calibrated NumPy probe artifact; may be supplied more than once",
     )
     parser.add_argument("--quantization", choices=("fp32", "fp16", "int8"), default="int8")
+    parser.add_argument("--emotion2vec-path", type=Path)
+    parser.add_argument("--affect-student", type=Path)
+    parser.add_argument("--affect-weight", type=float, default=DEFAULT_ACOUSTIC_WEIGHT)
+    parser.add_argument("--affect-confidence-threshold", type=float, default=0.25)
+    parser.add_argument("--affect-device", default="auto")
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--xml", action="store_true")
     arguments = parser.parse_args()
+    if bool(arguments.emotion2vec_path) != bool(arguments.affect_student):
+        parser.error("--emotion2vec-path and --affect-student must be supplied together")
     backend = OnnxAttuneBackend.from_local_assets(
         arguments.model,
         arguments.sensevoice_path,
@@ -35,6 +44,18 @@ def main() -> None:
         quantization=arguments.quantization,
         probe_artifacts=tuple(arguments.probe_head),
     )
+    if arguments.affect_student is not None:
+        predictor = TruncatedEmotion2VecPredictor(
+            arguments.emotion2vec_path,
+            arguments.affect_student,
+            device=arguments.affect_device,
+        )
+        backend = FusedAffectBackend(
+            backend,
+            predictor,
+            acoustic_weight=arguments.affect_weight,
+            confidence_threshold=arguments.affect_confidence_threshold,
+        )
     client = AttuneClient(backend)
     if len(arguments.audio) > 1 and arguments.output_dir is None:
         parser.error("--output-dir is required for multiple audio files")

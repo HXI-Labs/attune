@@ -347,10 +347,22 @@
       "additionalProperties": false,
       "properties": {
         "out_of_distribution_probability": {
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Out Of Distribution Probability",
-          "type": "number"
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Out Of Distribution Probability"
+        },
+        "out_of_distribution_available": {
+          "default": true,
+          "title": "Out Of Distribution Available",
+          "type": "boolean"
         },
         "interpretation_warning": {
           "default": "Vocal affect is a probabilistic perception, not a verified internal state.",

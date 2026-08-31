@@ -11,6 +11,8 @@ signals.
 - Audio-quality estimates identify calibrated, heuristic, or unavailable
   evidence.
 - Affect abstention requires a reason and null top label.
+- OOD probability may be explicitly unavailable; unavailable estimates use a
+  null value instead of a fabricated probability.
 
 `attune.schema.migration.migrate_v1_to_v2` converts validated v1 objects. A
 legacy `0..duration` annotation becomes utterance scope; other spans remain

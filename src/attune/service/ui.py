@@ -401,11 +401,14 @@ INDEX_HTML = r"""<!doctype html>
     }
 
     function affectSpanLabel(span) {
-      if (!span.abstain && span.top_label) return `perceived ${span.top_label}`;
-      const candidate = Object.entries(span.categories).sort(
+      const strongest = Object.entries(span.categories).sort(
         (left, right) => right[1] - left[1],
       )[0];
-      if (candidate && candidate[1] >= 0.25) return `possible ${candidate[0]} · uncertain`;
+      if (strongest?.[0] === "neutral") return null;
+      if (!span.abstain && span.top_label) return `perceived ${span.top_label}`;
+      if (strongest && strongest[1] >= 0.25) {
+        return `possible ${strongest[0]} · uncertain`;
+      }
       return "affect uncertain";
     }
 
@@ -556,7 +559,8 @@ INDEX_HTML = r"""<!doctype html>
           : [attune.affect];
         const affectLabels = affectSpans
           .filter((span) => span.start_ms < word.end_ms && span.end_ms > word.start_ms)
-          .map(affectSpanLabel);
+          .map(affectSpanLabel)
+          .filter(Boolean);
         const labels = [...styleLabels, ...affectLabels];
         if (JSON.stringify(labels) !== JSON.stringify(activeLabels)) {
           flushWords();
@@ -642,7 +646,9 @@ INDEX_HTML = r"""<!doctype html>
       appendDefinition(
         uncertainty,
         "Out of distribution",
-        formatPercent(attune.uncertainty.out_of_distribution_probability),
+        attune.uncertainty.out_of_distribution_available === false
+          ? "Unavailable"
+          : formatPercent(attune.uncertainty.out_of_distribution_probability),
       );
 
       element("json").textContent = JSON.stringify(analysis, null, 2);
