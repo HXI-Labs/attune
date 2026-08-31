@@ -40,8 +40,7 @@ class TemperatureCalibration:
         exponentials = [math.exp(value - maximum) for value in scaled]
         total = sum(exponentials)
         return {
-            label: value / total
-            for label, value in zip(self.labels, exponentials, strict=True)
+            label: value / total for label, value in zip(self.labels, exponentials, strict=True)
         }
 
     def scale_distribution(self, distribution: Mapping[str, float]) -> dict[str, float]:
@@ -164,9 +163,7 @@ def selective_metrics(
     def macro_f1(indices: Sequence[int]) -> float:
         scores = []
         for label in supported_labels:
-            true_positive = sum(
-                targets[index] == predictions[index] == label for index in indices
-            )
+            true_positive = sum(targets[index] == predictions[index] == label for index in indices)
             false_positive = sum(
                 targets[index] != label and predictions[index] == label for index in indices
             )
@@ -192,8 +189,7 @@ def selective_metrics(
             for index in all_indices
         )
         false_negative = sum(
-            targets[index] == label
-            and (not retained[index] or predictions[index] != label)
+            targets[index] == label and (not retained[index] or predictions[index] != label)
             for index in all_indices
         )
         denominator = 2 * true_positive + false_positive + false_negative
@@ -321,9 +317,7 @@ def _load_calibration_bundle(
     if base_path == path:
         raise CalibrationError("calibration bundle cannot extend itself")
     base = _load_calibration_bundle(base_path, seen | {resolved})
-    merged_components = {
-        name: dict(value) for name, value in base["components"].items()
-    }
+    merged_components = {name: dict(value) for name, value in base["components"].items()}
     for name, value in components.items():
         if not isinstance(value, dict):
             raise CalibrationError("calibration component must be an object")

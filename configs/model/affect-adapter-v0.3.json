@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "status": "predeclared_before_fit",
+  "purpose": "Correct the frozen affect branch without modifying CTC ASR or shared encoder weights.",
+  "training_scores": "artifacts/evaluation/aux-negative-v0.2/int8-train-scores.jsonl",
+  "selection_scores": "artifacts/evaluation/aux-negative-v0.2/int8-development-scores.jsonl",
+  "diagnostic_scores": "artifacts/evaluation/aux-negative-v0.2/int8-sealed-scores.jsonl",
+  "external_evaluation_scores": "artifacts/evaluation/ravdess-affect-external-v0.1/int8-scores.jsonl",
+  "features": [
+    "ood_embedding_32d",
+    "affect_logits_8d",
+    "vad_prediction_3d"
+  ],
+  "model": {
+    "type": "balanced_multinomial_logistic_regression",
+    "solver": "lbfgs",
+    "maximum_iterations": 2000,
+    "candidate_c": [0.01, 0.1, 1.0, 10.0],
+    "selection_order": [
+      "development_macro_f1_descending",
+      "development_cross_entropy_ascending",
+      "candidate_c_ascending"
+    ]
+  },
+  "calibration": {
+    "temperature_candidates": "geomspace(0.25, 10.0, 160)",
+    "temperature_objective": "development_cross_entropy",
+    "abstention_threshold_source": "development_only",
+    "minimum_selection_coverage": 0.5,
+    "threshold_objective": "retained_accuracy_then_coverage"
+  },
+  "acceptance": {
+    "external_ravdess_macro_f1_minimum": 0.4,
+    "external_ravdess_anger_recall_minimum": 0.7,
+    "external_maximum_predicted_class_share": 0.6,
+    "external_minimum_coverage": 0.5,
+    "external_selective_error_must_improve": true,
+    "asr_path_must_remain_byte_identical": true
+  },
+  "deployment_enabled": false
+}

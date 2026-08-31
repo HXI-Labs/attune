@@ -102,18 +102,14 @@ def parse_sensevoice_output(result: Any) -> SenseVoiceOutput:
     elif isinstance(row, dict):
         rich_text = str(row.get("text", ""))
         structured_values = [
-            row[key]
-            for key in _STRUCTURED_ANNOTATION_KEYS
-            if key in row and row[key] is not None
+            row[key] for key in _STRUCTURED_ANNOTATION_KEYS if key in row and row[key] is not None
         ]
     else:
         raise RuntimeError("SenseVoice returned an unsupported result shape")
 
     transcript = _TAG_PATTERN.sub("", rich_text)
     transcript = re.sub(r"\s+", " ", transcript).strip()
-    candidates = [
-        (tag, UNKNOWN_CONFIDENCE) for tag in _TAG_PATTERN.findall(rich_text)
-    ]
+    candidates = [(tag, UNKNOWN_CONFIDENCE) for tag in _TAG_PATTERN.findall(rich_text)]
     for value in structured_values:
         candidates.extend(_structured_annotations(value))
 
@@ -157,9 +153,7 @@ def sensevoice_affect_trace(result: Any) -> list[dict[str, str | float | None]]:
     elif isinstance(row, dict):
         rich_text = str(row.get("text", ""))
         structured_values = [
-            row[key]
-            for key in _STRUCTURED_ANNOTATION_KEYS
-            if key in row and row[key] is not None
+            row[key] for key in _STRUCTURED_ANNOTATION_KEYS if key in row and row[key] is not None
         ]
     else:
         raise RuntimeError("SenseVoice returned an unsupported result shape")

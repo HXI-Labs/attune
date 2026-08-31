@@ -1,0 +1,637 @@
+{
+  "schema_version": "1.0",
+  "clips": 401,
+  "asr": {
+    "evaluated_clips": 189,
+    "wer": 0.07342378292098962,
+    "clips_with_errors": 70,
+    "worst_clips": [
+      {
+        "clip_id": "crema-joint-1088_ieo_sad_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 3,
+        "reference_words": 3,
+        "clip_wer": 1.0,
+        "reference": "It's eleven o'clock.",
+        "prediction": "s haveclock"
+      },
+      {
+        "clip_id": "crema-joint-1081_ieo_sad_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 2,
+        "reference_words": 3,
+        "clip_wer": 0.6666666666666666,
+        "reference": "It's eleven o'clock.",
+        "prediction": "s11 o'clock"
+      },
+      {
+        "clip_id": "cv17-replay-249d0f70f6730752",
+        "dataset_id": "common_voice_17_en",
+        "edits": 4,
+        "reference_words": 9,
+        "clip_wer": 0.4444444444444444,
+        "reference": "Dileep Nath does the art work in the movie.",
+        "prediction": "thele na does the artwork in the movie"
+      },
+      {
+        "clip_id": "cv17-replay-fe4147630ac4712d",
+        "dataset_id": "common_voice_17_en",
+        "edits": 2,
+        "reference_words": 5,
+        "clip_wer": 0.4,
+        "reference": "Shakeel Badayuni wrote the lyrics.",
+        "prediction": "shaquill badaumi wrote the lyrics"
+      },
+      {
+        "clip_id": "cv17-replay-78e119c4ee73e7e7",
+        "dataset_id": "common_voice_17_en",
+        "edits": 4,
+        "reference_words": 12,
+        "clip_wer": 0.3333333333333333,
+        "reference": "Green beat out Rodney Carney for the Sixers starting shooting guard position.",
+        "prediction": "green beat at rodney county for the six starting shooting guide position"
+      },
+      {
+        "clip_id": "cv17-replay-7918e34b6ed25cef",
+        "dataset_id": "common_voice_17_en",
+        "edits": 2,
+        "reference_words": 6,
+        "clip_wer": 0.3333333333333333,
+        "reference": "Hart favoured shade tolerant perennial vegetables.",
+        "prediction": "heart favored shade tolerant perennial vegetables"
+      },
+      {
+        "clip_id": "cv17-replay-defa758756e1fd06",
+        "dataset_id": "common_voice_17_en",
+        "edits": 2,
+        "reference_words": 6,
+        "clip_wer": 0.3333333333333333,
+        "reference": "A man walks on the street.",
+        "prediction": "a man walking in the street"
+      },
+      {
+        "clip_id": "crema-joint-1081_ieo_ang_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's eleven1 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1081_ieo_dis_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's 11 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1081_ieo_fea_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's 11 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1081_ieo_hap_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's 11 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1082_ieo_ang_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's eleven1 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1082_ieo_hap_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's eleven1 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1083_ieo_dis_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's 11 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1084_ieo_dis_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's 11 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1084_ieo_fea_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's 11 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1084_ieo_hap_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's 11 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1084_ieo_sad_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's 11 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1085_ieo_ang_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's 11 o'clock"
+      },
+      {
+        "clip_id": "crema-joint-1085_ieo_dis_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "edits": 1,
+        "reference_words": 3,
+        "clip_wer": 0.3333333333333333,
+        "reference": "It's eleven o'clock.",
+        "prediction": "it's eleven1 o'clock"
+      }
+    ]
+  },
+  "localized_events": {
+    "macro_f1": 0.7699649466047118,
+    "macro_f1_ontology": 0.3299849771163051,
+    "localized_labels": [
+      "laugh",
+      "cough",
+      "throat_clear"
+    ],
+    "per_class": {
+      "laugh": {
+        "segment_f1": 0.9195402298850575,
+        "matched_temporal_iou": 0.788285612596983,
+        "boundary_mae_ms": 156.75,
+        "true_positive": 40,
+        "false_positive": 2,
+        "false_negative": 5
+      },
+      "sob": {
+        "segment_f1": 0.0,
+        "matched_temporal_iou": 0.0,
+        "boundary_mae_ms": null,
+        "true_positive": 0,
+        "false_positive": 0,
+        "false_negative": 0
+      },
+      "scream": {
+        "segment_f1": 0.0,
+        "matched_temporal_iou": 0.0,
+        "boundary_mae_ms": null,
+        "true_positive": 0,
+        "false_positive": 0,
+        "false_negative": 0
+      },
+      "sigh": {
+        "segment_f1": 0.0,
+        "matched_temporal_iou": 0.0,
+        "boundary_mae_ms": null,
+        "true_positive": 0,
+        "false_positive": 0,
+        "false_negative": 0
+      },
+      "cough": {
+        "segment_f1": 0.6170212765957447,
+        "matched_temporal_iou": 0.6703998300550026,
+        "boundary_mae_ms": 153.10344827586206,
+        "true_positive": 29,
+        "false_positive": 21,
+        "false_negative": 15
+      },
+      "throat_clear": {
+        "segment_f1": 0.7733333333333333,
+        "matched_temporal_iou": 0.6809645298475767,
+        "boundary_mae_ms": 127.24137931034483,
+        "true_positive": 29,
+        "false_positive": 5,
+        "false_negative": 12
+      },
+      "sneeze": {
+        "segment_f1": 0.0,
+        "matched_temporal_iou": 0.0,
+        "boundary_mae_ms": null,
+        "true_positive": 0,
+        "false_positive": 0,
+        "false_negative": 0
+      }
+    }
+  },
+  "event_presence_f1": {
+    "laugh": 0.9272727272727272,
+    "sob": 0.6666666666666666,
+    "scream": 0.8571428571428571,
+    "sigh": 0.8823529411764706,
+    "cough": 0.7766990291262136,
+    "throat_clear": 0.7669172932330827,
+    "sneeze": 0.9032258064516129
+  },
+  "style_f1": {
+    "shouting": 1.0,
+    "whispering": 1.0
+  },
+  "affect": {
+    "evaluated_clips": 132,
+    "macro_f1": 0.47462544741233265,
+    "coverage": 0.8257575757575758,
+    "confusion": [
+      {
+        "target": "anger",
+        "prediction": "anger",
+        "count": 21
+      },
+      {
+        "target": "anger",
+        "prediction": "neutral",
+        "count": 1
+      },
+      {
+        "target": "distress",
+        "prediction": "distress",
+        "count": 10
+      },
+      {
+        "target": "distress",
+        "prediction": "fear",
+        "count": 1
+      },
+      {
+        "target": "distress",
+        "prediction": "neutral",
+        "count": 10
+      },
+      {
+        "target": "distress",
+        "prediction": "other",
+        "count": 1
+      },
+      {
+        "target": "fear",
+        "prediction": "anger",
+        "count": 2
+      },
+      {
+        "target": "fear",
+        "prediction": "distress",
+        "count": 3
+      },
+      {
+        "target": "fear",
+        "prediction": "fear",
+        "count": 11
+      },
+      {
+        "target": "fear",
+        "prediction": "joy",
+        "count": 1
+      },
+      {
+        "target": "fear",
+        "prediction": "neutral",
+        "count": 4
+      },
+      {
+        "target": "fear",
+        "prediction": "other",
+        "count": 1
+      },
+      {
+        "target": "joy",
+        "prediction": "anger",
+        "count": 11
+      },
+      {
+        "target": "joy",
+        "prediction": "distress",
+        "count": 2
+      },
+      {
+        "target": "joy",
+        "prediction": "fear",
+        "count": 4
+      },
+      {
+        "target": "joy",
+        "prediction": "joy",
+        "count": 2
+      },
+      {
+        "target": "joy",
+        "prediction": "neutral",
+        "count": 3
+      },
+      {
+        "target": "neutral",
+        "prediction": "distress",
+        "count": 3
+      },
+      {
+        "target": "neutral",
+        "prediction": "neutral",
+        "count": 19
+      },
+      {
+        "target": "other",
+        "prediction": "anger",
+        "count": 9
+      },
+      {
+        "target": "other",
+        "prediction": "distress",
+        "count": 4
+      },
+      {
+        "target": "other",
+        "prediction": "fear",
+        "count": 1
+      },
+      {
+        "target": "other",
+        "prediction": "neutral",
+        "count": 2
+      },
+      {
+        "target": "other",
+        "prediction": "other",
+        "count": 6
+      }
+    ],
+    "per_target": {
+      "anger": {
+        "support": 22,
+        "correct": 21,
+        "abstained": 0
+      },
+      "distress": {
+        "support": 22,
+        "correct": 10,
+        "abstained": 3
+      },
+      "fear": {
+        "support": 22,
+        "correct": 11,
+        "abstained": 5
+      },
+      "joy": {
+        "support": 22,
+        "correct": 2,
+        "abstained": 9
+      },
+      "neutral": {
+        "support": 22,
+        "correct": 19,
+        "abstained": 2
+      },
+      "other": {
+        "support": 22,
+        "correct": 6,
+        "abstained": 4
+      }
+    },
+    "highest_confidence_errors": [
+      {
+        "clip_id": "crema-joint-1085_iwl_hap_xx",
+        "target": "joy",
+        "prediction": "anger",
+        "confidence": 0.8423390168219942,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1091_ieo_dis_hi",
+        "target": "other",
+        "prediction": "anger",
+        "confidence": 0.7767488132764567,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1084_iwl_sad_xx",
+        "target": "distress",
+        "prediction": "other",
+        "confidence": 0.7681639042319685,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1081_iwl_hap_xx",
+        "target": "joy",
+        "prediction": "fear",
+        "confidence": 0.756603751600539,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1091_iwl_ang_xx",
+        "target": "anger",
+        "prediction": "neutral",
+        "confidence": 0.7500569029092821,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1085_ieo_dis_hi",
+        "target": "other",
+        "prediction": "anger",
+        "confidence": 0.7461135118206108,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1089_ieo_dis_hi",
+        "target": "other",
+        "prediction": "anger",
+        "confidence": 0.7339295683453977,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1082_iwl_sad_xx",
+        "target": "distress",
+        "prediction": "neutral",
+        "confidence": 0.7293311210072044,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1085_iwl_dis_xx",
+        "target": "other",
+        "prediction": "anger",
+        "confidence": 0.721328199688906,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1082_ieo_sad_hi",
+        "target": "distress",
+        "prediction": "neutral",
+        "confidence": 0.7082410248883724,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1088_ieo_dis_hi",
+        "target": "other",
+        "prediction": "distress",
+        "confidence": 0.692836755313416,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1087_iwl_fea_xx",
+        "target": "fear",
+        "prediction": "distress",
+        "confidence": 0.6658736594672796,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1084_ieo_hap_hi",
+        "target": "joy",
+        "prediction": "anger",
+        "confidence": 0.6447821744255005,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1090_iwl_dis_xx",
+        "target": "other",
+        "prediction": "anger",
+        "confidence": 0.6156140686479584,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1082_iwl_dis_xx",
+        "target": "other",
+        "prediction": "neutral",
+        "confidence": 0.5946206622777981,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1083_ieo_hap_hi",
+        "target": "joy",
+        "prediction": "anger",
+        "confidence": 0.5829606961022543,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1091_iwl_sad_xx",
+        "target": "distress",
+        "prediction": "neutral",
+        "confidence": 0.55219707473849,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1085_iwl_fea_xx",
+        "target": "fear",
+        "prediction": "other",
+        "confidence": 0.5514768826827953,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1091_ieo_sad_hi",
+        "target": "distress",
+        "prediction": "neutral",
+        "confidence": 0.5429607391367125,
+        "retained": true,
+        "lexical_target": "neutral"
+      },
+      {
+        "clip_id": "crema-joint-1089_iwl_dis_xx",
+        "target": "other",
+        "prediction": "anger",
+        "confidence": 0.5410621508842495,
+        "retained": true,
+        "lexical_target": "neutral"
+      }
+    ],
+    "semantic_conflict": {
+      "clips": 110,
+      "acoustic_target": 50,
+      "lexical_target": 20,
+      "other": 40
+    }
+  },
+  "ood": {
+    "f1": 0.9906542056074766,
+    "errors": [
+      {
+        "clip_id": "cv17-replay-2d46146d1122de58",
+        "dataset_id": "common_voice_17_en",
+        "target_ood": false,
+        "predicted_ood": true,
+        "ood_probability": 0.20102295043413376
+      },
+      {
+        "clip_id": "crema-joint-1088_ieo_sad_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "target_ood": false,
+        "predicted_ood": true,
+        "ood_probability": 0.2069984261969728
+      },
+      {
+        "clip_id": "crema-joint-1089_iwl_ang_xx",
+        "dataset_id": "crema_d_paired_v0.1",
+        "target_ood": false,
+        "predicted_ood": true,
+        "ood_probability": 0.33539854669570346
+      },
+      {
+        "clip_id": "crema-joint-1085_ieo_ang_hi",
+        "dataset_id": "crema_d_paired_v0.1",
+        "target_ood": false,
+        "predicted_ood": true,
+        "ood_probability": 0.5527973884948446
+      }
+    ]
+  },
+  "interpretation": [
+    "ASR errors are concentrated in the listed clips; inspect accent, normalization, and audio quality before changing the model.",
+    "Affect labels are acted one-hot source labels, so confusion is not proof of a wrong internal-emotion inference.",
+    "Only laugh, cough, and throat_clear segment errors have strong temporal ground truth.",
+    "The report is descriptive and was generated after model selection; it is not a tuning set."
+  ]
+}

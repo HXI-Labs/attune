@@ -4,11 +4,12 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import wave
 from pathlib import Path
 from typing import Any
+
+from attune.integrity import file_digest
 
 WINDOW_MS = 10_000
 INSPECTION_CLIPS = 100
@@ -17,14 +18,6 @@ LABEL_MAP = {
     "cough": "cough",
     "laughter": "laugh",
 }
-
-
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
 
 
 def annotations(path: Path) -> list[tuple[float, float, str]]:
@@ -85,7 +78,7 @@ def source_rows(
                 {
                     "clip_id": clip_id,
                     "cache_path": cache_path,
-                    "sha256": digest(target),
+                    "sha256": file_digest(target),
                     "duration_ms": WINDOW_MS,
                     "partition": source_partition,
                     "source_recording": source.name,
@@ -131,10 +124,7 @@ def main() -> None:
         default=Path("data/manifests/dcase2016-localization.provenance.json"),
     )
     arguments = parser.parse_args()
-    development_root = (
-        arguments.root
-        / "train-dev/dcase2016_task2_train_dev/dcase2016_task2_dev"
-    )
+    development_root = arguments.root / "train-dev/dcase2016_task2_train_dev/dcase2016_task2_dev"
     test_root = arguments.root / "public-test/dcase2016_task2_test_public"
     if not development_root.is_dir() or not test_root.is_dir():
         raise SystemExit(
@@ -156,9 +146,7 @@ def main() -> None:
     ]
     inspection = test_candidates[:INSPECTION_CLIPS]
     if len(inspection) != INSPECTION_CLIPS:
-        raise SystemExit(
-            f"error: only {len(inspection)} event-bearing test windows were available"
-        )
+        raise SystemExit(f"error: only {len(inspection)} event-bearing test windows were available")
     for path, rows in (
         (arguments.training_manifest, training),
         (arguments.inspection_manifest, inspection),
@@ -173,10 +161,10 @@ def main() -> None:
         "licence_review": "data/provenance/dcase2016_task2.yaml",
         "training_manifest": str(arguments.training_manifest),
         "training_rows": len(training),
-        "training_manifest_sha256": digest(arguments.training_manifest),
+        "training_manifest_sha256": file_digest(arguments.training_manifest),
         "inspection_manifest": str(arguments.inspection_manifest),
         "inspection_rows": len(inspection),
-        "inspection_manifest_sha256": digest(arguments.inspection_manifest),
+        "inspection_manifest_sha256": file_digest(arguments.inspection_manifest),
         "selection": (
             "All non-overlapping 10-second development windows for fitting; first "
             "100 lexically sorted event-bearing public-test windows for untouched inspection."

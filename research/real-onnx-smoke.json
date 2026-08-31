@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "model_path": "artifacts/smoke/attune-untrained.onnx",
+  "model_bytes": 943158479,
+  "parity": {
+    "maximum_absolute_error": 0.00006639957427978516,
+    "mean_absolute_error": 0.0000005671948891006195,
+    "outputs_checked": 10
+  },
+  "adaptation_policy": "frozen",
+  "checkpoint": null,
+  "purpose": "unadapted_asr_reference",
+  "dynamic_parity_batch_size": 2,
+  "passed": true
+}

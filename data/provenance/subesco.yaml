@@ -1,0 +1,51 @@
+dataset_id: subesco_v1_1
+dataset_name: SUST Bangla Emotional Speech Corpus (SUBESCO)
+version: "1.1"
+source_url: https://zenodo.org/records/4526477
+doi: 10.5281/zenodo.4526477
+intended_use: speaker-diverse auxiliary acoustic affect training and evaluation
+licence:
+  name: Creative Commons Attribution 4.0 International
+  identifier: CC-BY-4.0
+  source_text_url: https://creativecommons.org/licenses/by/4.0/legalcode
+  licence_review_status: reviewed_permissive_with_attribution
+  reviewed_by: HXI Labs repository review
+  reviewed_at: "2026-08-29"
+redistribution:
+  original_audio: permitted_with_attribution
+  annotations: permitted_with_attribution
+  derivative_weights: permitted_with_attribution
+contains_personal_data: true
+speaker_count: 20
+speaker_disjoint_split_required: true
+downloaded_at: "2026-08-29"
+checksums_manifest: data/manifests/subesco-affect-v0.1.jsonl
+checksums_manifest_sha256: 693de9c7dd5c22bb223fcb7792d8e0bcaffc6d8f7cf1c9957539015291324d24
+source_archive:
+  record_id: "4526477"
+  filename: SUBESCO.zip
+  size_bytes: 1664512929
+  published_md5: 13d702cf944bf54d70d66bffc036ed7a
+  verified_sha256: 7505111bc864193d1906c05f83ca50d950250c65b62ae9b1740dee44f5cdb113
+prepared_contract:
+  clip_count: 7000
+  normalized_sample_rate_hz: 16000
+  normalized_channels: 1
+  normalized_sample_width_bits: 16
+  asr_supervised_clips: 0
+  split_unit: speaker
+  speaker_counts:
+    train: 14
+    development: 2
+    sealed_test: 4
+  clip_counts:
+    train: 4900
+    development: 700
+    sealed_test: 1400
+notes:
+  - The official record contains 7,000 Bangla utterances from 20 actors, ten sentences, seven intended emotions, and five takes.
+  - Actor-disjoint, gender-stratified 14/2/4 train/development/sealed partitions are mandatory.
+  - Bangla text is not supplied in the audio archive, so SUBESCO must never supervise Attune ASR.
+  - Source filename F_02_MONIKA_S_2_SURPRISE_3].wav has one pinned stray bracket and is canonicalized only after archive verification.
+  - Intended angry delivery is an affect label and must never be relabelled as shouting.
+  - Citation and attribution are required in downstream dataset and model cards.

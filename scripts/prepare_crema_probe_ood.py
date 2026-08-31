@@ -11,9 +11,10 @@ from prepare_licence_clean_inspection import (
     CREMA_D_REVISION,
     PreparationError,
     convert_to_pcm16,
-    digest,
     download_with_retry,
 )
+
+from attune.integrity import file_digest
 
 DEFAULT_CACHE = Path("data/raw/crema-probe-ood")
 DEFAULT_MANIFEST = Path("data/manifests/crema-probe-ood.jsonl")
@@ -77,7 +78,7 @@ def build(
                 retries=retries,
             )
         convert_to_pcm16(source, target)
-        row["sha256"] = digest(target)
+        row["sha256"] = file_digest(target)
     manifest.parent.mkdir(parents=True, exist_ok=True)
     manifest.write_text(
         "".join(json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n" for row in rows),
@@ -92,7 +93,7 @@ def verify(rows: list[dict[str, str]], cache_root: Path) -> None:
         target = cache_root / row["cache_path"]
         if not target.is_file():
             raise PreparationError(f"missing CREMA probe OOD clip: {target}")
-        if digest(target) != row["sha256"]:
+        if file_digest(target) != row["sha256"]:
             raise PreparationError(f"CREMA probe OOD hash mismatch: {target}")
 
 

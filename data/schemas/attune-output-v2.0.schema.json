@@ -1,0 +1,618 @@
+{
+  "$defs": {
+    "Affect": {
+      "additionalProperties": false,
+      "properties": {
+        "start_ms": {
+          "minimum": 0,
+          "title": "Start Ms",
+          "type": "integer"
+        },
+        "end_ms": {
+          "minimum": 0,
+          "title": "End Ms",
+          "type": "integer"
+        },
+        "valence": {
+          "$ref": "#/$defs/AffectDimension"
+        },
+        "arousal": {
+          "$ref": "#/$defs/AffectDimension"
+        },
+        "dominance": {
+          "$ref": "#/$defs/AffectDimension"
+        },
+        "categories": {
+          "additionalProperties": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/AffectCategory"
+          },
+          "title": "Categories",
+          "type": "object"
+        },
+        "top_label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AffectCategory"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "top_label_confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Top Label Confidence",
+          "type": "number"
+        },
+        "abstain": {
+          "title": "Abstain",
+          "type": "boolean"
+        },
+        "abstention_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Abstention Reason"
+        }
+      },
+      "required": [
+        "start_ms",
+        "end_ms",
+        "valence",
+        "arousal",
+        "dominance",
+        "categories",
+        "top_label",
+        "top_label_confidence",
+        "abstain"
+      ],
+      "title": "Affect",
+      "type": "object"
+    },
+    "AffectCategory": {
+      "enum": [
+        "neutral",
+        "joy",
+        "distress",
+        "anger",
+        "fear",
+        "surprise",
+        "other",
+        "ambiguous"
+      ],
+      "title": "AffectCategory",
+      "type": "string"
+    },
+    "AffectDimension": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": -1.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "available": {
+          "title": "Available",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "value",
+        "confidence",
+        "available"
+      ],
+      "title": "AffectDimension",
+      "type": "object"
+    },
+    "AudioInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_ms": {
+          "exclusiveMinimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "sample_rate_hz": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Rate Hz",
+          "type": "integer"
+        },
+        "channels": {
+          "exclusiveMinimum": 0,
+          "title": "Channels",
+          "type": "integer"
+        },
+        "quality": {
+          "$ref": "#/$defs/AudioQuality"
+        }
+      },
+      "required": [
+        "duration_ms",
+        "sample_rate_hz",
+        "channels",
+        "quality"
+      ],
+      "title": "AudioInfo",
+      "type": "object"
+    },
+    "AudioQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "clipping": {
+          "$ref": "#/$defs/QualityEstimate"
+        },
+        "low_snr": {
+          "$ref": "#/$defs/QualityEstimate"
+        },
+        "far_field": {
+          "$ref": "#/$defs/QualityEstimate"
+        }
+      },
+      "required": [
+        "clipping",
+        "low_snr",
+        "far_field"
+      ],
+      "title": "AudioQuality",
+      "type": "object"
+    },
+    "EstimateMethod": {
+      "enum": [
+        "calibrated",
+        "heuristic",
+        "unavailable"
+      ],
+      "title": "EstimateMethod",
+      "type": "string"
+    },
+    "EventLabel": {
+      "enum": [
+        "laugh",
+        "sob",
+        "scream",
+        "sigh",
+        "cough",
+        "throat_clear",
+        "sneeze",
+        "breath"
+      ],
+      "title": "EventLabel",
+      "type": "string"
+    },
+    "LanguageInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "label",
+        "confidence"
+      ],
+      "title": "LanguageInfo",
+      "type": "object"
+    },
+    "ModelInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        },
+        "quantization": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quantization"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ModelInfo",
+      "type": "object"
+    },
+    "QualityEstimate": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "method": {
+          "$ref": "#/$defs/EstimateMethod"
+        }
+      },
+      "required": [
+        "value",
+        "method"
+      ],
+      "title": "QualityEstimate",
+      "type": "object"
+    },
+    "Status": {
+      "enum": [
+        "provisional",
+        "revised",
+        "committed",
+        "retracted"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "StyleLabel": {
+      "enum": [
+        "shouting",
+        "whispering",
+        "crying_speech",
+        "laughing_speech",
+        "singing",
+        "strained_speech"
+      ],
+      "title": "StyleLabel",
+      "type": "string"
+    },
+    "TemporalScope": {
+      "enum": [
+        "localized",
+        "utterance"
+      ],
+      "title": "TemporalScope",
+      "type": "string"
+    },
+    "Transcript": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "words": {
+          "items": {
+            "$ref": "#/$defs/Word"
+          },
+          "title": "Words",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "confidence",
+        "words"
+      ],
+      "title": "Transcript",
+      "type": "object"
+    },
+    "Uncertainty": {
+      "additionalProperties": false,
+      "properties": {
+        "out_of_distribution_probability": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Out Of Distribution Probability",
+          "type": "number"
+        },
+        "interpretation_warning": {
+          "default": "Vocal affect is a probabilistic perception, not a verified internal state.",
+          "title": "Interpretation Warning",
+          "type": "string"
+        }
+      },
+      "required": [
+        "out_of_distribution_probability"
+      ],
+      "title": "Uncertainty",
+      "type": "object"
+    },
+    "VocalEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "temporal_scope": {
+          "$ref": "#/$defs/TemporalScope"
+        },
+        "start_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Ms"
+        },
+        "end_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Ms"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "status": {
+          "$ref": "#/$defs/Status"
+        },
+        "label": {
+          "$ref": "#/$defs/EventLabel"
+        },
+        "after_word_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After Word Id"
+        }
+      },
+      "required": [
+        "id",
+        "temporal_scope",
+        "confidence",
+        "status",
+        "label"
+      ],
+      "title": "VocalEvent",
+      "type": "object"
+    },
+    "VocalStyle": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "temporal_scope": {
+          "$ref": "#/$defs/TemporalScope"
+        },
+        "start_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Ms"
+        },
+        "end_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Ms"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "status": {
+          "$ref": "#/$defs/Status"
+        },
+        "label": {
+          "$ref": "#/$defs/StyleLabel"
+        },
+        "start_word_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Word Id"
+        },
+        "end_word_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Word Id"
+        }
+      },
+      "required": [
+        "id",
+        "temporal_scope",
+        "confidence",
+        "status",
+        "label"
+      ],
+      "title": "VocalStyle",
+      "type": "object"
+    },
+    "Word": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "start_ms": {
+          "minimum": 0,
+          "title": "Start Ms",
+          "type": "integer"
+        },
+        "end_ms": {
+          "minimum": 0,
+          "title": "End Ms",
+          "type": "integer"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "start_ms",
+        "end_ms",
+        "confidence"
+      ],
+      "title": "Word",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelInfo"
+    },
+    "audio": {
+      "$ref": "#/$defs/AudioInfo"
+    },
+    "language": {
+      "$ref": "#/$defs/LanguageInfo"
+    },
+    "transcript": {
+      "$ref": "#/$defs/Transcript"
+    },
+    "styles": {
+      "items": {
+        "$ref": "#/$defs/VocalStyle"
+      },
+      "title": "Styles",
+      "type": "array"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/VocalEvent"
+      },
+      "title": "Events",
+      "type": "array"
+    },
+    "affect": {
+      "$ref": "#/$defs/Affect"
+    },
+    "affect_spans": {
+      "items": {
+        "$ref": "#/$defs/Affect"
+      },
+      "title": "Affect Spans",
+      "type": "array"
+    },
+    "uncertainty": {
+      "$ref": "#/$defs/Uncertainty"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model",
+    "audio",
+    "language",
+    "transcript",
+    "affect",
+    "uncertainty"
+  ],
+  "title": "AttuneOutputV2",
+  "type": "object"
+}

@@ -14,12 +14,12 @@ from prepare_licence_clean_inspection import (
     FSD50K_REVISION,
     _fsd_candidates,
     convert_to_pcm16,
-    digest,
     download_with_retry,
     ensure_fsd_metadata,
     wav_metadata,
 )
 
+from attune.integrity import file_digest
 from attune.models.fsd50k_probe import SOURCE_TO_PROBE_LABEL
 
 TRAIN_PER_CLASS = 64
@@ -122,7 +122,7 @@ def fetch_row(
     return {
         "attribution": (
             f'Freesound clip {clip_id} "{selected["title"]}" uploaded by '
-            f'{selected["uploader"]}; {licence_id}. FSD50K curation by Fonseca et al.; '
+            f"{selected['uploader']}; {licence_id}. FSD50K curation by Fonseca et al.; "
             "dataset annotations CC BY 4.0."
         ),
         "cache_path": f"fsd50k/{clip_id}.wav",
@@ -140,7 +140,7 @@ def fetch_row(
         "probe_label": selected["probe_label"],
         "sample_rate_hz": sample_rate,
         "sample_width_bytes": sample_width,
-        "sha256": digest(target),
+        "sha256": file_digest(target),
         "source_class": selected["source_label"],
         "source_dataset": "FSD50K",
         "source_split": split,
@@ -154,14 +154,9 @@ def fetch_row(
 
 
 def verify(rows: list[dict[str, Any]], cache_root: Path, held_out_ids: set[str]) -> None:
-    expected = {
-        ("train", label): TRAIN_PER_CLASS for label in SOURCE_TO_PROBE_LABEL.values()
-    }
+    expected = {("train", label): TRAIN_PER_CLASS for label in SOURCE_TO_PROBE_LABEL.values()}
     expected.update(
-        {
-            ("validation", label): VALIDATION_PER_CLASS
-            for label in SOURCE_TO_PROBE_LABEL.values()
-        }
+        {("validation", label): VALIDATION_PER_CLASS for label in SOURCE_TO_PROBE_LABEL.values()}
     )
     counts = Counter((row["partition"], row["probe_label"]) for row in rows)
     if counts != expected:
@@ -177,16 +172,14 @@ def verify(rows: list[dict[str, Any]], cache_root: Path, held_out_ids: set[str])
         if len(set(row["labels"]) & set(SOURCE_TO_PROBE_LABEL)) != 1:
             raise PreparationError(f"cross-target clip in probe manifest: {row['clip_id']}")
         path = cache_root / row["cache_path"]
-        if not path.is_file() or digest(path) != row["sha256"]:
+        if not path.is_file() or file_digest(path) != row["sha256"]:
             raise PreparationError(f"missing or changed probe audio: {path}")
         _duration, rate, channels, width = wav_metadata(path)
         if (rate, channels, width) != (16_000, 1, 2):
             raise PreparationError(f"probe audio is not mono 16 kHz PCM16: {path}")
 
 
-def write_outputs(
-    rows: list[dict[str, Any]], manifest: Path, provenance: Path
-) -> None:
+def write_outputs(rows: list[dict[str, Any]], manifest: Path, provenance: Path) -> None:
     rows.sort(key=lambda row: (row["partition"], row["probe_label"], row["clip_id"]))
     manifest.parent.mkdir(parents=True, exist_ok=True)
     manifest.write_text(
@@ -197,7 +190,7 @@ def write_outputs(
     payload = {
         "schema_version": 1,
         "manifest": str(manifest),
-        "manifest_sha256": digest(manifest),
+        "manifest_sha256": file_digest(manifest),
         "row_count": len(rows),
         "partition_counts": dict(sorted(Counter(row["partition"] for row in rows).items())),
         "class_counts": dict(sorted(Counter(row["probe_label"] for row in rows).items())),

@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "policy_id": "attune-auxiliary-negative-controls-v0.3",
+  "datasets": {
+    "common_voice_17_en": {
+      "localized_events": "explicit_negative",
+      "event_presence": "explicit_negative",
+      "styles": "explicit_negative",
+      "rationale": "Validated read speech is a whole-clip negative for localized vocal events, event presence, shouting, and whispering. Rare incidental annotation noise remains possible."
+    },
+    "crema_d_paired_v0.1": {
+      "localized_events": "explicit_negative",
+      "event_presence": "explicit_negative",
+      "styles": "masked",
+      "rationale": "Acted lexical speech is a whole-clip vocal-event negative, but intensity is not treated as shouting supervision."
+    },
+    "crema_d_perceptual_v1": {
+      "localized_events": "explicit_negative",
+      "event_presence": "explicit_negative",
+      "styles": "masked",
+      "rationale": "Crowd-rated lexical speech is a whole-clip vocal-event negative, but actor intensity is not treated as shouting supervision."
+    },
+    "thorsten_voice_2021_06_emotional": {
+      "localized_events": "explicit_negative",
+      "event_presence": "preserve_source_annotation",
+      "styles": "preserve_source_annotation",
+      "split_unit": "sentence",
+      "rationale": "Studio speech contains no annotated inline vocal events; its existing matched whisper and ordinary-style labels remain authoritative."
+    },
+    "ravdess_v1_external_affect": {
+      "localized_events": "explicit_negative",
+      "event_presence": "preserve_source_annotation",
+      "styles": "preserve_source_annotation",
+      "rationale": "The speech-only RAVDESS evaluation slice has affect labels but no inline vocal events; it is an external false-localization control and is never used for fitting."
+    }
+  },
+  "default": {
+    "localized_events": "preserve_source_annotation",
+    "event_presence": "preserve_source_annotation",
+    "styles": "preserve_source_annotation"
+  }
+}

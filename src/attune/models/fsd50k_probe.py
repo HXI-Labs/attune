@@ -57,15 +57,9 @@ def training_examples(manifest: Path, cache_root: Path) -> tuple[FSD50KProbeExam
     return examples
 
 
-def inspection_examples(
-    manifest: Path, cache_root: Path
-) -> tuple[FSD50KProbeExample, ...]:
+def inspection_examples(manifest: Path, cache_root: Path) -> tuple[FSD50KProbeExample, ...]:
     """Load the immutable 100-row FSD50K inspection set as probe test data."""
-    rows = [
-        row
-        for row in load_jsonl(manifest)
-        if row.get("source_dataset") == "FSD50K"
-    ]
+    rows = [row for row in load_jsonl(manifest) if row.get("source_dataset") == "FSD50K"]
     if not rows:
         raise ProbeDataError(f"no FSD50K rows found in inspection manifest {manifest}")
     return tuple(
@@ -87,10 +81,7 @@ def validate_clip_disjoint(
 ) -> None:
     """Fail closed on clip leakage, duplicate IDs, or missing partition labels."""
     partitions = {"train": train, "validation": validation, "inspection_test": test}
-    ids = {
-        name: [example.clip_id for example in examples]
-        for name, examples in partitions.items()
-    }
+    ids = {name: [example.clip_id for example in examples] for name, examples in partitions.items()}
     if any(len(values) != len(set(values)) for values in ids.values()):
         raise ProbeDataError("a probe partition contains duplicate clip IDs")
     sets = {name: set(values) for name, values in ids.items()}
@@ -108,9 +99,7 @@ def validate_clip_disjoint(
             raise ProbeDataError(f"{name} partition lacks labels: {', '.join(missing)}")
 
 
-def classification_metrics(
-    targets: list[int], predictions: list[int]
-) -> dict[str, Any]:
+def classification_metrics(targets: list[int], predictions: list[int]) -> dict[str, Any]:
     """Compute dependency-free four-way metrics for the source-label diagnostic."""
     if not targets or len(targets) != len(predictions):
         raise ValueError("targets and predictions must be aligned and non-empty")
@@ -147,8 +136,7 @@ def classification_metrics(
         }
     return {
         "accuracy": sum(
-            target == prediction
-            for target, prediction in zip(targets, predictions, strict=True)
+            target == prediction for target, prediction in zip(targets, predictions, strict=True)
         )
         / len(targets),
         "macro_f1": sum(row["f1"] for row in per_class.values()) / len(per_class),

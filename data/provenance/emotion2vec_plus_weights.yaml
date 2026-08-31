@@ -23,7 +23,7 @@ licence:
   source_text_url: https://github.com/alibaba-damo-academy/FunASR
   licence_family: FunASR Model Open Source License Agreement
   licence_review_status: reviewed_internal_research_ok
-  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_by: Jerry Buaba / HXI Labs
   reviewed_at: "2026-08-26"
 redistribution_status: not_authorised_by_this_review
 downloaded_at: "2026-08-27 (base variant only; local gitignored cache)"

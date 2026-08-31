@@ -12,7 +12,7 @@ licence:
   name: FunASR Model Open Source License Agreement v1.1
   source_text_url: https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE
   licence_review_status: reviewed_internal_research_ok
-  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_by: Jerry Buaba / HXI Labs
   reviewed_at: "2026-08-26"
   clarification_urls:
     - https://github.com/QwenAudio/SenseVoice/issues/334
@@ -20,11 +20,11 @@ licence:
 redistribution_status: not_authorised_by_this_review
 downloaded_at: "2026-08-27"
 notes:
-  - This review permits downloading the official weights for internal baseline runs only.
-  - It does not authorise fine-tuning or public redistribution of weights.
+  - This operational review permits internal research use and creation of private fine-tuned derivatives under the recorded upstream model agreement.
+  - It does not authorise public redistribution of the original or derivative weights.
   - Section 3 is a risk disclaimer, not a non-commercial restriction; commercial use is allowed when the model licence conditions are followed.
   - Attribute "SenseVoiceSmall by FunASR/FunAudioLLM", retain the model name, and link the model licence in internal work and later public artefacts.
-  - Fine-tuned derivative weights may remain private; attribution and model-name duties still apply when using them.
+  - Attribution and model-name duties still apply to private derivative use.
   - Check third-party GGUF, ONNX, and other conversions separately for additional terms.
   - Do not download weights in CI.
   - The review is operational, not legal advice or lawyer sign-off.

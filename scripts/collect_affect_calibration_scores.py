@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import os
@@ -12,14 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from attune.baselines.adapters import AFFECT_LABELS, BaselineInput, Emotion2VecPlusAdapter
-
-
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
+from attune.integrity import file_digest as digest
 
 
 def load_rows(manifest: Path, cache: Path, split: str) -> list[dict[str, Any]]:

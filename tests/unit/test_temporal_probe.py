@@ -164,4 +164,3 @@ def test_dcase_checkpoint_acceptance_accepts_gated_dcase() -> None:
     accepted, reason = dcase_checkpoint_acceptance(checkpoint_payload(gate_passed=True))
     assert accepted is True
     assert reason is None
-

@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "manifest_sha256": "00fded47e4bb177af4816cc07cd8939f8376e6c77c423e17cd7624789c03c708",
+  "rows": 2490,
+  "splits": {
+    "train": 1691,
+    "development": 398,
+    "sealed_test": 401
+  },
+  "datasets": {
+    "common_voice_17_en": 600,
+    "crema_d_paired_v0.1": 492,
+    "dcase2016_task2": 316,
+    "fsd50k_bounded_v0.1": 320,
+    "vocalsound_v0.1": 762
+  },
+  "feature_sizes": {
+    "560": 2490
+  },
+  "unique_feature_paths": 2490,
+  "known_speaker_overlap": {
+    "train/development": 0,
+    "train/sealed_test": 0,
+    "development/sealed_test": 0
+  },
+  "supervision_rows": {
+    "asr": 1092,
+    "strong_events": 316,
+    "event_presence": 1238,
+    "styles": 160,
+    "affect": 492,
+    "vad": 0,
+    "known_ood": 1398,
+    "in_distribution": 1092
+  },
+  "supervision_by_split": {
+    "train": {
+      "asr": 721,
+      "strong_events": 192,
+      "event_presence": 842,
+      "styles": 128,
+      "affect": 240,
+      "vad": 0,
+      "known_ood": 970,
+      "in_distribution": 721
+    },
+    "development": {
+      "asr": 182,
+      "strong_events": 24,
+      "event_presence": 200,
+      "styles": 16,
+      "affect": 120,
+      "vad": 0,
+      "known_ood": 216,
+      "in_distribution": 182
+    },
+    "sealed_test": {
+      "asr": 189,
+      "strong_events": 100,
+      "event_presence": 196,
+      "styles": 16,
+      "affect": 132,
+      "vad": 0,
+      "known_ood": 212,
+      "in_distribution": 189
+    }
+  },
+  "duration_hours": 3.790338333333333
+}

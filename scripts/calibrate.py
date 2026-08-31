@@ -105,9 +105,7 @@ def calibrate(records: list[dict[str, Any]], expected_test_clips: int) -> dict[s
             },
         }
         if component == "emotion2vec_plus_affect":
-            validation_probabilities = [
-                scaling.probabilities(row["logits"]) for row in validation
-            ]
+            validation_probabilities = [scaling.probabilities(row["logits"]) for row in validation]
             threshold = fit_confidence_threshold(
                 validation_probabilities,
                 [row["target"] for row in validation],
@@ -132,9 +130,7 @@ def calibrate(records: list[dict[str, Any]], expected_test_clips: int) -> dict[s
                 },
             }
         components[component] = component_payload
-    test_ids = {
-        record["clip_id"] for record in records if record["split"] == "inspection_test"
-    }
+    test_ids = {record["clip_id"] for record in records if record["split"] == "inspection_test"}
     if expected_test_clips and len(test_ids) != expected_test_clips:
         raise CalibrationError(
             f"found {len(test_ids)} unique test clips, expected {expected_test_clips}"

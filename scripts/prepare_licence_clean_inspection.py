@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 import shutil
 import subprocess
@@ -17,6 +16,8 @@ import zipfile
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
+from attune.integrity import file_digest
 
 FSD50K_REVISION = "812caa9897ee9e0e9a3b0ce075f7d70f14fa6460"
 FSD50K_RECORD = "4060432"
@@ -64,16 +65,12 @@ ALLOWED_CLIP_LICENCES = {
 }
 ARCHIVES = {
     "FSD50K.metadata.zip": {
-        "url": (
-            f"https://zenodo.org/records/{FSD50K_RECORD}/files/"
-            "FSD50K.metadata.zip?download=1"
-        ),
+        "url": (f"https://zenodo.org/records/{FSD50K_RECORD}/files/FSD50K.metadata.zip?download=1"),
         "sha256": "9a738e032546f9a2c6e3d04566928d04a65fb79b422cc9d78bb781723537bd19",
     },
     "FSD50K.ground_truth.zip": {
         "url": (
-            f"https://zenodo.org/records/{FSD50K_RECORD}/files/"
-            "FSD50K.ground_truth.zip?download=1"
+            f"https://zenodo.org/records/{FSD50K_RECORD}/files/FSD50K.ground_truth.zip?download=1"
         ),
         "sha256": "db2396260a7b1fb06feb6ccac71685794fc89917d71c3a8d64a1de85c2cc0ebf",
     },
@@ -83,14 +80,6 @@ TRANSIENT_HTTP_CODES = {429, 500, 502, 503, 504}
 
 class PreparationError(RuntimeError):
     """Raised when the bounded preparation contract cannot be satisfied."""
-
-
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
 
 
 def download_with_retry(
@@ -134,10 +123,8 @@ def ensure_fsd_metadata(cache_root: Path, timeout_s: float, retries: int) -> Pat
     for filename, source in ARCHIVES.items():
         archive = metadata_root / filename
         if not archive.exists():
-            download_with_retry(
-                source["url"], archive, timeout_s=timeout_s, retries=retries
-            )
-        if digest(archive) != source["sha256"]:
+            download_with_retry(source["url"], archive, timeout_s=timeout_s, retries=retries)
+        if file_digest(archive) != source["sha256"]:
             raise PreparationError(f"metadata archive checksum mismatch: {archive}")
         expected_directory = metadata_root / filename.removesuffix(".zip")
         if not expected_directory.is_dir():
@@ -295,9 +282,7 @@ def fetch_fsd_row(
             "https://huggingface.co/datasets/Fhrozen/FSD50k/resolve/"
             f"{FSD50K_REVISION}/clips/{split}/{clip_id}.wav"
         )
-        download_with_retry(
-            url, source, timeout_s=timeout_s, retries=retries, token=hf_token
-        )
+        download_with_retry(url, source, timeout_s=timeout_s, retries=retries, token=hf_token)
         convert_to_pcm16(source, target)
         source.unlink(missing_ok=True)
     duration, sample_rate, channels, sample_width = wav_metadata(target)
@@ -307,7 +292,7 @@ def fetch_fsd_row(
         "acted_status": "unknown",
         "attribution": (
             f'Freesound clip {clip_id} "{selected["title"]}" uploaded by '
-            f'{selected["uploader"]}; {licence_id}. FSD50K curation by Fonseca et al.; '
+            f"{selected['uploader']}; {licence_id}. FSD50K curation by Fonseca et al.; "
             "dataset annotations CC BY 4.0."
         ),
         "cache_path": f"fsd50k/{clip_id}.wav",
@@ -333,13 +318,13 @@ def fetch_fsd_row(
             "dataset_curation": "CC-BY-4.0",
         },
         "notes": (
-            f'{mapping["note"]} FSD50K labels: {", ".join(selected["labels"])}. '
+            f"{mapping['note']} FSD50K labels: {', '.join(selected['labels'])}. "
             "Weak source label, not reviewed gold."
         ),
         "sample_rate_hz": sample_rate,
         "channels": channels,
         "sample_width_bytes": sample_width,
-        "sha256": digest(target),
+        "sha256": file_digest(target),
         "source_dataset": "FSD50K",
         "source_filename": f"{clip_id}.wav",
         "source_split": split,
@@ -399,13 +384,13 @@ def fetch_crema_row(
         },
         "notes": (
             f'Acted speech: "{CREMA_SENTENCE}". Source delivery '
-            f'{selected["source_label"]}/HI. Intensity is retained only as source metadata '
+            f"{selected['source_label']}/HI. Intensity is retained only as source metadata "
             "and is not mapped to shouting, whispering, or vocal effort."
         ),
         "sample_rate_hz": sample_rate,
         "channels": channels,
         "sample_width_bytes": sample_width,
-        "sha256": digest(target),
+        "sha256": file_digest(target),
         "source_dataset": "CREMA-D",
         "source_filename": filename,
         "speaker_id": f"crema-d:{selected['speaker']}",
@@ -448,7 +433,7 @@ def verify(rows: list[dict[str, Any]], cache_root: Path) -> None:
             raise PreparationError(f"cache path escapes root: {row['cache_path']}")
         if not target.is_file():
             raise PreparationError(f"missing audio: {target}")
-        if digest(target) != row["sha256"]:
+        if file_digest(target) != row["sha256"]:
             raise PreparationError(f"checksum mismatch: {target}")
         duration, sample_rate, channels, width = wav_metadata(target)
         if (sample_rate, channels, width) != (16_000, 1, 2):
@@ -478,9 +463,7 @@ def build(
     rows: list[dict[str, Any]] = []
     for index, selected in enumerate(fsd, 1):
         print(f"FSD50K {index}/{len(fsd)}: {selected['freesound_id']}", flush=True)
-        rows.append(
-            fetch_fsd_row(selected, cache_root, timeout_s, retries, hf_token)
-        )
+        rows.append(fetch_fsd_row(selected, cache_root, timeout_s, retries, hf_token))
     for index, selected in enumerate(crema, 1):
         print(f"CREMA-D {index}/{len(crema)}: {selected['filename']}", flush=True)
         rows.append(fetch_crema_row(selected, cache_root, timeout_s, retries))

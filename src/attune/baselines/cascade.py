@@ -101,14 +101,19 @@ class ModularCascade(BaselineAdapter):
         affect: BaselineAdapter,
         event_heads: tuple[EventStyleHead, ...] = (),
         event_head: EventStyleHead | None = None,
+        include_asr_annotations: bool = True,
     ) -> None:
         if event_head is not None and event_heads:
             raise ValueError("use event_head or event_heads, not both")
         self.asr = asr
         self.affect = affect
         self.event_heads = event_heads or ((event_head,) if event_head is not None else ())
-        event_source_names = ["asr-aed", *(head.name for head in self.event_heads)]
-        self.name = f"cascade:{asr.name}+{affect.name}+{'+'.join(event_source_names)}"
+        self.include_asr_annotations = include_asr_annotations
+        event_source_names = [
+            *(["asr-aed"] if include_asr_annotations else []),
+            *(head.name for head in self.event_heads),
+        ]
+        self.name = "+".join((f"cascade:{asr.name}", affect.name, *event_source_names))
 
     def availability(self) -> tuple[bool, str | None]:
         for component in (self.asr, self.affect, *self.event_heads):
@@ -131,7 +136,11 @@ class ModularCascade(BaselineAdapter):
 
         # The ASR output is authoritative: genuine returned alignment passes
         # through unchanged, while unavailable alignment remains an empty list.
-        components = [_asr_annotations(asr_prediction.output, self.asr.name)]
+        components = (
+            [_asr_annotations(asr_prediction.output, self.asr.name)]
+            if self.include_asr_annotations
+            else []
+        )
         elapsed = asr_prediction.runtime.elapsed_seconds + affect_prediction.runtime.elapsed_seconds
         probe_diagnostics = []
         for head in self.event_heads:
@@ -180,11 +189,10 @@ class ModularCascade(BaselineAdapter):
                 "probe_diagnostics": probe_diagnostics,
                 "merge_decisions": decisions,
                 "merge_policy": (
-                    "Set union by channel and ontology label. ASR/SenseVoice AED is "
-                    "considered first; an abstaining probe contributes nothing, so AED-only "
-                    "annotations remain unchanged. If AED and both probes are empty, no "
-                    "event/style is emitted. Non-abstaining probes fill missing labels and "
-                    "duplicate labels are suppressed. Scream is a discrete event and never "
+                    "Set union by channel and ontology label. Only configured annotation "
+                    "heads contribute; an abstaining head contributes nothing. Raw ASR "
+                    "auxiliary tags are excluded unless include_asr_annotations is enabled. "
+                    "Duplicate labels are suppressed. Scream is a discrete event and never "
                     "becomes shouting. Sob is a discrete event and never becomes "
                     "crying_speech. A held-out-gated temporal source replaces utterance "
                     "scope for the same event label and may emit multiple spans. All spans "
@@ -283,13 +291,13 @@ class AttuneCascade(ModularCascade):
             asr=SenseVoiceSmallAdapter(checkpoint=sensevoice_checkpoint),
             affect=affect,
             event_heads=tuple(heads),
+            include_asr_annotations=False,
         )
         tokens = ["sensevoice"]
         if emotion2vec_checkpoint is None:
             tokens.append("affect-abstain")
         else:
             tokens.append("emotion2vec")
-        tokens.append("aed")
         if vocalsound_probe_checkpoint is not None:
             tokens.append("vocalsound-probe")
         if fsd50k_probe_checkpoint is not None:

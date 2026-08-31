@@ -4,15 +4,11 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
 from attune.data.gold_review import GoldReviewRecord
-
-
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+from attune.integrity import file_digest as digest
 
 
 def main() -> None:
@@ -28,9 +24,7 @@ def main() -> None:
         default=Path("research/error-analysis/gold-review-fixture-dry-run.jsonl"),
     )
     arguments = parser.parse_args()
-    manifest = json.loads(
-        (arguments.fixtures / "manifest.json").read_text(encoding="utf-8")
-    )
+    manifest = json.loads((arguments.fixtures / "manifest.json").read_text(encoding="utf-8"))
     records = []
     for item in manifest["items"]:
         audio = arguments.fixtures / item["audio"]

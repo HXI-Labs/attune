@@ -1,0 +1,57 @@
+# Locked model composition
+artifacts/models/attune-cadence-v0.1-fp.onnx
+artifacts/models/attune-cadence-v0.1-fp.export.json
+artifacts/models/attune-cadence-v0.1-int8.onnx
+artifacts/models/attune-cadence-v0.1-int8.quantization.json
+artifacts/training/local-affect-focus-v0.9/model.pt
+artifacts/training/local-affect-focus-v0.9/training-report.json
+artifacts/release-candidate/vocalsound-en-head.pt
+artifacts/release-candidate/vocalsound-en-head.npz
+artifacts/release-candidate/vocalsound-en-metrics.json
+artifacts/release-candidate/probe-en-calibration.json
+
+# Full-precision and INT8 evidence
+artifacts/release-candidate/probe-en-embedding-parity.json
+artifacts/release-candidate/vocalsound-en-fp-report.json
+artifacts/release-candidate/vocalsound-en-int8-report.json
+artifacts/release-candidate/styles-disabled-fp.json
+artifacts/release-candidate/styles-disabled-int8.json
+artifacts/release-candidate/int8-deployment-smoke.json
+artifacts/release-candidate/ravdess-int8-report.json
+artifacts/release-candidate/hostile-fp-event-only/daniel.attune.json
+artifacts/release-candidate/hostile-fp-event-only/moira.attune.json
+artifacts/release-candidate/hostile-fp-event-only/samantha.attune.json
+artifacts/release-candidate/hostile-fp-event-only/tessa.attune.json
+artifacts/release-candidate/hostile-int8-event-only/daniel.attune.json
+artifacts/release-candidate/hostile-int8-event-only/moira.attune.json
+artifacts/release-candidate/hostile-int8-event-only/samantha.attune.json
+artifacts/release-candidate/hostile-int8-event-only/tessa.attune.json
+artifacts/evaluation/affect-focus-v0.9/calibration.json
+artifacts/evaluation/affect-focus-v0.9/development-report.json
+artifacts/evaluation/affect-focus-v0.9/regression-report.json
+artifacts/evaluation/affect-focus-v0.9/ravdess-report.json
+
+# Mandatory publication gates; these remain absent until they genuinely pass
+artifacts/release/cadence-v0.1/hostile-speech-regression.json
+artifacts/release/cadence-v0.1/release-metrics.json
+artifacts/release/cadence-v0.1/release-gates.json
+
+# Output contracts, provenance, and release documentation
+data/schemas/attune-output-v2.0.schema.json
+data/provenance/sensevoice_small_weights.yaml
+data/provenance/vocalsound.yaml
+data/provenance/fsd50k.yaml
+data/provenance/crema_d.yaml
+data/provenance/public_weight_redistribution.json
+README.md
+docs/model-card.md
+docs/dataset-card.md
+docs/cloud-training.md
+docs/ethics.md
+docs/release-checklist.md
+huggingface/README.md
+huggingface/THIRD_PARTY_NOTICE.md
+research/release-cascade-v0.1-protocol.md
+research/experiment-registry.md
+pyproject.toml
+uv.lock

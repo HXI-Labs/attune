@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import platform
@@ -14,6 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from attune.integrity import file_digest
 from attune.models.frozen_event_probe import (
     ProbeDataError,
     discover_vocalsound,
@@ -39,7 +39,11 @@ from attune.models.probe_ood import (
     partition_negatives,
     source_speakers,
 )
-from attune.models.sensevoice_probe import SENSEVOICE_EMBEDDING, FrozenSenseVoiceEncoder
+from attune.models.sensevoice_probe import (
+    SENSEVOICE_EMBEDDING,
+    SENSEVOICE_EN_EMBEDDING,
+    FrozenSenseVoiceEncoder,
+)
 
 AED_DETECTION_RATE = {
     "shout": 0.0,
@@ -53,14 +57,6 @@ AED_ONE_VS_REST_F1 = {
     "sob": 0.48484848484848486,
     "scream": 0.0,
 }
-
-
-def file_sha256(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
 
 
 def extract_partition(
@@ -106,16 +102,12 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
     candidates = training_examples(arguments.probe_manifest, arguments.probe_cache)
     train_examples = tuple(row for row in candidates if row.partition == "train")
     validation_examples = tuple(row for row in candidates if row.partition == "validation")
-    test_examples = inspection_examples(
-        arguments.inspection_manifest, arguments.inspection_cache
-    )
+    test_examples = inspection_examples(arguments.inspection_manifest, arguments.inspection_cache)
     validate_clip_disjoint(train_examples, validation_examples, test_examples)
     vocalsound_rows = load_vocalsound_inspection_rows(arguments.vocalsound_manifest)
     vocalsound_split = make_speaker_disjoint_split(
         discover_vocalsound(arguments.vocalsound_dataset),
-        vocalsound_inspection_examples(
-            arguments.vocalsound_manifest, arguments.vocalsound_cache
-        ),
+        vocalsound_inspection_examples(arguments.vocalsound_manifest, arguments.vocalsound_cache),
         excluded_speakers={row["speaker_id"] for row in vocalsound_rows},
         validation_fraction=arguments.vocalsound_validation_fraction,
         seed=arguments.seed,
@@ -137,6 +129,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         arguments.sensevoice_model,
         arguments.embedding_cache,
         torch,
+        query_language=arguments.query_language,
     )
     train_x, train_y = extract_partition(train_examples, extractor, torch)
     validation_x, validation_y = extract_partition(validation_examples, extractor, torch)
@@ -194,9 +187,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         )
         if validation_loss < best_validation_loss - 1e-6:
             best_validation_loss = validation_loss
-            best_state = {
-                name: value.detach().clone() for name, value in head.state_dict().items()
-            }
+            best_state = {name: value.detach().clone() for name, value in head.state_dict().items()}
             stale_epochs = 0
         else:
             stale_epochs += 1
@@ -245,7 +236,11 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
             "feature_mean": mean,
             "feature_scale": scale,
             "labels": list(FSD50K_PROBE_LABELS),
-            "embedding": SENSEVOICE_EMBEDDING,
+            "embedding": (
+                SENSEVOICE_EN_EMBEDDING
+                if arguments.query_language == "en"
+                else SENSEVOICE_EMBEDDING
+            ),
             "abstention": abstention,
         },
         arguments.checkpoint_output,
@@ -269,9 +264,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         "fine_tuning_performed": False,
         "head": {
             "type": (
-                "linear_with_none_logit"
-                if abstention["method"] == "none_logit"
-                else "linear"
+                "linear_with_none_logit" if abstention["method"] == "none_logit" else "linear"
             ),
             "trainable_parameters": sum(
                 parameter.numel() for parameter in selected_head.parameters()
@@ -279,9 +272,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
             "checkpoint_committed": False,
             "abstention": abstention,
             "candidate_trainable_parameters": {
-                "closed_set": sum(
-                    parameter.numel() for parameter in closed_head.parameters()
-                ),
+                "closed_set": sum(parameter.numel() for parameter in closed_head.parameters()),
                 "closed_set_plus_none_checkpoint": sum(
                     parameter.numel() for parameter in none_head.parameters()
                 ),
@@ -292,9 +283,9 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
         "embedding": extractor.metadata(),
         "data_contract": {
             "probe_manifest": str(arguments.probe_manifest),
-            "probe_manifest_sha256": file_sha256(arguments.probe_manifest),
+            "probe_manifest_sha256": file_digest(arguments.probe_manifest),
             "inspection_manifest": str(arguments.inspection_manifest),
-            "inspection_manifest_sha256": file_sha256(arguments.inspection_manifest),
+            "inspection_manifest_sha256": file_digest(arguments.inspection_manifest),
             "split": (
                 "Clip-disjoint train/validation/100-row inspection test. FSD50K does "
                 "not provide speaker IDs; uploader metadata is not a speaker identity."
@@ -311,10 +302,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
             "ood_training": {
                 "clips": len(ood_training) + len(crema_ood_training),
                 "speakers": sorted(
-                    {
-                        example.speaker_id
-                        for example in (*ood_training, *crema_ood_training)
-                    }
+                    {example.speaker_id for example in (*ood_training, *crema_ood_training)}
                 ),
                 "sources": {
                     "VocalSound": len(ood_training),
@@ -325,10 +313,7 @@ def train(arguments: argparse.Namespace) -> dict[str, Any]:
             "ood_validation": {
                 "clips": len(ood_validation) + len(crema_ood_validation),
                 "speakers": sorted(
-                    {
-                        example.speaker_id
-                        for example in (*ood_validation, *crema_ood_validation)
-                    }
+                    {example.speaker_id for example in (*ood_validation, *crema_ood_validation)}
                 ),
                 "sources": {
                     "VocalSound": len(ood_validation),
@@ -392,9 +377,7 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("data/manifests/fsd50k-frozen-probe.jsonl"),
     )
-    parser.add_argument(
-        "--probe-cache", type=Path, default=Path("data/raw/fsd50k-frozen-probe")
-    )
+    parser.add_argument("--probe-cache", type=Path, default=Path("data/raw/fsd50k-frozen-probe"))
     parser.add_argument(
         "--inspection-manifest",
         type=Path,
@@ -432,6 +415,7 @@ def parse_args() -> argparse.Namespace:
         default=Path("data/raw/crema-probe-ood"),
     )
     parser.add_argument("--sensevoice-model", type=Path, required=True)
+    parser.add_argument("--query-language", choices=("auto", "en"), default="auto")
     parser.add_argument(
         "--embedding-cache",
         type=Path,
@@ -462,9 +446,7 @@ def main() -> None:
     except (ProbeDataError, ValueError) as error:
         raise SystemExit(f"error: {error}") from error
     arguments.metrics_output.parent.mkdir(parents=True, exist_ok=True)
-    arguments.metrics_output.write_text(
-        json.dumps(report, indent=2) + "\n", encoding="utf-8"
-    )
+    arguments.metrics_output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote metrics to {arguments.metrics_output}")
     print(f"Wrote local checkpoint to {arguments.checkpoint_output}")
 

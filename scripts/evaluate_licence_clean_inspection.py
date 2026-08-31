@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import platform
@@ -26,6 +25,7 @@ from attune.baselines.adapters import (
 )
 from attune.baselines.cascade import ModularCascade
 from attune.evaluation.metrics import corpus_character_error_rate, corpus_word_error_rate
+from attune.integrity import file_digest
 
 MODEL_METADATA = {
     "whisper-small": {
@@ -51,9 +51,7 @@ AFFECT_LABELS = ("anger", "fear", "other")
 
 
 def normalize_asr(text: str) -> str:
-    cleaned = "".join(
-        character if character.isalnum() else " " for character in text.lower()
-    )
+    cleaned = "".join(character if character.isalnum() else " " for character in text.lower())
     return " ".join(cleaned.split())
 
 
@@ -61,11 +59,7 @@ def checkpoint_hashes(root: Path) -> dict[str, str]:
     hashes: dict[str, str] = {}
     for path in sorted(root.rglob("*")):
         if path.is_file() and path.suffix in {".bin", ".pt", ".safetensors"}:
-            value = hashlib.sha256()
-            with path.open("rb") as handle:
-                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                    value.update(chunk)
-            hashes[str(path.relative_to(root))] = value.hexdigest()
+            hashes[str(path.relative_to(root))] = file_digest(path)
     return hashes
 
 
@@ -363,9 +357,7 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("data/manifests/licence-clean-inspection.jsonl"),
     )
-    parser.add_argument(
-        "--cache-dir", type=Path, default=Path("data/raw/licence-clean-inspection")
-    )
+    parser.add_argument("--cache-dir", type=Path, default=Path("data/raw/licence-clean-inspection"))
     parser.add_argument("--whisper-path", type=Path, required=True)
     parser.add_argument("--sensevoice-path", type=Path, required=True)
     parser.add_argument("--emotion2vec-path", type=Path, required=True)
@@ -415,9 +407,7 @@ def main() -> None:
         (ModularCascade(asr=sensevoice, affect=emotion2vec), True),
     )
     crema_results = {
-        runner.name: evaluate_crema(
-            runner, crema_rows, arguments.cache_dir, score_asr=score_asr
-        )
+        runner.name: evaluate_crema(runner, crema_rows, arguments.cache_dir, score_asr=score_asr)
         for runner, score_asr in runners
     }
     payload = {
@@ -434,9 +424,7 @@ def main() -> None:
             "gate_decision": "closed",
         },
         "execution": {
-            "run_commit": subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], text=True
-            ).strip(),
+            "run_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
             "wall_seconds": time.time() - started,
             "python": platform.python_version(),
             "platform": platform.platform(),
@@ -449,9 +437,7 @@ def main() -> None:
             "emotion2vec-plus": checkpoint_hashes(arguments.emotion2vec_path),
         },
         "crema_d_expansion": crema_results,
-        "sensevoice_aed": evaluate_sensevoice_aed(
-            sensevoice, event_rows, arguments.cache_dir
-        ),
+        "sensevoice_aed": evaluate_sensevoice_aed(sensevoice, event_rows, arguments.cache_dir),
         "fsd50k_frozen_probe": (
             json.loads(arguments.fsd50k_probe_metrics.read_text(encoding="utf-8"))
             if arguments.fsd50k_probe_metrics.is_file()

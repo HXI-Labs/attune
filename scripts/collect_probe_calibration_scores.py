@@ -62,6 +62,7 @@ def score(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sensevoice-path", type=Path, required=True)
+    parser.add_argument("--query-language", choices=("auto", "en"), default="auto")
     parser.add_argument("--vocalsound-probe-checkpoint", type=Path, required=True)
     parser.add_argument("--fsd50k-probe-checkpoint", type=Path, required=True)
     parser.add_argument(
@@ -137,9 +138,7 @@ def main() -> None:
         arguments.fsd50k_manifest,
         arguments.fsd50k_cache,
     )
-    fsd50k_validation = tuple(
-        example for example in fsd50k if example.partition == "validation"
-    )
+    fsd50k_validation = tuple(example for example in fsd50k if example.partition == "validation")
     # Validate that the held-out inspection IDs remain separate from calibration.
     fsd50k_inspection_examples(
         arguments.expansion_manifest,
@@ -158,6 +157,7 @@ def main() -> None:
     encoder = FrozenEncoderProvider(
         arguments.sensevoice_path,
         arguments.embedding_cache,
+        query_language=arguments.query_language,
     )
     vocalsound_head = FrozenLinearProbeHead(
         name="vocalsound-frozen-linear-probe",

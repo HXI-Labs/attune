@@ -1,0 +1,59 @@
+dataset_id: berst_v1
+dataset_name: BERSt
+source_url: https://huggingface.co/datasets/Rosie-Lab/BERSt
+paper_url: https://doi.org/10.1016/j.csl.2025.101815
+intended_use: Speaker-disjoint English shouting, affect, ASR, and device-robustness research
+licence:
+  name: Creative Commons Attribution 4.0 International
+  identifier: CC-BY-4.0
+  source_text_url: https://creativecommons.org/licenses/by/4.0/legalcode
+  licence_review_status: reviewed_permissive_with_attribution
+  reviewed_by: Jerry Buaba / HXI Labs
+  reviewed_at: "2026-08-30"
+redistribution:
+  original_audio: permitted_with_attribution
+  annotations: permitted_with_attribution
+  derivative_weights: permitted_with_attribution
+contains_personal_data: true
+speaker_disjoint_split_required: true
+downloaded_at: "2026-08-30"
+checksums_manifest: data/manifests/berst-v0.1.jsonl
+source:
+  repository: Rosie-Lab/BERSt
+  revision: fed35c477427cff44206464b7f85e68d1fc99062
+  readme_sha256: 111f91fc9736aa0e07477de2746f432cca3822351321dc752259156743c8e600
+  processed_parquet_bytes: 1055596177
+  parquet_shards:
+    test-00000-of-00001.parquet: f68cdfde5e5003f1c457f0a2d651300647b5c6031dd9487b4124ae200a86a976
+    train-00000-of-00002.parquet: ae0a26f8cb9ee4b4653f3d15240ec50d067fe653e43334894284a16fb154a206
+    train-00001-of-00002.parquet: b67800f5dfb54c067184d8dc8567c22c99c0dc4c13ecec21f39892ba2c8eac3a
+    validation-00000-of-00001.parquet: 733e61551eaffc648bfb86c0d46d129bc0676548534496052efa6072303179d2
+prepared_contract:
+  source_clip_count: 4523
+  clip_count: 4441
+  excluded_duplicate_waveform_rows: 82
+  duplicate_waveform_groups: 31
+  speaker_count: 98
+  split_unit: speaker
+  speaker_counts:
+    train: 78
+    development: 10
+    sealed_test: 10
+  clip_counts:
+    train: 3429
+    development: 487
+    sealed_test: 525
+  affect_labels: [anger, disgust, fear, joy, neutral, sadness, surprise]
+  style_labels: [shouting]
+  sample_rate_hz: 16000
+  channels: 1
+  sample_width_bits: 16
+notes:
+  - The official actor-disjoint train, validation, and test splits map to Attune train, development, and sealed_test without repartitioning.
+  - The pinned processed source contains 31 repeated-waveform groups covering 82 rows. Every row in those groups is excluded; one group crosses development and sealed_test, and some groups have conflicting labels or speakers.
+  - Affect labels are actor prompts and have not been validated by listeners. They are weak intended-delivery targets, not verified perceived affect.
+  - Source shout/no-shout labels supervise only the shouting style. Three n/a intensity rows remain style-unsupervised.
+  - Nonsense phrases and paired intensity takes help test acoustic reliance without emotionally suggestive text.
+  - Phone model, placement, obstruction, home acoustics, and accent variation make the corpus useful for device and loudness-shortcut evaluation.
+  - Citation and attribution are required in downstream dataset and model cards.
+  - Keep local audio and prepared features outside Git.

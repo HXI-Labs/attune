@@ -197,7 +197,6 @@ def render_demo_html(
 """
 
 
-
 def _affect_distribution_html(affect) -> str:
     """Project the schema category distribution; do not invent a label."""
     parts = []

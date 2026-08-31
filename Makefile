@@ -1,4 +1,4 @@
-.PHONY: fmt lint test
+.PHONY: fmt lint test build check
 
 fmt:
 	uv run ruff format .
@@ -10,3 +10,8 @@ lint:
 
 test:
 	uv run pytest
+
+build:
+	uv build
+
+check: lint test build

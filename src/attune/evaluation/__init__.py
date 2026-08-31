@@ -1,4 +1,4 @@
-"""Public Phase 1 evaluation API."""
+"""Public evaluation API."""
 
 from attune.evaluation.metrics import (
     acoustic_preference_score,

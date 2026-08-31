@@ -1,0 +1,36 @@
+# Model card, notices, and contracts
+huggingface/README.md=README.md
+huggingface/THIRD_PARTY_NOTICE.md=THIRD_PARTY_NOTICE.md
+docs/model-card.md=MODEL_CARD.md
+docs/dataset-card.md=DATASET_CARD.md
+data/schemas/attune-output-v2.0.schema.json=attune-output-v2.0.schema.json
+
+# Locked model composition
+artifacts/models/attune-cadence-v0.1-fp.onnx=attune-cadence-242m-fp.onnx
+artifacts/models/attune-cadence-v0.1-fp.export.json=export.json
+artifacts/models/attune-cadence-v0.1-int8.onnx=attune-cadence-242m-int8.onnx
+artifacts/models/attune-cadence-v0.1-int8.quantization.json=quantization.json
+artifacts/release-candidate/vocalsound-en-head.npz=event-head.npz
+artifacts/evaluation/affect-focus-v0.9/calibration.json=calibration.json
+
+# Measured evidence
+artifacts/release-candidate/probe-en-embedding-parity.json=evidence/fp/probe-embedding-parity.json
+artifacts/release-candidate/vocalsound-en-fp-report.json=evidence/fp/event-probe.json
+artifacts/release-candidate/vocalsound-en-int8-report.json=evidence/int8/event-probe.json
+artifacts/release-candidate/styles-disabled-fp.json=evidence/fp/styles-disabled.json
+artifacts/release-candidate/styles-disabled-int8.json=evidence/int8/styles-disabled.json
+artifacts/release-candidate/int8-deployment-smoke.json=evidence/int8/deployment-smoke.json
+artifacts/release-candidate/ravdess-int8-report.json=evidence/int8/affect-ravdess.json
+artifacts/evaluation/affect-focus-v0.9/development-report.json=evidence/fp/affect-development.json
+artifacts/evaluation/affect-focus-v0.9/regression-report.json=evidence/fp/affect-regression.json
+artifacts/evaluation/affect-focus-v0.9/ravdess-report.json=evidence/fp/affect-ravdess.json
+
+# Mandatory publication evidence; bundle construction fails until these exist
+artifacts/release/cadence-v0.1/hostile-speech-regression.json=evidence/hostile-speech-regression.json
+artifacts/release/cadence-v0.1/release-metrics.json=metrics.json
+artifacts/release/cadence-v0.1/release-gates.json=release-gates.json
+artifacts/release/cadence-v0.1/artifact-manifest.json=artifact-manifest.json
+
+# Reproducibility and legal records
+research/release-cascade-v0.1-protocol.md=protocol.md
+data/provenance/public_weight_redistribution.json=public-weight-redistribution.json

@@ -287,21 +287,11 @@
       "research/error-analysis/starss23-scene-raster-durations.json",
       "research/error-analysis/starss23-tiled-mean4-negative-durations.json",
       9698
-    ],
-    [
-      "data/manifests/starss23-scene-raster-development.jsonl",
-      "research/error-analysis/starss23-tiled-mean4-development.jsonl",
-      158216
-    ],
-    [
-      "data/manifests/starss23-scene-raster-inspection.jsonl",
-      "research/error-analysis/starss23-tiled-mean4-inspection.jsonl",
-      112873
-    ],
-    [
-      "data/manifests/starss23-scene-raster.provenance.json",
-      "research/error-analysis/starss23-tiled-mean4-provenance.json",
-      2391
     ]
+  ],
+  "canonical_inputs": [
+    "data/manifests/starss23-scene-raster-development.jsonl",
+    "data/manifests/starss23-scene-raster-inspection.jsonl",
+    "data/manifests/starss23-scene-raster.provenance.json"
   ]
 }

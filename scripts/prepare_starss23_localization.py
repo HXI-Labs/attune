@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import audioop
 import csv
-import hashlib
 import json
 import re
 import wave
@@ -14,6 +13,8 @@ from array import array
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
+
+from attune.integrity import file_digest
 
 WINDOW_MS = 10_000
 LABEL_FRAME_MS = 100
@@ -24,14 +25,6 @@ INSPECTION_WINDOWS = 40
 POSITIVE_FRACTION = 0.625
 MAX_WINDOWS_PER_RECORDING = 2
 _ROOM_PATTERN = re.compile(r"_room(?P<room>\d+)_")
-
-
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
 
 
 def metadata_rows(path: Path) -> list[tuple[int, int, int]]:
@@ -238,7 +231,7 @@ def materialize(
             {
                 "clip_id": target.stem,
                 "cache_path": cache_path,
-                "sha256": digest(target),
+                "sha256": file_digest(target),
                 "duration_ms": WINDOW_MS,
                 "sample_rate_hz": 16_000,
                 "channels": 1,
@@ -354,10 +347,10 @@ def main() -> None:
         "derived_format": {"sample_rate_hz": 16_000, "channels": 1},
         "development_manifest": str(arguments.development_manifest),
         "development_rows": len(development_manifest),
-        "development_manifest_sha256": digest(arguments.development_manifest),
+        "development_manifest_sha256": file_digest(arguments.development_manifest),
         "inspection_manifest": str(arguments.inspection_manifest),
         "inspection_rows": len(inspection_manifest),
-        "inspection_manifest_sha256": digest(arguments.inspection_manifest),
+        "inspection_manifest_sha256": file_digest(arguments.inspection_manifest),
         "audio_committed": False,
         "privacy_consent": (
             "Natural participant recordings; collection included consent and published "

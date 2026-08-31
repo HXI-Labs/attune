@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import platform
@@ -20,6 +19,7 @@ from prepare_common_voice_british import LICENCE, load_manifest, safe_target, ve
 
 from attune.baselines.adapters import BaselineInput, SenseVoiceSmallAdapter, WhisperSmallAdapter
 from attune.evaluation.metrics import corpus_character_error_rate, corpus_word_error_rate
+from attune.integrity import file_digest
 
 COMPARATORS = {
     "crema_d_acted_us": {"sensevoice-small": 0.0806, "whisper-small": 0.1226},
@@ -48,11 +48,7 @@ def checkpoint_hashes(root: Path) -> dict[str, str]:
     hashes: dict[str, str] = {}
     for path in sorted(root.rglob("*")):
         if path.is_file() and path.suffix in {".bin", ".pt", ".safetensors"}:
-            digest = hashlib.sha256()
-            with path.open("rb") as handle:
-                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                    digest.update(chunk)
-            hashes[str(path.relative_to(root))] = digest.hexdigest()
+            hashes[str(path.relative_to(root))] = file_digest(path)
     return hashes
 
 
@@ -206,9 +202,7 @@ def main() -> None:
         "execution": {
             "offline_after_fetch": True,
             "network_disabled_by_model_runtime_flags": True,
-            "run_commit": subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], text=True
-            ).strip(),
+            "run_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
             "wall_seconds": time.time() - started,
             "python": platform.python_version(),
             "platform": platform.platform(),

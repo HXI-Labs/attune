@@ -8,7 +8,7 @@ licence:
   contents_name: Database Contents License
   source_text_url: https://github.com/CheyneyComputerScience/CREMA-D
   licence_review_status: reviewed_internal_research_ok
-  reviewed_by: Tokyo on behalf of Jerry Buaba / HXI Labs
+  reviewed_by: Jerry Buaba / HXI Labs
   reviewed_at: "2026-08-26"
 conditions:
   attribution_required: true
@@ -30,4 +30,9 @@ notes:
   - CREMA-D has no surprise source category; none is inferred.
   - Source intensity is retained as metadata and must not be mapped to shouting, whispering, or vocal effort.
   - The expansion manifest is data/manifests/licence-clean-inspection.jsonl.
+  - The perceptual v1 expansion uses only voice-channel judgements from the pinned official finishedResponses.csv table. It converts each clip's 6-12 listener votes into an affect distribution instead of treating the actor's intended delivery as unanimous ground truth.
+  - Perceptual v1 reserves actors 1061-1070 for development, uses 1031-1060 and 1071-1080 for training, and excludes the existing 1081-1091 regression actors. The previously opened 1001-1030 inspection actors are also excluded.
+  - The official ratings table at revision 1658cd342dff90010aa843eaeebd53610a08b1dc has SHA-256 5eab9668f6adc2666b0179ae80553a50a5172dbc9812e582cd0ffa7bc0dd237e.
+  - The verified 4,097-row perceptual source manifest has SHA-256 91eabf694df67ea7604f9539a37dac12c5ffe0036321380bd4976dc170c181bf and contains 3,278 train clips plus 819 development clips.
+  - Known invalid clips 1064_IEO_DIS_MD and 1076_MTI_SAD_XX are excluded before download.
   - This is an operational internal-research review, not legal advice or lawyer sign-off.

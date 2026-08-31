@@ -1,0 +1,50 @@
+dataset_id: attune_inline_event_mixtures_v0.1
+dataset_name: Attune inline-event mixtures v0.1
+intended_use: Internal strong-span training augmentation for discrete vocal events
+source_datasets:
+  - dataset_id: common_voice_17_english
+    role: speech and verified transcript
+    licence: CC0-1.0
+  - dataset_id: vocalsound
+    role: isolated vocal event
+    licence: CC-BY-SA-4.0
+licence:
+  identifier: CC-BY-SA-4.0
+  rationale: The more restrictive VocalSound share-alike terms govern derivative audio.
+redistribution:
+  generated_audio: not_in_git
+  derivative_dataset: share_alike_required_if_distributed
+generation:
+  script: scripts/prepare_inline_event_mixtures.py
+  source_manifest: data/manifests/inline-event-mixtures-source-v0.1.jsonl
+  source_manifest_sha256: edaa669a9b18d77490afa37ef3d21913fecb7b2c3eed51f1ae839227b935040b
+  audit: data/manifests/inline-event-mixtures-v0.1-audit.json
+  sample_rate_hz: 16000
+  deterministic: true
+  class_independent_gain_and_placement: true
+  rows: 2715
+  train_rows: 2405
+  development_rows: 310
+  placements:
+    - before
+    - overlay
+    - after
+  event_levels_db:
+    - -6
+    - -3
+    - 0
+    - 3
+    - 6
+split_policy:
+  speaker_disjoint: true
+  sealed_source_rows_excluded: true
+limitations:
+  - Event spans are exact synthesis envelopes, not human-reviewed acoustic boundaries.
+  - VocalSound events are acted and isolated rather than naturally occurring within speech.
+  - Synthetic mixtures cannot serve as final external evaluation evidence.
+notes:
+  - Source hashes and generation settings are retained in the audit JSON; exact pairs and parameters are deterministic from the pinned inputs and script.
+  - Ten VocalSound source clips with no measurable activity were excluded and recorded in the audit.
+  - Generated waveforms and derived features remain local and gitignored.
+  - Generated audio paths are relative to the source manifest for portable local reproduction.
+  - Placement and event level are hash-derived independently of class; their realized counts are recorded in the audit.

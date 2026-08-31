@@ -1,162 +1,357 @@
-# Project Attune
+# Attune Cadence
 
-Project Attune is a compact, calibrated, time-aligned, uncertainty-aware
-paralinguistic transcription layer. It preserves what was said, how it was
-audibly expressed, where that expression occurred, and how certain the model is.
+Attune Cadence is an English speech model developed by Project Attune. It
+combines a transcript with word timing, localized vocal events, perceived
+affect probabilities, uncertainty, and abstention information. JSON schema v2
+is the authoritative output; XML is rendered deterministically from validated
+JSON.
 
-Attune is **not a machine that feels emotion**. Its outputs estimate perceived
-vocal expression and observable vocal behaviour. They are not verified internal
-states, diagnoses, deception judgments, or evidence for high-stakes decisions.
+The project describes audible expression, not a speaker's true emotional
+state. Its output is not suitable for diagnosis, deception detection,
+protected-trait inference, surveillance, or automated high-stakes decisions.
 
-## Research position
+## Current status
 
-The authoritative output is versioned JSON containing a word-timed transcript,
-continuous vocal styles, discrete vocal events, affect estimates, and explicit
-uncertainty. XML is a deterministic display projection produced only from
-validated JSON; a model never generates markup. Spoken text remains separate
-from paralinguistic metadata whenever outputs enter a trusted downstream
-channel.
+Cadence v0.1 is an experimental research preview implemented in full precision
+and INT8. The source code is suitable for publication and review. The model
+weights are uploaded privately first because the recorded SenseVoice
+redistribution review does not yet approve a public derivative-weight release.
 
-The intended base is **SenseVoice-Small (~234M parameters)**, with
-**Whisper-Small** as the fallback baseline and emotion2vec+ as an affect
-baseline. Their 2026-08-26 licence review permits downloading official weights
-for internal baseline runs only. Primary deployment is local or low-cost
-near-real-time inference, with INT8 quantization evaluated later.
+The preview contains the 241,904,650-parameter Cadence graph and a 30,726-parameter
+calibrated event head. The combined deployment remains below 242 million
+parameters. The INT8 graph is 500 MB, 48.4% smaller than the 970 MB
+full-precision graph.
 
-## Stage gate
+The release candidate supports ASR, word timing, affect distributions,
+abstention, and conservative vocal-event output. Vocal styles are disabled.
+A four-way sound-event style head hallucinated `whispering` on ordinary speech,
+and a replacement BERSt shouting head missed its fixed recall and F1 gates.
+Both experiments were rejected rather than hidden behind a higher runtime
+threshold.
 
-Phase 1 closure is tracked in `research/phase1-close.md`. The gold gate remains
-closed: current event/style targets are weak source labels and their existing
-spans are whole utterances, not localization. Third-party model/data licences
-remain independent, public weight redistribution is not authorized, and
-MSP-Podcast use remains pending review.
+The event head reaches macro-F1 0.814 through the full-precision ONNX graph and
+0.826 through INT8 on the 80-clip opened VocalSound inspection set. Both graphs
+produce two false event emissions across 160 external OOD speech and sound
+controls, a 1.25% false-positive clip rate. These are source-labelled opened
+benchmarks, not a claim of natural inline-event accuracy.
 
-Phase 2 is the frozen-encoder probe package in `research/phase2-probes.md`.
-SenseVoice-Small remains fully frozen; only small linear probe heads were
-trained. The package adds validation-selected affect abstention and a
-weight-refusing local WAV CLI, but does not authorize gold claims or Phase 3
-joint training. The gate remains closed.
+Four neutral system voices reading `I hate you, I hate you so much, never call
+me again` are the exact regression for the failure that prompted this release.
+Both FP32 and INT8 transcribe all four correctly, return no events or styles,
+and abstain on affect. The INT8 FastAPI and pseudo-streaming smoke test commits
+the same transcript at real-time factor 0.055 on the development Mac.
 
-## Quick start
+The retained affect model reaches macro-F1 0.6643 on development, 0.6336 on the
+opened regression set, and 0.3853 on external RAVDESS. INT8 reaches 0.3803 on
+the same RAVDESS set, a 0.51-point absolute loss. Both external results remain
+below the project's 0.40 public-release target. A fresh consented human
+recording of the hostile-speech regression and the derivative-weight licensing
+review also remain required before public model publication. The current
+artifact is therefore a research preview, not a validated public emotion
+model. An internal joy-to-distress transition regression also exposed a
+specific compact-head failure: both source clips were classified as fear even
+though the emotion2vec+ teacher distinguished them correctly. The locked
+composition and acceptance checks are in
+[`research/release-cascade-v0.1-protocol.md`](research/release-cascade-v0.1-protocol.md).
 
-Requires Python 3.12 exactly (the project excludes 3.13) and
-[uv](https://docs.astral.sh/uv/).
+## Output
 
-```bash
-uv sync --extra dev
-uv run pytest
+The structured result can be rendered as a compact readable transcript. These
+examples illustrate the intended Attune experience; labels that have not yet
+passed the release gates remain disabled in the current checkpoint.
+
+```text
+[laughing speech; perceived joy 81%]
+I cannot believe you actually did that! [laugh]
+
+[whispering; perceived fear 63%]
+Did you hear that outside? [breath]
+
+[crying speech; perceived distress 76%]
+I said I was fine. [sob]
+
+[shouting; perceived anger 72%]
+Put my cake back in the fridge!
 ```
 
-Useful commands:
+The same words can produce different results when their audible delivery
+changes:
 
-```bash
-make fmt
-make lint
-make test
-uv run python scripts/evaluate.py
+```text
+[neutral] I'm fine.
+[laughing speech; perceived joy 78%] I'm fine. [laugh]
+[crying speech; perceived distress 69%] I'm fine. [sob]
+[affect uncertain] I'm fine.
 ```
 
-PyTorch support is optional and required only for local model runners and the
-Stage 2 frozen event probe:
+When turn or VAD boundaries separate changing delivery into distinct
+utterances, a conversation can read:
 
-```bash
-uv sync --extra dev --extra torch --extra model-runners
+```text
+[neutral] I thought the parcel was lost.
+[laughing speech; perceived joy 74%] It was behind the door the whole time. [laugh]
+[crying speech; perceived distress 66%] I really needed that today. [sob]
 ```
 
-No model checkpoints are downloaded by installation.
+Square brackets are a human-readable projection, not model-generated markup.
+JSON remains authoritative and keeps transcript text separate from trusted
+model metadata.
 
-`AttuneCascade` is the concrete inspected runner: SenseVoiceSmall transcript
-and AED, emotion2vec+ affect, and the union of the frozen VocalSound and FSD50K
-linear probes when their validation-selected max-softmax, energy, or
-genuine-negative `none`-logit checks do not abstain. Abstention contributes no
-event/style, preserving AED-only output. Run the combined original-150 plus
-licence-clean-160 inspection with
-`scripts/evaluate_attune_cascade.py` after preparing the bounded datasets,
-reviewed local model paths, and gitignored heads. The encoder remains frozen,
-all annotations remain provisional, and the scientific gold gate is closed.
-The frame-level DCASE retry scores 0.7285 segment / 0.4637 collar F1 directly;
-validation-selected hysteresis trades segment F1 to 0.7059 while improving
-collar F1 to 0.5279, versus 0.3183 / 0 for whole-clip. It enables gated frame
-spans for laugh/cough/throat-clear when its gitignored checkpoint is configured.
-Other `0..duration` event/style spans remain utterance scope, never
-localization. A separate natural-scene STARSS23 laughter head on 10 s crops scores 0.7381
-segment F1 versus 0.4894 whole-clip, but only 0.1159 collar F1. A 60 s scene
-raster MLP scores 0.4794 versus 0.1721 whole-clip and 0.1074 collar F1 at 40
-epochs, 0.3974 / 0.0303 after a longer decoder pass, 0.5124 / 0.1395 after a
-validation-only decoder repair, 0.3716 / 0.0585 after an onset-shift decoder
-pass, 0.3673 / 0.0588 after a 214-epoch boundary-weighted BCE retrain, then
-0.2121 / 0.0339 after an 86-epoch frozen BiGRU with the predeclared 0.1395
-decoder, then 0.3143 / 0.0148 on tiled inspection (1/26/107 on 108 gold)
-after a mean-of-4 tiled MLP (first-60s control 0.0308 vs 0.1395), then
-0.3143 / 0.0296 on tiled inspection (2/25/106) after a Kyoto first-60s-val
-retrain (first-60s control 0.03125 vs 0.1395); the tiled collar gate fails,
-so STARSS23 timestamps stay unwired and the reported best remains 0.1395.
-`data/raw/starss23-scene-raster-v2` is max-RMS audio only and was not this
-eval. A single temporal Conv1d follow-up scores 0.7113 / 0.0282 and also
-fails the fixed collar gate.
-Details are in `research/timing-holes.md`.
-A 49-clip / 48-event STARSS23 first-60s gold-review pack (29 true negatives
-kept) lives in
-`data/manifests/starss23-gold-review-pack.jsonl`. It is human 100 ms activity,
-not Attune gold. Source 100 ms spans are overlays only. Review protocol:
-`docs/gold-review-starss23.md`. Source memo:
-`research/gold-sources.md`. The gate stays closed.
+For speech without supported paralinguistic evidence, a human-readable view may
+be:
 
-For one or more local WAV files, `scripts/infer.py` emits authoritative JSON,
-optional deterministic XML, and a playable HTML timeline that distinguishes
-DCASE frame-local laugh/cough/throat_clear from utterance-scoped `0..duration`
-bars. SenseVoice is required; emotion2vec+/VocalSound/FSD50K/DCASE heads are
-omitted honestly when absent. There is no live DCASE-stamped demo until the
-gated frame-head is on disk. How-to: `research/demo/README.md`. Offline path
-notes remain in `docs/baseline-runners.md`.
+```text
+[affect uncertain] I hate you, I hate you so much—never call me again.
+```
 
+The model returns structured data rather than generating the bracketed form:
 
-## Repository map
+```json
+{
+  "schema_version": "2.0",
+  "transcript": {
+    "text": "I hate you, I hate you so much, never call me again.",
+    "confidence": 0.96,
+    "words": [
+      {"id": "w1", "text": "I", "start_ms": 80, "end_ms": 150, "confidence": 0.98}
+    ]
+  },
+  "styles": [],
+  "events": [],
+  "affect": {
+    "categories": {
+      "neutral": 0.08,
+      "joy": 0.01,
+      "distress": 0.29,
+      "anger": 0.38,
+      "fear": 0.12,
+      "surprise": 0.02,
+      "other": 0.05,
+      "ambiguous": 0.05
+    },
+    "top_label": null,
+    "abstain": true,
+    "abstention_reason": "No category passed the calibrated threshold."
+  },
+  "uncertainty": {
+    "out_of_distribution_probability": 0.17,
+    "interpretation_warning": "Vocal affect is a probabilistic perception, not a verified internal state."
+  }
+}
+```
 
-- `src/attune/schema/output.py` — authoritative Pydantic v2 JSON schema (`1.0`)
-- `src/attune/schema/xml.py` — deterministic, injection-safe XML renderer
-- `src/attune/inference/packaging.py` — separated trusted-channel packaging
-- `src/attune/inference/timeline.py` — playable HTML timeline for `scripts/infer.py`
-- `research/demo/` — wav-in cascade demo how-to and display fixture
-- `src/attune/audio/contracts.py` — 16 kHz mono and duration contracts
-- `src/attune/evaluation/` — offline metrics and report harness
-- `src/attune/baselines/` — lazy baseline adapters and modular cascade
-- `docs/` — research, annotation, ontology, ethics, model, and dataset guidance
-- `configs/` — staged data/model/training/evaluation/deployment defaults
-- `data/fixtures/semantic_conflict/` — synthetic APS/harness wiring fixtures
-- `data/provenance/` — dataset licence and provenance ledgers
-- `research/` — experiment registry, baseline gate, error analysis, and paper work
-- `scripts/` — explicit stage-gated entry points, including the frozen event probe
+A supported localized event includes timestamps and confidence:
 
-Notebooks may be used for exploration only. They are not the training pipeline.
-Training and evaluation work belongs in importable `src/attune/` modules with
-tested script entry points.
+```json
+{
+  "label": "cough",
+  "temporal_scope": "localized",
+  "start_ms": 1450,
+  "end_ms": 1680,
+  "confidence": 0.99,
+  "status": "committed"
+}
+```
 
-## Output contract
+Cadence v0.1 returns an utterance-level affect distribution and experimental
+non-overlapping affect windows for recordings longer than four seconds. These
+windows make changing delivery visible in the interface, but they are fixed
+analysis windows rather than learned transition boundaries. Their categorical
+accuracy has not passed the release gate. Localized vocal events can still
+occur anywhere within the utterance.
 
-The schema supports quality probabilities, language confidence, genuine word timings,
-overlapping styles, between-word events, dimensional and categorical affect,
-abstention, and out-of-distribution uncertainty. Affect categories always form
-a complete probability distribution. If `affect.abstain` is `true`,
-`affect.top_label` **must be `null`**.
+## Architecture
 
-SenseVoice and Whisper adapters populate `transcript.words` only from explicit
-model-returned alignment. Missing or invalid alignment remains `[]`; Attune
-never interpolates words across an utterance.
+Cadence uses SenseVoice-Small as a shared acoustic encoder. One ONNX pass
+produces CTC transcription, frame-level event outputs, affect outputs, and a
+padding-safe 5,120-value acoustic embedding. A small NumPy linear head consumes
+that embedding for calibrated utterance-level vocal events. The head does not
+require PyTorch at inference time. Raw SenseVoice event and emotion tags are
+not used.
 
-See `docs/ontology.md` and `docs/annotation-guide.md` before creating labels.
-The required framing is “How does the speaker sound?”, never “What is the
-speaker truly feeling?”
+The deployment path keeps transcript content and model-produced metadata in
+separate fields. Downstream applications should pass them through trusted
+structured channels rather than concatenate markup into the spoken text.
 
-## Licence
+The release artifacts are `attune-cadence-v0.1-fp.onnx`,
+`attune-cadence-v0.1-int8.onnx`, and `vocalsound-en-head.npz`. Styles remain in
+the research architecture but have no enabled release labels.
 
-Code is MIT licensed. Dataset licences and model licences remain independent.
-Official SenseVoice-Small weights use the
-[FunASR Model Open Source License Agreement v1.1](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE);
-use requires attribution to FunASR/FunAudioLLM SenseVoiceSmall, retention of the
-model name, and a link to that licence. Third-party conversions require their
-own review. Whisper's upstream project licenses its code and original weights
-under MIT, while its Hugging Face card currently says Apache-2.0; this project
-prefers the upstream MIT licence. emotion2vec+ weight cards use `model-license`
-from the FunASR model-agreement family; their weights are not covered by the
-emotion2vec code licence. Exact review records are in `data/provenance/`.
+## Installation
+
+Python 3.12 and [uv](https://docs.astral.sh/uv/) are required.
+
+```bash
+uv sync --extra dev --extra model-runners --extra dataset-tools
+make check
+```
+
+`make check` verifies formatting, runs Ruff and pytest, and builds the source
+distribution and wheel.
+
+Installation does not download model checkpoints. Review the SenseVoice model
+agreement before setting `ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1`. Local weights
+are expected below `data/raw/`, which is ignored by Git.
+
+## Inference and local service
+
+The command-line runner accepts PCM16, 16 kHz, mono WAV files between 0.5 and
+30 seconds:
+
+```bash
+ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/infer_onnx.py \
+  --model artifacts/models/attune-cadence-v0.1-int8.onnx \
+  --sensevoice-path data/raw/model-cache/sensevoice-small \
+  --calibration artifacts/evaluation/affect-focus-v0.9/calibration.json \
+  --probe-head artifacts/release-candidate/vocalsound-en-head.npz \
+  --quantization int8 \
+  --xml input.wav
+```
+
+Run the same backend behind FastAPI:
+
+```bash
+ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 uv run python scripts/serve.py \
+  --model artifacts/models/attune-cadence-v0.1-int8.onnx \
+  --sensevoice-path data/raw/model-cache/sensevoice-small \
+  --calibration artifacts/evaluation/affect-focus-v0.9/calibration.json \
+  --probe-head artifacts/release-candidate/vocalsound-en-head.npz \
+  --quantization int8
+```
+
+The service exposes `POST /v1/analyse`, `WS /v1/stream`, `/healthz`, and
+Prometheus-compatible `/metrics`. The root route serves a small test interface
+with upload, microphone recording, audio normalization, structured evidence,
+and raw JSON. Batch uploads are capped at 2 MiB; valid PCM16 input within the
+30-second model limit is smaller than that cap.
+
+Every route must be authenticated before the service is exposed through a
+public tunnel. Temporary Basic authentication is configured with environment
+variables:
+
+```bash
+ATTUNE_DEMO_USERNAME=attune-test \
+ATTUNE_DEMO_PASSWORD='generate-a-new-secret' \
+ATTUNE_SENSEVOICE_LICENSE_REVIEWED=1 \
+uv run python scripts/serve.py \
+  --model artifacts/models/attune-cadence-v0.1-int8.onnx \
+  --sensevoice-path data/raw/model-cache/sensevoice-small \
+  --calibration artifacts/evaluation/affect-focus-v0.9/calibration.json \
+  --probe-head artifacts/release-candidate/vocalsound-en-head.npz \
+  --quantization int8
+```
+
+Uploads are processed in memory. A reverse proxy or tunnel still handles audio
+in transit and requires its own security review.
+
+## Training and evaluation
+
+Training uses checksum-verified JSONL manifests and delta checkpoints. Missing
+task labels are masked rather than interpreted as negatives. Each run records
+the manifest hash, training-source hash, seed, configuration, parameter counts,
+loss history, elapsed time, and estimated compute cost.
+
+The current affect-focused protocol is documented in
+[`research/affect-focus-v0.9-protocol.md`](research/affect-focus-v0.9-protocol.md).
+The wider reproduction guide is
+[`docs/cloud-training.md`](docs/cloud-training.md). Dataset and weight terms are
+recorded under [`data/provenance/`](data/provenance/); third-party audio and
+weights are not redistributed.
+The complete model-weight release sequence is
+[`docs/release-checklist.md`](docs/release-checklist.md).
+
+Important repository areas are:
+
+- `src/attune/models/`: shared model and research heads;
+- `src/attune/training/`: manifests, losses, batching, checkpoints, and audits;
+- `src/attune/evaluation/`: ASR, event, affect, calibration, and release metrics;
+- `src/attune/schema/`: schema v1/v2 models and deterministic XML rendering;
+- `src/attune/inference/`: ONNX inference, streaming, export, and quantization;
+- `src/attune/service/`: FastAPI routes, authentication, and browser interface;
+- `scripts/`: reproducible data, training, evaluation, and deployment commands;
+- `research/`: experiment registry, results, and error analysis.
+
+## Release publishing
+
+Hugging Face publication is manifest-driven. A release bundle manifest names
+the gate report and every local source-to-repository file mapping with its
+SHA-256 digest. The publisher rejects missing or changed files, incomplete or
+unsafe destinations, stale gate schemas, failed external event/style/affect
+validation, and a missing or failed human hostile-speech regression.
+External event, style, and affect gates are rerun independently after INT8
+quantization and recalibration; full-precision acceptance is not reused.
+
+After a candidate passes the full-precision and INT8 release suite, inspect the
+upload plan before publishing:
+
+```bash
+uv run python scripts/publish_huggingface.py \
+  --repo-id buabaj/attune-cadence \
+  --bundle-manifest artifacts/release/cadence-v0.1/huggingface-bundle.json \
+  --dry-run
+```
+
+Create the checksum ledger and `huggingface-bundle.json` from the committed
+release inventories:
+
+```bash
+uv run python scripts/build_release_manifest.py \
+  --artifact-list configs/release/v0.1-artifacts.txt \
+  --output artifacts/release/cadence-v0.1/artifact-manifest.json
+
+uv run python scripts/build_huggingface_bundle.py \
+  --release-name "Attune Cadence v0.1" \
+  --gate-report artifacts/release/cadence-v0.1/release-gates.json \
+  --file-list configs/release/v0.1-huggingface-files.txt \
+  --output artifacts/release/cadence-v0.1/huggingface-bundle.json
+```
+
+Both builders fail if a listed artifact is absent. They hash every source, and
+the publisher recalculates those hashes immediately before upload.
+
+The hostile-speech gate cannot be enabled with a bare Boolean flag. Analyse a
+fresh, consented, event-free human recording of the regression sentence with
+the final graph, then create the hashed evidence report:
+
+```bash
+uv run python scripts/infer_onnx.py hostile-human.wav \
+  --model <final-model.onnx> \
+  --sensevoice-path data/raw/model-cache/sensevoice-small \
+  --calibration <final-calibration.json> \
+  --probe-head artifacts/release-candidate/vocalsound-en-head.npz \
+  --quantization int8 \
+  --output-dir artifacts/release/cadence-v0.1/hostile
+
+uv run python scripts/check_hostile_speech_regression.py \
+  --audio hostile-human.wav \
+  --inference artifacts/release/cadence-v0.1/hostile/hostile-human.attune.json \
+  --model <final-model.onnx> \
+  --calibration <final-calibration.json> \
+  --human-recording-confirmed \
+  --speaker-consent-confirmed \
+  --output artifacts/release/cadence-v0.1/hostile-speech-regression.json
+```
+
+The check requires an exact normalized transcript at confidence 0.90 or above
+and no event or style output for that deliberately event-free, ordinary-voice
+recording. The release bundle includes the report, not the identifiable WAV.
+
+Omit `--dry-run` to upload privately. Public repository creation additionally
+requires `--public` plus `--redistribution-review`. The committed review record
+currently denies public weight redistribution. Public upload requires an
+approval covering the pinned SenseVoice revision, the exact training-source
+set, and the SHA-256 digest of every ONNX artifact in the bundle.
+Private upload does not override the upstream model agreement or dataset terms.
+
+## Licence and use restrictions
+
+Project code is MIT licensed. Dataset and model licences remain independent.
+SenseVoice-Small weights use the
+[FunASR Model Open Source License Agreement v1.1](https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE).
+Redistribution of derived weights requires a separate review of base-model and
+training-data terms.
+
+Do not use Attune for covert monitoring, diagnosis, deception detection,
+protected-trait inference, or automated hiring, credit, insurance, policing,
+medical, legal, or other consequential decisions. Uncertain output should lead
+to cautious clarification, not an asserted emotion.

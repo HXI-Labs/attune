@@ -13,6 +13,8 @@ import wave
 from pathlib import Path
 from typing import Any
 
+from attune.integrity import file_digest
+
 DATASET_ID = "ghananlpcommunity/ghana-english-asr-2700hrs"
 DATASET_REVISION = "893a08082ec0f34b5d2fbec56f1ab2230ebea1e7"
 DEFAULT_MANIFEST = Path("data/manifests/ghana-english-wer.jsonl")
@@ -48,14 +50,6 @@ REQUIRED_FIELDS = {
 
 class GhanaPreparationError(RuntimeError):
     """Raised when the NC-only slice cannot be prepared safely."""
-
-
-def file_digest(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def load_manifest(path: Path) -> list[dict[str, Any]]:

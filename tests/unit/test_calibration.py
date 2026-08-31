@@ -28,8 +28,9 @@ def test_temperature_scaling_reduces_overconfidence() -> None:
     calibrated = [scaling.probabilities(row) for row in logits]
 
     assert temperature > 1.0
-    assert metrics(calibrated, ["a", "b", "b", "a"], ("a", "b"))["brier"] < (
-        metrics(raw, ["a", "b", "b", "a"], ("a", "b"))["brier"]
+    assert (
+        metrics(calibrated, ["a", "b", "b", "a"], ("a", "b"))["brier"]
+        < (metrics(raw, ["a", "b", "b", "a"], ("a", "b"))["brier"])
     )
 
 
@@ -53,9 +54,7 @@ def test_load_calibration_rejects_test_fitting(tmp_path: Path) -> None:
 def test_scale_distribution_preserves_label_order_and_argmax() -> None:
     scaling = TemperatureCalibration(("neutral", "joy", "other"), 2.0)
 
-    result = scaling.scale_distribution(
-        {"other": 0.1, "neutral": 0.7, "joy": 0.2}
-    )
+    result = scaling.scale_distribution({"other": 0.1, "neutral": 0.7, "joy": 0.2})
 
     assert list(result) == ["neutral", "joy", "other"]
     assert max(result, key=result.__getitem__) == "neutral"
@@ -86,12 +85,15 @@ def test_confidence_abstention_selects_validation_threshold() -> None:
 
     assert threshold > 0.6
     assert result["coverage"] == 0.5
-    assert result["macro_f1_full_population"] > selective_metrics(
-        probabilities,
-        targets,
-        ("a", "b"),
-        threshold=0.0,
-    )["macro_f1_full_population"]
+    assert (
+        result["macro_f1_full_population"]
+        > selective_metrics(
+            probabilities,
+            targets,
+            ("a", "b"),
+            threshold=0.0,
+        )["macro_f1_full_population"]
+    )
 
 
 def test_load_affect_abstention_rejects_test_fitting(tmp_path: Path) -> None:

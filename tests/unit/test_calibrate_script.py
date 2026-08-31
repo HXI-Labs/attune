@@ -77,9 +77,7 @@ def test_affect_abstention_fit_never_uses_inspection_test_ids() -> None:
         }
         for index in range(2)
     ]
-    changed_test = [
-        {**row, "target": "none", "logits": [-10.0, 10.0]} for row in first_test
-    ]
+    changed_test = [{**row, "target": "none", "logits": [-10.0, 10.0]} for row in first_test]
 
     first = script.calibrate(validation + first_test, expected_test_clips=2)
     changed = script.calibrate(validation + changed_test, expected_test_clips=2)

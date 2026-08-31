@@ -31,9 +31,7 @@ def test_committed_common_voice_manifest_is_cc0_and_speaker_disjoint() -> None:
     assert all(0.5 <= row["duration_s"] <= 30 for row in rows)
     assert all(row["sample_rate_hz"] == 16_000 and row["channels"] == 1 for row in rows)
     assert all(len(row["sha256"]) == 64 for row in rows)
-    assert all(
-        row["fetch_script"] == "scripts/prepare_common_voice_british.py" for row in rows
-    )
+    assert all(row["fetch_script"] == "scripts/prepare_common_voice_british.py" for row in rows)
 
 
 def test_manifest_rejects_duplicate_client_id(tmp_path: Path) -> None:
@@ -64,3 +62,100 @@ def test_manifest_rejects_non_british_accent_claim(tmp_path: Path) -> None:
 
     with pytest.raises(CommonVoicePreparationError, match="British CC0 provenance"):
         load_manifest(manifest)
+
+
+def test_new_manifest_selection_skips_previously_used_speakers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    metadata = [
+        {
+            "client_id": client_id,
+            "sentence": f"sentence {index}",
+            "accent": "England English",
+            "path": f"clip-{index}.mp3",
+        }
+        for index, client_id in enumerate(
+            ["used-speaker", *[f"new-speaker-{item}" for item in range(80)]]
+        )
+    ]
+    monkeypatch.setattr(PREPARE_CV, "_stream_metadata", lambda: metadata)
+    monkeypatch.setattr(
+        PREPARE_CV,
+        "_source_row",
+        lambda index, _cache: {
+            **metadata[index],
+            "audio": [{"src": "pinned"}],
+        },
+    )
+    monkeypatch.setattr(PREPARE_CV, "_asset_url", lambda _row: "pinned")
+    monkeypatch.setattr(
+        PREPARE_CV,
+        "_convert",
+        lambda _url, _target: (1.0, "a" * 64, f"{len(list(tmp_path.rglob('*'))):064x}"),
+    )
+
+    rows = PREPARE_CV.create_manifest(
+        tmp_path / "new.jsonl",
+        tmp_path / "cache",
+        80,
+        excluded_clients={"used-speaker"},
+    )
+
+    assert len(rows) == 80
+    assert "used-speaker" not in {row["client_id"] for row in rows}
+
+
+def test_transcode_drift_is_opt_in_and_never_relaxes_source_hash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = {
+        "clip_id": "control-1",
+        "source_row_index": 7,
+        "client_id": "speaker-1",
+        "transcript": "ordinary speech",
+        "accent_value": "England English",
+        "cache_path": "clips/control.wav",
+        "sha256": "expected-converted",
+        "source_audio_sha256": "expected-source",
+        "duration_s": 1.0,
+    }
+    source_row = {
+        "client_id": row["client_id"],
+        "sentence": row["transcript"],
+        "accent": row["accent_value"],
+    }
+    monkeypatch.setattr(PREPARE_CV, "load_manifest", lambda _path: [row])
+    monkeypatch.setattr(PREPARE_CV, "_source_row", lambda *_args: source_row)
+    monkeypatch.setattr(PREPARE_CV, "_asset_url", lambda _row: "pinned-source")
+    monkeypatch.setattr(PREPARE_CV, "verify_audio", lambda *_args: None)
+
+    def convert(_url: str, target: Path) -> tuple[float, str, str]:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"derived audio")
+        return 1.0, "different-converted", "expected-source"
+
+    monkeypatch.setattr(PREPARE_CV, "_convert", convert)
+    with pytest.raises(CommonVoicePreparationError, match="reproduced WAV does not match"):
+        PREPARE_CV.download_manifest_rows(tmp_path / "manifest", tmp_path / "cache")
+
+    assert (
+        PREPARE_CV.download_manifest_rows(
+            tmp_path / "manifest",
+            tmp_path / "cache",
+            accept_transcode_drift=True,
+        )
+        == 1
+    )
+
+    def changed_source(_url: str, target: Path) -> tuple[float, str, str]:
+        target.write_bytes(b"changed source")
+        return 1.0, "different-converted", "changed-source"
+
+    (tmp_path / "cache" / row["cache_path"]).unlink()
+    monkeypatch.setattr(PREPARE_CV, "_convert", changed_source)
+    with pytest.raises(CommonVoicePreparationError, match="reproduced WAV does not match"):
+        PREPARE_CV.download_manifest_rows(
+            tmp_path / "manifest",
+            tmp_path / "cache",
+            accept_transcode_drift=True,
+        )

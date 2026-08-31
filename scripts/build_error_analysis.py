@@ -12,19 +12,14 @@ from typing import Any
 
 def categorical_confusion(records: list[dict[str, Any]]) -> dict[str, Any]:
     rows = [
-        record
-        for record in records
-        if record["reference_affect"] and record["emotion2vec_affect"]
+        record for record in records if record["reference_affect"] and record["emotion2vec_affect"]
     ]
     matrix = Counter(
-        (record["reference_affect"][0], record["emotion2vec_affect"])
-        for record in rows
+        (record["reference_affect"][0], record["emotion2vec_affect"]) for record in rows
     )
     return {
         "evaluated_clips": len(rows),
-        "labels": sorted(
-            {label for pair in matrix for label in pair}
-        ),
+        "labels": sorted({label for pair in matrix for label in pair}),
         "rows": [
             {"reference": reference, "prediction": prediction, "clips": count}
             for (reference, prediction), count in sorted(matrix.items())
@@ -32,11 +27,7 @@ def categorical_confusion(records: list[dict[str, Any]]) -> dict[str, Any]:
         "by_source": {
             source: categorical_confusion(source_rows)
             for source in sorted({row["source_dataset"] for row in rows})
-            if (
-                source_rows := [
-                    row for row in rows if row["source_dataset"] == source
-                ]
-            )
+            if (source_rows := [row for row in rows if row["source_dataset"] == source])
         }
         if len({row["source_dataset"] for row in rows}) > 1
         else {},
@@ -57,18 +48,15 @@ def annotation_errors(records: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         label: {
             "true_positive": sum(
-                label in row["expected_annotations"]
-                and label in row["cascade_annotations"]
+                label in row["expected_annotations"] and label in row["cascade_annotations"]
                 for row in records
             ),
             "false_positive": sum(
-                label not in row["expected_annotations"]
-                and label in row["cascade_annotations"]
+                label not in row["expected_annotations"] and label in row["cascade_annotations"]
                 for row in records
             ),
             "false_negative": sum(
-                label in row["expected_annotations"]
-                and label not in row["cascade_annotations"]
+                label in row["expected_annotations"] and label not in row["cascade_annotations"]
                 for row in records
             ),
         }
@@ -86,9 +74,7 @@ def ood_table(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         for source in sorted({record["source_dataset"] for record in records}):
             if source == in_domain:
                 continue
-            source_rows = [
-                record for record in records if record["source_dataset"] == source
-            ]
+            source_rows = [record for record in records if record["source_dataset"] == source]
             false_positives = sum(bool(record[key]) for record in source_rows)
             rows.append(
                 {
@@ -107,9 +93,7 @@ def runtime_slices(records: list[dict[str, Any]]) -> dict[str, Any]:
     for name, rows in {
         "combined": records,
         **{
-            source: [
-                record for record in records if record["source_dataset"] == source
-            ]
+            source: [record for record in records if record["source_dataset"] == source]
             for source in sorted({record["source_dataset"] for record in records})
         },
     }.items():

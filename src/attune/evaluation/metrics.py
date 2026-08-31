@@ -1,4 +1,4 @@
-"""Dependency-free metrics for Phase 1 baseline evaluation."""
+"""Dependency-free evaluation metrics."""
 
 from __future__ import annotations
 

@@ -370,6 +370,7 @@ def test_explicit_dcase_head_is_passed_to_cascade(
     assert "not DCASE localization" not in html
     assert "STARSS23 stays unwired" not in html or "DCASE frame timestamps omitted" not in html
 
+
 def test_omission_notes_distinguish_missing_vs_calibrated_affect() -> None:
     module = load_script()
     missing = module._omission_notes(
@@ -384,4 +385,3 @@ def test_omission_notes_distinguish_missing_vs_calibrated_affect() -> None:
     assert "emotion2vec+ is local" in present[0]
     assert "uniform placeholder" not in present[0]
     assert "VocalSound probe" in present[0]
-

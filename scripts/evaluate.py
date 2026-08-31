@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Phase 1 baselines against fixtures or the local inspection manifest."""
+"""Run baselines against fixtures or the local inspection manifest."""
 
 import argparse
 import importlib.metadata
@@ -29,9 +29,7 @@ def _inspection_run_metadata() -> dict[str, object]:
     return {
         "generated_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "source": {
-            "run_commit": subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], text=True
-            ).strip(),
+            "run_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
             "entrypoint": "scripts/evaluate.py --inspection-manifest",
             "model_downloads_during_evaluation": False,
             "offline_environment": {
@@ -62,8 +60,7 @@ def _inspection_run_metadata() -> dict[str, object]:
             "CREMA-D": "ODbL 1.0 database / DbCL 1.0 contents; Cao et al., 2014.",
             "Whisper-Small": "OpenAI Whisper; upstream MIT licence.",
             "SenseVoiceSmall": (
-                "FunASR/FunAudioLLM; FunASR Model Open Source License "
-                "Agreement v1.1."
+                "FunASR/FunAudioLLM; FunASR Model Open Source License Agreement v1.1."
             ),
             "emotion2vec+ base": "emotion2vec and FunASR/FunAudioLLM; FunASR model licence.",
         },

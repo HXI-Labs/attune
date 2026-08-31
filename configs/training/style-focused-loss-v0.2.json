@@ -1,0 +1,13 @@
+{
+  "ctc": 0.0,
+  "event": 0.0,
+  "boundary": 0.0,
+  "event_presence": 0.0,
+  "style": 1.0,
+  "affect": 0.0,
+  "vad": 0.0,
+  "ood": 0.0,
+  "paired": 0.0,
+  "counterfactual": 0.0,
+  "style_positive_alpha": 0.35
+}

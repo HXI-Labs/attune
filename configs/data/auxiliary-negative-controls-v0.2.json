@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "policy_id": "attune-auxiliary-negative-controls-v0.2",
+  "datasets": {
+    "common_voice_17_en": {
+      "event_presence": "explicit_negative",
+      "styles": "explicit_negative",
+      "rationale": "Validated read-speech clips provide ordinary-speech controls for discrete non-speech events and shouting/whispering false positives. Rare incidental annotation noise remains possible."
+    },
+    "crema_d_paired_v0.1": {
+      "event_presence": "explicit_negative",
+      "styles": "masked",
+      "rationale": "CREMA-D lexical speech provides event-negative controls, but acted intensity is not treated as negative or positive shouting supervision."
+    }
+  },
+  "default": {
+    "event_presence": "preserve_source_annotation",
+    "styles": "preserve_source_annotation"
+  }
+}

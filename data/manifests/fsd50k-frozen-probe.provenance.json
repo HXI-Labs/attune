@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "manifest": "data/manifests/fsd50k-frozen-probe.jsonl",
-  "manifest_sha256": "731bd38735ad1f3083938a4d5c74641249a0715f9012279c4a1171c945954698",
+  "manifest_sha256": "e8756fd894af7da15651a91dcb8bcb7fc71798554f9a9bcd299cd2e89c39ead3",
   "row_count": 320,
   "partition_counts": {
     "train": 256,

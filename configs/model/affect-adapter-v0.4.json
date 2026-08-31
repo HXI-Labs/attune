@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "status": "predeclared_before_fit",
+  "purpose": "Add CC0 same-text expressive acoustic diversity without modifying the CTC ASR path.",
+  "training_scores": {
+    "original_train": "artifacts/evaluation/aux-negative-v0.2/int8-train-scores.jsonl",
+    "thorsten_train": "artifacts/evaluation/thorsten-emotional-v0.1/train-raw.jsonl"
+  },
+  "selection_scores": {
+    "original_development": "artifacts/evaluation/aux-negative-v0.2/int8-development-scores.jsonl",
+    "thorsten_development": "artifacts/evaluation/thorsten-emotional-v0.1/development-raw.jsonl"
+  },
+  "diagnostic_scores": {
+    "original_opened_sealed": "artifacts/evaluation/aux-negative-v0.2/int8-sealed-scores.jsonl",
+    "thorsten_sealed": "artifacts/evaluation/thorsten-emotional-v0.1/sealed-raw.jsonl"
+  },
+  "external_evaluation_scores": {
+    "external_ravdess": "artifacts/evaluation/ravdess-affect-external-v0.1/int8-scores.jsonl"
+  },
+  "features": ["ood_embedding_32d", "affect_logits_8d", "vad_prediction_3d"],
+  "model": {
+    "type": "balanced_multinomial_logistic_regression",
+    "solver": "lbfgs",
+    "maximum_iterations": 2000,
+    "candidate_c": [0.01, 0.1, 1.0, 10.0],
+    "selection_order": [
+      "combined_development_macro_f1_descending",
+      "combined_development_cross_entropy_ascending",
+      "candidate_c_ascending"
+    ]
+  },
+  "calibration": {
+    "temperature_candidates": "geomspace(0.25, 10.0, 160)",
+    "temperature_objective": "combined_development_cross_entropy",
+    "abstention_threshold_source": "combined_development_only",
+    "minimum_selection_coverage": 0.5
+  },
+  "acceptance": {
+    "primary_external_report": "external_ravdess",
+    "external_ravdess_macro_f1_minimum": 0.4,
+    "external_ravdess_anger_recall_minimum": 0.7,
+    "external_maximum_predicted_class_share": 0.6,
+    "external_minimum_coverage": 0.5,
+    "external_selective_error_must_improve": true,
+    "additional_macro_f1_minimums": {
+      "original_development": 0.55,
+      "thorsten_sealed": 0.55
+    },
+    "asr_path_must_remain_byte_identical": true
+  },
+  "constraints": {
+    "ravdess_was_opened_by_v0.3": true,
+    "one_candidate_only": true,
+    "no_ravdess_parameter_selection": true,
+    "thorsten_is_german_single_speaker": true
+  },
+  "deployment_enabled": false
+}

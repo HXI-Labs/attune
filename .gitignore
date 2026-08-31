@@ -3,11 +3,20 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.hypothesis/
 .coverage
+.coverage.*
 htmlcov/
+build/
+dist/
+*.egg-info/
 .idea/
 .vscode/
 .DS_Store
+.env
+.env.*
+!.env.example
 
 # Local data and model artifacts; keep manifests/provenance tracked.
 data/raw/
@@ -26,6 +35,10 @@ model-cache/
 *.safetensors
 *.msgpack
 *.h5
+*.ses
 
 # Local demo audio; JSON/XML/HTML may be tracked.
 research/demo/*.wav
+
+# Generated WESR evaluation manifests retain third-party transcript markup.
+data/manifests/wesr-bench-*.jsonl

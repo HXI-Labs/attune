@@ -1,0 +1,21 @@
+FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    UV_LINK_MODE=copy \
+    UV_CACHE_DIR=/workspace/.uv-cache
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl git libsndfile1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && /root/.local/bin/uv python install 3.12
+
+ENV PATH="/root/.local/bin:${PATH}"
+WORKDIR /workspace/attune
+COPY pyproject.toml uv.lock README.md LICENSE ./
+COPY src ./src
+RUN uv sync --frozen --no-dev --extra torch --extra model-runners --extra deployment
+
+COPY configs ./configs
+COPY scripts ./scripts
+ENTRYPOINT ["uv", "run", "python", "scripts/train_joint.py"]

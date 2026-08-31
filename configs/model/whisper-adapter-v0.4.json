@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "status": "predeclared_before_fit",
+  "purpose": "Improve whisper recall while preserving the zero-false-style release posture.",
+  "training_scores": {
+    "original_train": "artifacts/evaluation/aux-negative-v0.2/int8-train-scores.jsonl",
+    "thorsten_train": "artifacts/evaluation/thorsten-emotional-v0.1/train-raw.jsonl"
+  },
+  "selection_scores": {
+    "original_development": "artifacts/evaluation/aux-negative-v0.2/int8-development-scores.jsonl",
+    "thorsten_development": "artifacts/evaluation/thorsten-emotional-v0.1/development-raw.jsonl"
+  },
+  "diagnostic_scores": {
+    "original_opened_sealed": "artifacts/evaluation/aux-negative-v0.2/int8-sealed-scores.jsonl",
+    "thorsten_sealed": "artifacts/evaluation/thorsten-emotional-v0.1/sealed-raw.jsonl",
+    "external_british_negative": "artifacts/evaluation/british-external-controls/int8-scores.jsonl"
+  },
+  "features": ["ood_embedding_32d", "style_logits_2d"],
+  "target": "whispering",
+  "model": {
+    "type": "balanced_binary_logistic_regression",
+    "solver": "lbfgs",
+    "maximum_iterations": 2000,
+    "candidate_c": [0.01, 0.1, 1.0, 10.0]
+  },
+  "acceptance": {
+    "minimums": [
+      ["original_opened_sealed", "recall", 0.75],
+      ["thorsten_sealed", "recall", 0.8]
+    ],
+    "maximums": [
+      ["original_opened_sealed", "false_positive_rate", 0.02],
+      ["external_british_negative", "false_positive_rate", 0.01]
+    ],
+    "asr_path_must_remain_byte_identical": true
+  },
+  "constraints": {
+    "deployment_remains_disabled_without_external_english_whisper_positives": true,
+    "shouting_remains_disabled": true,
+    "thorsten_is_german_single_speaker": true
+  },
+  "deployment_enabled": false
+}
