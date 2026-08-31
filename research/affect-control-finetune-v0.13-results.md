@@ -66,6 +66,11 @@ or styles. The API reports this composition as `int8+int8-affect`.
 This is runtime dynamic quantization, not a compressed standalone acoustic
 checkpoint. The packaged backbone remains FP32 on disk, so a portable
 quantized export and post-export parity check are still required for release.
+One direct ONNX trace was evaluated and rejected. On 24 RAVDESS clips, the
+FP32 graph agreed with PyTorch on 23 labels but had mean L1 probability drift
+of 0.0551; the quantized graph agreed on only 20 labels and drift rose to
+0.2250. The trace also dropped the padding-mask input. Neither graph is retained
+as a candidate.
 
 The reproducible training entry point is
 `scripts/fine_tune_truncated_affect_controls.py`. The selected checkpoint is
