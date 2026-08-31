@@ -44,6 +44,7 @@ class LossWeights:
     ood: float = 0.5
     paired: float = 0.2
     counterfactual: float = 0.0
+    style_positive_alpha: float = 0.75
 
 
 def _masked_mean(values: Tensor, mask: Tensor) -> Tensor:
@@ -231,7 +232,12 @@ def compute_joint_loss(
         mask = targets.style_example_mask
         if mask is None:
             mask = torch.ones_like(targets.style_targets, dtype=torch.bool)
-        losses["style"] = focal_binary_loss(output.style_logits, targets.style_targets, mask)
+        losses["style"] = focal_binary_loss(
+            output.style_logits,
+            targets.style_targets,
+            mask,
+            positive_alpha=weights.style_positive_alpha,
+        )
     if targets.affect_distribution is not None:
         per_example = -(targets.affect_distribution * output.affect_logits.log_softmax(-1)).sum(-1)
         mask = targets.affect_example_mask

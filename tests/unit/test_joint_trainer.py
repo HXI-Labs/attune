@@ -10,7 +10,7 @@ import torch
 from torch import nn
 from torch.utils.data import SequentialSampler
 
-from attune.models.joint import AttuneJointModel
+from attune.models.joint import AdaptationPolicy, AttuneJointModel
 from attune.training.losses import JointTargets
 from attune.training.trainer import (
     DurationBucketBatchSampler,
@@ -257,6 +257,23 @@ def test_targeted_training_freezes_every_unrelated_parameter(
     trainable = [name for name, parameter in model.named_parameters() if parameter.requires_grad]
     assert trainable
     assert all(name.startswith(prefixes) for name in trainable)
+
+
+def test_targeted_training_retains_configured_encoder_adaptation() -> None:
+    model = AttuneJointModel(
+        TinySenseVoice(),
+        adaptation_policy=AdaptationPolicy.UPPER_TWO,
+        hidden_size=8,
+        affect_embedding_size=4,
+    )
+
+    _restrict_training_target(model, "styles")
+
+    trainable = [name for name, parameter in model.named_parameters() if parameter.requires_grad]
+    assert any(name.startswith("sensevoice.encoder.encoders.") for name in trainable)
+    assert all(
+        name.startswith(("sensevoice.", "style_projection.", "style_head.")) for name in trainable
+    )
 
 
 def test_trainer_writes_small_delta_checkpoint(tmp_path: Path) -> None:

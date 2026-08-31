@@ -6,6 +6,7 @@ import torch
 from attune.models.joint import JointOutput
 from attune.training.losses import (
     JointTargets,
+    LossWeights,
     compute_joint_loss,
     counterfactual_affect_loss,
     focal_binary_loss,
@@ -89,6 +90,29 @@ def test_focal_binary_loss_upweights_sparse_positive_targets() -> None:
     negative = focal_binary_loss(logits[:, 1:], torch.zeros(1, 1), mask[:, 1:])
 
     assert torch.isclose(positive, negative * 3.0)
+
+
+def test_style_loss_supports_a_task_specific_class_balance() -> None:
+    output = _output()
+    with torch.no_grad():
+        output.style_logits.fill_(-2.0)
+    targets = JointTargets(
+        style_targets=torch.tensor([[1.0, 0.0]] * 3),
+        style_example_mask=torch.ones(3, 2, dtype=torch.bool),
+    )
+
+    positive_focused, _ = compute_joint_loss(
+        output,
+        targets,
+        LossWeights(style_positive_alpha=0.75),
+    )
+    negative_focused, _ = compute_joint_loss(
+        output,
+        targets,
+        LossWeights(style_positive_alpha=0.25),
+    )
+
+    assert positive_focused > negative_focused
 
 
 def test_dice_loss_is_not_diluted_by_unannotated_examples() -> None:

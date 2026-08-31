@@ -135,7 +135,8 @@ def _restrict_training_target(model: AttuneJointModel, target: str | None) -> No
     if prefixes is None:
         return
     for name, parameter in model.named_parameters():
-        if not name.startswith(prefixes):
+        is_adapted_encoder = name.startswith("sensevoice.") and parameter.requires_grad
+        if not name.startswith(prefixes) and not is_adapted_encoder:
             parameter.requires_grad_(False)
 
 
