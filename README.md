@@ -10,45 +10,24 @@ it does not claim to determine a speaker's internal emotional state. The JSON
 schema is authoritative. XML and bracketed transcripts are deterministic views
 generated from the validated result.
 
-## Current status
+## Cadence v0.13
 
-The latest model is the **v0.13 private accuracy candidate**.
+v0.13 is the current evaluation model. It keeps the 241,904,650-parameter
+Cadence INT8 graph for transcription, timing, and vocal events, and adds a
+57,937,364-parameter affect branch. The complete model uses **299,842,014 active
+parameters**.
 
-| | v0.13 candidate |
-|---|---|
-| Active parameters | 299,842,014 |
-| Cadence ASR/event base | 241,904,650 parameters |
-| Affect branch | 57,937,364 parameters |
-| Composition | Cadence INT8 ASR/event graph + truncated emotion2vec+ INT8 affect branch |
-| Output | Schema-v2 JSON, deterministic XML and readable bracketed transcript |
-| Enabled | ASR, word timing, conservative vocal events, affect spans, abstention |
-| Disabled | Vocal styles and V/A/D |
-| Model package | [Private Hugging Face candidate](https://huggingface.co/jbuaba/attune-cadence-242m/tree/main/candidate-v0.13) |
+The model returns transcripts, word timing, conservative vocal events,
+phrase-level perceived affect, and abstention. Vocal styles and dimensional
+valence, arousal, and dominance remain disabled until they pass the project's
+evaluation gates.
 
-The v0.13 branch was selected without using its external RAVDESS evaluation.
-Speaker-grouped five-fold evaluation on 607 development clips gives calibrated
-INT8 affect macro-F1 0.3702, compared with 0.3766 for FP32. On the separate
-480-clip RAVDESS evaluation, calibrated INT8 reaches 0.8694 at an affect-branch
-real-time factor of 0.072 on the development Mac.
+The [model package](https://huggingface.co/jbuaba/attune-cadence-242m/tree/main/candidate-v0.13)
+is currently private. v0.13 is intended for consented research and evaluation,
+not as a verified emotion detector or for automated high-stakes decisions.
 
-Four neutral system voices reading `I hate you, I hate you so much, never call
-me again` produce the exact transcript, no events, and no styles; three return
-neutral and one abstains. A joy-to-distress composite produces separate 0–4.0
-second joy and 4.0–8.075 second distress spans, then abstains globally because
-the spans disagree. These are regression controls, not human affect ground
-truth.
-
-The candidate is not cleared for public model release. Affect performance still
-varies substantially across corpora, the exact hostile-speech control needs a
-fresh consented human recording, and the derivative-weight redistribution
-review remains open. The system must not be used for diagnosis, deception
-detection, covert surveillance, protected-trait inference, or automated
-high-stakes decisions.
-
-See the [v0.13 results](research/affect-control-finetune-v0.13-results.md) for
-training, calibration, quantization, controls, and limitations. The original
-[v0.1 release protocol](research/release-cascade-v0.1-protocol.md) records the
-baseline composition and rejected style experiments.
+Detailed training, calibration, quantization, accuracy, controls, and known
+limitations are recorded in the [v0.13 results](research/affect-control-finetune-v0.13-results.md).
 
 ## Output
 
